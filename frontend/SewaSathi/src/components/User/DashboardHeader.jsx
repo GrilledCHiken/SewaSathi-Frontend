@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate, useOutletContext } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
+import UserMenu from "../UserMenu";
 
 function DashboardHeader({ searchPlaceholder = "Search..." }) {
   const { customer } = useAuth();
@@ -72,14 +73,7 @@ function DashboardHeader({ searchPlaceholder = "Search..." }) {
             <span className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-red-500 ring-2 ring-white" />
           </button>
 
-          <div className="flex items-center gap-2.5 rounded-full border border-slate-200 bg-white py-1 pl-1 pr-3">
-            <span className="flex h-9 w-9 items-center justify-center rounded-full bg-brand text-sm font-bold text-white">
-              {customer?.initials || "CU"}
-            </span>
-            <span className="hidden max-w-[140px] truncate text-sm font-medium text-slate-700 sm:inline">
-              {displayId}
-            </span>
-          </div>
+          <UserMenu initials={customer?.initials || "CU"} displayName={displayId} avatarClassName="bg-brand" />
         </div>
       </div>
     </header>

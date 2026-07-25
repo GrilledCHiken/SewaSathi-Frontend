@@ -29,13 +29,16 @@ public class AdminService {
         long totalUsers = userRepository.count();
         long totalWorkers = userRepository.countByRole(Role.WORKER);
         long totalCustomers = userRepository.countByRole(Role.CUSTOMER);
-        long pendingVerifications = userRepository.countByRoleAndStatus(Role.WORKER, ApprovalStatus.PENDING);
+        long pendingVerifications = listPendingWorkers().size();
         return new AdminOverviewResponse(totalUsers, totalWorkers, totalCustomers, pendingVerifications);
     }
 
     public List<PendingWorkerResponse> listPendingWorkers() {
         return userRepository.findByRoleAndStatusOrderByCreatedAtAsc(Role.WORKER, ApprovalStatus.PENDING).stream()
-                .map(user -> PendingWorkerResponse.from(user, workerProfileRepository.findByUserId(user.getId()).orElse(null)))
+                .map(user -> workerProfileRepository.findByUserId(user.getId())
+                        .map(profile -> PendingWorkerResponse.from(user, profile))
+                        .orElse(null))
+                .filter(response -> response != null && response.getVerificationSubmittedAt() != null)
                 .toList();
     }
 

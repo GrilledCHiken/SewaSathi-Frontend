@@ -15,6 +15,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "worker_profiles")
@@ -56,4 +57,22 @@ public class WorkerProfile {
     @Column(name = "tasks_completed")
     @Builder.Default
     private Integer tasksCompleted = 0;
+
+    @Column(length = 255)
+    private String address;
+
+    @Column(name = "years_of_experience", length = 50)
+    private String yearsOfExperience;
+
+    @Column(name = "police_clearance_url", length = 500)
+    private String policeClearanceUrl;
+
+    @Column(name = "citizenship_doc_url", length = 500)
+    private String citizenshipDocUrl;
+
+    @Column(name = "profile_photo_url", length = 500)
+    private String profilePhotoUrl;
+
+    @Column(name = "verification_submitted_at")
+    private LocalDateTime verificationSubmittedAt;
 }

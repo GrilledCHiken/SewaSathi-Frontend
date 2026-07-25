@@ -1,12 +1,15 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, Outlet } from "react-router-dom";
+import { toast } from "react-toastify";
 import WorkerSidebar from "./WorkerSidebar";
+import WorkerVerification from "../../pages/Worker/WorkerVerification";
 import { useAuth } from "../../context/AuthContext";
+import { getMyWorkerProfile } from "../../api/workerProfileApi";
 
 const STATUS_MESSAGES = {
   PENDING: {
     tone: "bg-amber-50 text-amber-800",
-    text: "Your worker account is still under review. We'll notify you once an admin approves it.",
+    text: "Your verification has been submitted and is under review. We'll notify you once an admin approves it.",
   },
   REJECTED: {
     tone: "bg-red-50 text-red-700",
@@ -16,9 +19,33 @@ const STATUS_MESSAGES = {
 
 function WorkerLayout() {
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [profile, setProfile] = useState(null);
+  const [profileChecked, setProfileChecked] = useState(false);
   const { user, logoutCustomer } = useAuth();
+  const needsProfileCheck = user?.status === "PENDING";
+
+  useEffect(() => {
+    if (needsProfileCheck) {
+      getMyWorkerProfile()
+        .then(setProfile)
+        .catch(() => toast.error("Could not load your verification status."))
+        .finally(() => setProfileChecked(true));
+    }
+  }, [needsProfileCheck]);
 
   if (user && user.status !== "APPROVED") {
+    if (user.status === "PENDING" && !profileChecked) {
+      return (
+        <div className="flex min-h-svh items-center justify-center bg-slate-50">
+          <div className="h-8 w-8 animate-spin rounded-full border-2 border-brand border-t-transparent" />
+        </div>
+      );
+    }
+
+    if (user.status === "PENDING" && !profile?.verificationSubmittedAt) {
+      return <WorkerVerification profile={profile} onSubmitted={setProfile} />;
+    }
+
     const message = STATUS_MESSAGES[user.status] || STATUS_MESSAGES.PENDING;
     return (
       <div className="flex min-h-svh flex-col items-center justify-center bg-slate-50 px-4 py-12 text-center">

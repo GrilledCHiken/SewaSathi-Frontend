@@ -80,6 +80,7 @@ function App() {
         <Route path="/signup" element={<Signupoption />} />
         <Route path="/signup/user" element={<UserSignup />} />
         <Route path="/signup/worker" element={<WorkerSignup />} />
+        
         <Route
           path="/services"
           element={

@@ -1,5 +1,6 @@
 import { useOutletContext } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
+import UserMenu from "../UserMenu";
 
 function WorkerHeader({ title = "Worker Dashboard" }) {
   const { customer } = useAuth();
@@ -26,14 +27,7 @@ function WorkerHeader({ title = "Worker Dashboard" }) {
         </div>
 
         <div className="flex flex-1 items-center justify-end gap-3 sm:ml-auto">
-          <div className="flex items-center gap-2.5 rounded-full border border-slate-200 bg-white py-1 pl-1 pr-3">
-            <span className="flex h-9 w-9 items-center justify-center rounded-full bg-emerald-600 text-sm font-bold text-white">
-              {customer?.initials || "WK"}
-            </span>
-            <span className="hidden max-w-[160px] truncate text-sm font-medium text-slate-700 sm:inline">
-              {displayId}
-            </span>
-          </div>
+          <UserMenu initials={customer?.initials || "WK"} displayName={displayId} avatarClassName="bg-emerald-600" />
         </div>
       </div>
     </header>

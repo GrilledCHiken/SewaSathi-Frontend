@@ -6,14 +6,17 @@ import com.sewasathi.entity.ApprovalStatus;
 import com.sewasathi.entity.Role;
 import com.sewasathi.entity.User;
 import com.sewasathi.entity.WorkerProfile;
+import com.sewasathi.exception.InvalidOperationException;
 import com.sewasathi.exception.ResourceNotFoundException;
 import com.sewasathi.repository.UserRepository;
 import com.sewasathi.repository.WorkerProfileRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Service
@@ -59,6 +62,56 @@ public class WorkerService {
         profile.setHourlyRate(request.getHourlyRate());
         profile.setLocation(request.getLocation() != null ? request.getLocation().trim() : null);
         profile.setBio(request.getBio() != null ? request.getBio().trim() : null);
+        profile = workerProfileRepository.save(profile);
+
+        return WorkerSummaryResponse.from(user, profile);
+    }
+
+    @Transactional
+    public WorkerSummaryResponse submitVerification(
+            String email,
+            String fullName,
+            String phone,
+            String city,
+            String address,
+            String skills,
+            String yearsOfExperience,
+            BigDecimal hourlyRate,
+            String bio,
+            String policeClearanceUrl,
+            String citizenshipDocUrl,
+            String profilePhotoUrl
+    ) {
+        if (!StringUtils.hasText(policeClearanceUrl)) {
+            throw new InvalidOperationException("A police clearance report is required for verification");
+        }
+        if (!StringUtils.hasText(citizenshipDocUrl)) {
+            throw new InvalidOperationException("A citizenship/ID document is required for verification");
+        }
+
+        User user = getWorkerUser(email);
+        WorkerProfile profile = getProfileOrThrow(user.getId());
+
+        if (StringUtils.hasText(fullName)) {
+            user.setFullName(fullName.trim());
+        }
+        if (StringUtils.hasText(phone)) {
+            user.setPhone(phone.trim());
+        }
+        userRepository.save(user);
+
+        profile.setLocation(city != null ? city.trim() : null);
+        profile.setAddress(address != null ? address.trim() : null);
+        profile.setSkills(skills != null ? skills.trim() : null);
+        profile.setYearsOfExperience(yearsOfExperience != null ? yearsOfExperience.trim() : null);
+        profile.setHourlyRate(hourlyRate);
+        profile.setBio(bio != null ? bio.trim() : null);
+        profile.setPoliceClearanceUrl(policeClearanceUrl);
+        profile.setCitizenshipDocUrl(citizenshipDocUrl);
+        if (StringUtils.hasText(profilePhotoUrl)) {
+            profile.setProfilePhotoUrl(profilePhotoUrl);
+        }
+        profile.setVerificationSubmittedAt(LocalDateTime.now());
         profile = workerProfileRepository.save(profile);
 
         return WorkerSummaryResponse.from(user, profile);

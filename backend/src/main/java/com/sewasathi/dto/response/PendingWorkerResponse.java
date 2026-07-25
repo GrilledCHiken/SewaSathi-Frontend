@@ -19,7 +19,13 @@ public class PendingWorkerResponse {
     private String skills;
     private BigDecimal hourlyRate;
     private String location;
+    private String address;
+    private String yearsOfExperience;
     private String bio;
+    private String policeClearanceUrl;
+    private String citizenshipDocUrl;
+    private String profilePhotoUrl;
+    private LocalDateTime verificationSubmittedAt;
 
     public static PendingWorkerResponse from(User user, WorkerProfile profile) {
         return new PendingWorkerResponse(
@@ -31,7 +37,13 @@ public class PendingWorkerResponse {
                 profile != null ? profile.getSkills() : null,
                 profile != null ? profile.getHourlyRate() : null,
                 profile != null ? profile.getLocation() : null,
-                profile != null ? profile.getBio() : null
+                profile != null ? profile.getAddress() : null,
+                profile != null ? profile.getYearsOfExperience() : null,
+                profile != null ? profile.getBio() : null,
+                profile != null ? profile.getPoliceClearanceUrl() : null,
+                profile != null ? profile.getCitizenshipDocUrl() : null,
+                profile != null ? profile.getProfilePhotoUrl() : null,
+                profile != null ? profile.getVerificationSubmittedAt() : null
         );
     }
 }

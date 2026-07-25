@@ -88,23 +88,11 @@ const TRUST_POINTS = [
   '24/7 customer support',
 ]
 
-const WORKER_STATUS_MESSAGES = {
-  PENDING: {
-    tone: 'bg-amber-50 text-amber-800',
-    text: 'Your worker account is under review. We’ll notify you once an admin approves it.',
-  },
-  REJECTED: {
-    tone: 'bg-red-50 text-red-700',
-    text: 'Your worker application wasn’t approved. Contact support for details.',
-  },
-}
-
 function Login() {
   const [showPassword, setShowPassword] = useState(false)
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
-  const [workerStatus, setWorkerStatus] = useState(null)
   const { isCustomerAuthenticated, user, login } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
@@ -119,7 +107,7 @@ function Login() {
     return <Navigate to="/admin" replace />
   }
 
-  if (user?.role === 'WORKER' && user?.status === 'APPROVED') {
+  if (user?.role === 'WORKER') {
     return <Navigate to="/worker" replace />
   }
 
@@ -128,17 +116,13 @@ function Login() {
     setLoading(true)
     try {
       const sessionUser = await login({ email: email.trim(), password })
+      toast.success('Welcome back!')
       if (sessionUser.role === 'ADMIN') {
-        toast.success('Welcome back!')
         navigate('/admin', { replace: true })
       } else if (sessionUser.role === 'CUSTOMER') {
-        toast.success('Welcome back!')
         navigate(from, { replace: true })
-      } else if (sessionUser.role === 'WORKER' && sessionUser.status === 'APPROVED') {
-        toast.success('Welcome back!')
+      } else if (sessionUser.role === 'WORKER') {
         navigate('/worker', { replace: true })
-      } else {
-        setWorkerStatus(sessionUser.status)
       }
     } catch (err) {
       toast.error(err.response?.data?.message || 'Invalid email or password')
@@ -219,106 +203,94 @@ function Login() {
             </p>
           </div>
 
-          {workerStatus ? (
-            <div
-              className={`mt-8 rounded-xl px-4 py-4 text-sm font-medium ${WORKER_STATUS_MESSAGES[workerStatus].tone}`}
-            >
-              {WORKER_STATUS_MESSAGES[workerStatus].text}
+          <form className="mt-8 space-y-5" onSubmit={handleSubmit}>
+            <div>
+              <label htmlFor="email" className="block text-sm font-semibold text-slate-800">
+                Email
+              </label>
+              <div className="group relative mt-2">
+                <span className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 transition group-focus-within:text-brand">
+                  <MailIcon />
+                </span>
+                <input
+                  id="email"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="you@example.com"
+                  autoComplete="email"
+                  required
+                  className="w-full rounded-xl border border-slate-200 bg-white py-3.5 pl-11 pr-11 text-slate-800 shadow-sm transition placeholder:text-slate-400 focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/20"
+                />
+                <span className="pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2">
+                  <MailVerifiedIcon />
+                </span>
+              </div>
             </div>
-          ) : (
-            <form className="mt-8 space-y-5" onSubmit={handleSubmit}>
-              <div>
-                <label htmlFor="email" className="block text-sm font-semibold text-slate-800">
-                  Email
+
+            <div>
+              <div className="flex items-center justify-between">
+                <label htmlFor="password" className="text-sm font-semibold text-slate-800">
+                  Password
                 </label>
-                <div className="group relative mt-2">
-                  <span className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 transition group-focus-within:text-brand">
-                    <MailIcon />
-                  </span>
-                  <input
-                    id="email"
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="you@example.com"
-                    autoComplete="email"
-                    required
-                    className="w-full rounded-xl border border-slate-200 bg-white py-3.5 pl-11 pr-11 text-slate-800 shadow-sm transition placeholder:text-slate-400 focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/20"
-                  />
-                  <span className="pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2">
-                    <MailVerifiedIcon />
-                  </span>
-                </div>
+                <Link
+                  to="/forgot-password"
+                  className="text-sm font-medium text-brand transition hover:text-brand-dark"
+                >
+                  Forgot password?
+                </Link>
               </div>
-
-              <div>
-                <div className="flex items-center justify-between">
-                  <label htmlFor="password" className="text-sm font-semibold text-slate-800">
-                    Password
-                  </label>
-                  <Link
-                    to="/forgot-password"
-                    className="text-sm font-medium text-brand transition hover:text-brand-dark"
-                  >
-                    Forgot password?
-                  </Link>
-                </div>
-                <div className="group relative mt-2">
-                  <span className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 transition group-focus-within:text-brand">
-                    <LockIcon />
-                  </span>
-                  <input
-                    id="password"
-                    type={showPassword ? 'text' : 'password'}
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    placeholder="Enter your password"
-                    autoComplete="current-password"
-                    required
-                    className="w-full rounded-xl border border-slate-200 bg-white py-3.5 pl-11 pr-11 text-slate-800 shadow-sm transition placeholder:text-slate-400 focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/20"
-                  />
-                  <button
-                    type="button"
-                    className="absolute right-3.5 top-1/2 -translate-y-1/2 rounded-md p-0.5 transition hover:text-slate-600"
-                    onClick={() => setShowPassword((v) => !v)}
-                    aria-label={showPassword ? 'Hide password' : 'Show password'}
-                  >
-                    <EyeIcon open={showPassword} />
-                  </button>
-                </div>
+              <div className="group relative mt-2">
+                <span className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 transition group-focus-within:text-brand">
+                  <LockIcon />
+                </span>
+                <input
+                  id="password"
+                  type={showPassword ? 'text' : 'password'}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="Enter your password"
+                  autoComplete="current-password"
+                  required
+                  className="w-full rounded-xl border border-slate-200 bg-white py-3.5 pl-11 pr-11 text-slate-800 shadow-sm transition placeholder:text-slate-400 focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/20"
+                />
+                <button
+                  type="button"
+                  className="absolute right-3.5 top-1/2 -translate-y-1/2 rounded-md p-0.5 transition hover:text-slate-600"
+                  onClick={() => setShowPassword((v) => !v)}
+                  aria-label={showPassword ? 'Hide password' : 'Show password'}
+                >
+                  <EyeIcon open={showPassword} />
+                </button>
               </div>
+            </div>
 
-              <button
-                type="submit"
-                disabled={loading}
-                className="flex w-full items-center justify-center gap-2 rounded-xl bg-brand py-3.5 text-base font-semibold text-white shadow-md shadow-brand/25 transition hover:bg-brand-dark hover:shadow-lg hover:shadow-brand/30 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                {loading ? 'Signing in...' : 'Sign In'}
-                {!loading && <ArrowRightIcon />}
-              </button>
-            </form>
-          )}
+            <button
+              type="submit"
+              disabled={loading}
+              className="flex w-full items-center justify-center gap-2 rounded-xl bg-brand py-3.5 text-base font-semibold text-white shadow-md shadow-brand/25 transition hover:bg-brand-dark hover:shadow-lg hover:shadow-brand/30 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {loading ? 'Signing in...' : 'Sign In'}
+              {!loading && <ArrowRightIcon />}
+            </button>
+          </form>
 
-          {!workerStatus && (
-            <>
-              <div className="relative my-7">
-                <div className="absolute inset-0 flex items-center" aria-hidden="true">
-                  <div className="w-full border-t border-slate-200" />
-                </div>
-                <div className="relative flex justify-center">
-                  <span className="bg-white px-3 text-sm text-slate-400">Or continue with</span>
-                </div>
-              </div>
+          <div className="relative my-7">
+            <div className="absolute inset-0 flex items-center" aria-hidden="true">
+              <div className="w-full border-t border-slate-200" />
+            </div>
+            <div className="relative flex justify-center">
+              <span className="bg-white px-3 text-sm text-slate-400">Or continue with</span>
+            </div>
+          </div>
 
-              <button
-                type="button"
-                className="flex w-full items-center justify-center gap-2.5 rounded-xl border border-slate-200 bg-white py-3.5 text-base font-medium text-slate-700 transition hover:border-slate-300 hover:bg-slate-50 active:scale-[0.99]"
-              >
-                <PhoneIcon />
-                Phone Number
-              </button>
-            </>
-          )}
+          <button
+            type="button"
+            className="flex w-full items-center justify-center gap-2.5 rounded-xl border border-slate-200 bg-white py-3.5 text-base font-medium text-slate-700 transition hover:border-slate-300 hover:bg-slate-50 active:scale-[0.99]"
+          >
+            <PhoneIcon />
+            Phone Number
+          </button>
         </div>
 
         <p className="mt-8 text-sm text-slate-600">

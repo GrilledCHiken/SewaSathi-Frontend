@@ -1,5 +1,4 @@
-import { NavLink, useNavigate } from "react-router-dom";
-import { useAuth } from "../../context/AuthContext";
+import { NavLink } from "react-router-dom";
 
 function LogoIcon() {
   return (
@@ -80,14 +79,6 @@ function navLinkClass({ isActive }) {
 }
 
 function WorkerSidebar({ mobileOpen, onCloseMobile }) {
-  const navigate = useNavigate();
-  const { logoutCustomer } = useAuth();
-
-  const handleSignOut = () => {
-    logoutCustomer();
-    navigate("/login", { replace: true });
-  };
-
   const sidebarContent = (
     <>
       <div className="border-b border-slate-200 px-5 py-5">
@@ -116,42 +107,6 @@ function WorkerSidebar({ mobileOpen, onCloseMobile }) {
           </NavLink>
         ))}
       </nav>
-
-      <div className="space-y-1 border-t border-slate-200 px-3 py-4">
-        <NavLink
-          to="/"
-          className={({ isActive }) =>
-            [
-              "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition",
-              isActive
-                ? "bg-slate-100 text-slate-900"
-                : "text-slate-600 hover:bg-slate-100 hover:text-slate-900",
-            ].join(" ")
-          }
-          onClick={onCloseMobile}
-        >
-          <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
-            <path d="M9 22V12h6v10" />
-          </svg>
-          Back to Home
-        </NavLink>
-        <button
-          type="button"
-          onClick={() => {
-            onCloseMobile?.();
-            handleSignOut();
-          }}
-          className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-slate-600 transition hover:bg-slate-100 hover:text-slate-900"
-        >
-          <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
-            <polyline points="16 17 21 12 16 7" />
-            <line x1="21" y1="12" x2="9" y2="12" />
-          </svg>
-          Sign Out
-        </button>
-      </div>
     </>
   );
 

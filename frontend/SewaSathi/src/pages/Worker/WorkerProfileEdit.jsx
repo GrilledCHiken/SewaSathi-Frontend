@@ -2,20 +2,7 @@ import { useEffect, useState } from "react";
 import { toast } from "react-toastify";
 import WorkerHeader from "../../components/Worker/WorkerHeader";
 import { getMyWorkerProfile, updateMyWorkerProfile } from "../../api/workerProfileApi";
-
-const SKILL_OPTIONS = [
-  "Furniture Assembly",
-  "Mounting",
-  "Cleaning",
-  "Plumbing",
-  "Electrical",
-  "Home Repair",
-  "Moving Help",
-  "Gardening",
-  "Painting",
-];
-
-const LOCATION_OPTIONS = ["Kathmandu", "Lalitpur", "Pokhara", "Bhaktapur", "Biratnagar"];
+import { SKILL_OPTIONS, LOCATION_OPTIONS } from "../../constants/workerOptions";
 
 const MAX_BIO_LENGTH = 500;
 

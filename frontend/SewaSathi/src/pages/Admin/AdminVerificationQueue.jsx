@@ -3,6 +3,13 @@ import { toast } from "react-toastify";
 import AdminHeader from "../../components/Admin/AdminHeader";
 import { approveWorker, listPendingWorkers, rejectWorker } from "../../api/adminApi";
 
+const UPLOADS_BASE_URL = (import.meta.env.VITE_API_BASE_URL || "http://localhost:8080/api").replace(/\/api\/?$/, "");
+
+function docUrl(path) {
+  if (!path) return null;
+  return `${UPLOADS_BASE_URL}${path}`;
+}
+
 function formatDate(iso) {
   if (!iso) return "";
   return new Date(iso).toLocaleDateString("en-US", {
@@ -79,8 +86,11 @@ export default function AdminVerificationQueue() {
                       {worker.email} · {worker.phone}
                     </p>
                     <p className="mt-0.5 text-xs text-slate-400">
-                      Applied {formatDate(worker.createdAt)}
+                      Verification submitted {formatDate(worker.verificationSubmittedAt)}
                     </p>
+                    {worker.address && (
+                      <p className="mt-1 text-sm text-slate-500">{worker.address}</p>
+                    )}
 
                     <div className="mt-3 flex flex-wrap gap-1.5">
                       {worker.skills
@@ -100,6 +110,11 @@ export default function AdminVerificationQueue() {
                           {worker.location}
                         </span>
                       )}
+                      {worker.yearsOfExperience && (
+                        <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-600">
+                          {worker.yearsOfExperience}
+                        </span>
+                      )}
                       {worker.hourlyRate != null && (
                         <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-600">
                           NPR {worker.hourlyRate}/hr
@@ -110,6 +125,39 @@ export default function AdminVerificationQueue() {
                     {worker.bio && (
                       <p className="mt-3 text-sm text-slate-600">{worker.bio}</p>
                     )}
+
+                    <div className="mt-3 flex flex-wrap gap-3">
+                      {worker.policeClearanceUrl && (
+                        <a
+                          href={docUrl(worker.policeClearanceUrl)}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="text-xs font-semibold text-brand underline underline-offset-2 hover:text-brand-dark"
+                        >
+                          View Police Clearance Report
+                        </a>
+                      )}
+                      {worker.citizenshipDocUrl && (
+                        <a
+                          href={docUrl(worker.citizenshipDocUrl)}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="text-xs font-semibold text-brand underline underline-offset-2 hover:text-brand-dark"
+                        >
+                          View Citizenship / ID
+                        </a>
+                      )}
+                      {worker.profilePhotoUrl && (
+                        <a
+                          href={docUrl(worker.profilePhotoUrl)}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="text-xs font-semibold text-brand underline underline-offset-2 hover:text-brand-dark"
+                        >
+                          View Profile Photo
+                        </a>
+                      )}
+                    </div>
                   </div>
 
                   <div className="flex shrink-0 gap-2">
