@@ -1,0 +1,46 @@
+# --- Backend (Java / Maven) ---
+backend/target/
+backend/HELP.md
+backend/.mvn/wrapper/maven-wrapper.jar
+backend/src/main/resources/application.properties
+backend/uploads/
+backend/*.log
+
+# --- Frontend (Node / Vite) ---
+frontend/SewaSathi/node_modules/
+frontend/SewaSathi/dist/
+frontend/SewaSathi/dist-ssr/
+frontend/SewaSathi/.env
+frontend/SewaSathi/*.local
+frontend/SewaSathi/*.log
+
+# --- Logs (either project) ---
+*.log
+logs/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# --- IDE / editor ---
+.vscode/
+.idea/
+*.iml
+*.iws
+*.ipr
+.classpath
+.factorypath
+.project
+.settings/
+.springBeans
+.sts4-cache/
+.apt_generated/
+
+# --- AI tooling / local assistant config ---
+.claude/
+.qodo/
+
+# --- OS ---
+.DS_Store
+Thumbs.db
