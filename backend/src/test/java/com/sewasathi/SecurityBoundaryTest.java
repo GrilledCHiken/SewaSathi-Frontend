@@ -49,7 +49,7 @@ class SecurityBoundaryTest {
     void authenticatedWrongRole_isForbiddenNotUnauthorized() throws Exception {
         String email = "boundary-worker-" + System.currentTimeMillis() + "@example.com";
         String registerBody = """
-                {"fullName":"Boundary Worker","email":"%s","phone":"9800000099","password":"password123"}
+                {"fullName":"Boundary Worker","email":"%s","phone":"9800000099","password":"BoundaryPass1!"}
                 """.formatted(email);
 
         MvcResult registerResult = mockMvc.perform(post("/api/auth/register/worker")

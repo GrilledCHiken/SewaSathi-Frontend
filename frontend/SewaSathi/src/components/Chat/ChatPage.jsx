@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { toast } from "react-toastify";
 import { useAuth } from "../../context/AuthContext";
 import useChatSocket from "../../hooks/useChatSocket";
@@ -15,6 +16,8 @@ const AVATAR_PALETTE = [
   { bg: "bg-violet-100", text: "text-violet-700" },
   { bg: "bg-cyan-100", text: "text-cyan-700" },
 ];
+
+const EMPTY_MESSAGES = [];
 
 const ALLOWED_ATTACHMENT_TYPES =
   "image/jpeg,image/png,image/gif,image/webp,application/pdf,application/msword,.docx,text/plain";
@@ -169,38 +172,57 @@ function MessageBubble({ message, isSelf, otherInitials, otherPalette, selfIniti
 export default function ChatPage({ renderHeader }) {
   const { user } = useAuth();
   const { connected, subscribeToTask, sendMessage } = useChatSocket();
+  // Task pages link here as /messages?taskId=123 to open that task's thread.
+  const [searchParams] = useSearchParams();
+  const requestedTaskId = Number(searchParams.get("taskId")) || null;
 
   const [conversations, setConversations] = useState([]);
   const [loadingConversations, setLoadingConversations] = useState(true);
   const [selectedTaskId, setSelectedTaskId] = useState(null);
-  const [messages, setMessages] = useState([]);
-  const [loadingMessages, setLoadingMessages] = useState(true);
+  // Messages are stored with the task they belong to, so switching conversations
+  // swaps the thread during render instead of flashing the previous one.
+  const [thread, setThread] = useState({ taskId: null, items: EMPTY_MESSAGES });
   const [convSearch, setConvSearch] = useState("");
   const [draft, setDraft] = useState("");
   const [mobileShowChat, setMobileShowChat] = useState(false);
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef(null);
   const scrollRef = useRef(null);
+  const stickToBottomRef = useRef(true);
 
   useEffect(() => {
     listConversations()
       .then((data) => {
         setConversations(data);
-        if (data.length > 0) setSelectedTaskId(data[0].taskId);
+        if (data.length === 0) return;
+        const requested = data.find((c) => c.taskId === requestedTaskId);
+        setSelectedTaskId(requested ? requested.taskId : data[0].taskId);
+        if (requested) setMobileShowChat(true);
       })
       .catch(() => toast.error("Could not load your conversations."))
       .finally(() => setLoadingConversations(false));
-  }, []);
+  }, [requestedTaskId]);
 
   useEffect(() => {
     if (!selectedTaskId) return undefined;
+    let stale = false;
     getMessageHistory(selectedTaskId)
-      .then(setMessages)
-      .catch(() => toast.error("Could not load this conversation."))
-      .finally(() => setLoadingMessages(false));
+      .then((items) => {
+        if (!stale) setThread({ taskId: selectedTaskId, items });
+      })
+      .catch(() => {
+        if (stale) return;
+        toast.error("Could not load this conversation.");
+        setThread({ taskId: selectedTaskId, items: EMPTY_MESSAGES });
+      });
 
     const unsubscribe = subscribeToTask(selectedTaskId, (incoming) => {
-      setMessages((prev) => (prev.some((m) => m.id === incoming.id) ? prev : [...prev, incoming]));
+      setThread((prev) => {
+        if (prev.taskId !== incoming.taskId || prev.items.some((m) => m.id === incoming.id)) {
+          return prev;
+        }
+        return { taskId: prev.taskId, items: [...prev.items, incoming] };
+      });
       setConversations((prev) => {
         const idx = prev.findIndex((c) => c.taskId === incoming.taskId);
         if (idx === -1) return prev;
@@ -210,13 +232,27 @@ export default function ChatPage({ renderHeader }) {
       });
     });
 
-    return unsubscribe;
+    return () => {
+      stale = true;
+      unsubscribe?.();
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedTaskId]);
 
+  const threadLoaded = thread.taskId === selectedTaskId;
+  const messages = threadLoaded ? thread.items : EMPTY_MESSAGES;
+  const loadingMessages = !threadLoaded;
+
   useEffect(() => {
-    scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight });
-  }, [messages]);
+    const el = scrollRef.current;
+    if (!el || loadingMessages || !stickToBottomRef.current) return;
+    el.scrollTop = el.scrollHeight;
+  }, [messages, loadingMessages]);
+
+  const handleMessagesScroll = (e) => {
+    const el = e.currentTarget;
+    stickToBottomRef.current = el.scrollHeight - el.scrollTop - el.clientHeight < 120;
+  };
 
   const filteredConversations = useMemo(() => {
     const q = convSearch.trim().toLowerCase();
@@ -234,6 +270,7 @@ export default function ChatPage({ renderHeader }) {
   const selfInitials = initialsOf(user?.fullName);
 
   const handleSelectConversation = (taskId) => {
+    stickToBottomRef.current = true;
     setSelectedTaskId(taskId);
     setMobileShowChat(true);
   };
@@ -241,6 +278,7 @@ export default function ChatPage({ renderHeader }) {
   const handleSend = () => {
     const text = draft.trim();
     if (!text || !selectedTaskId) return;
+    stickToBottomRef.current = true;
     const sent = sendMessage(selectedTaskId, text);
     if (!sent) {
       toast.error("Not connected. Please wait a moment and try again.");
@@ -275,15 +313,15 @@ export default function ChatPage({ renderHeader }) {
   const messageGroups = useMemo(() => groupByDate(messages), [messages]);
 
   return (
-    <div className="flex min-h-svh flex-1 flex-col">
+    <div className="flex h-svh flex-col overflow-hidden">
       {renderHeader?.()}
 
       <main className="flex min-h-0 flex-1 flex-col px-4 py-4 sm:px-6 lg:px-8">
-        <div className="mx-auto flex h-[calc(100svh-8.5rem)] min-h-[480px] w-full max-w-6xl flex-1 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+        <div className="mx-auto flex min-h-0 w-full max-w-6xl flex-1 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
           {/* Conversation list */}
           <aside
             className={[
-              "flex w-full flex-col border-r border-slate-200 lg:w-[340px] lg:shrink-0",
+              "flex min-h-0 w-full flex-col border-r border-slate-200 lg:w-[340px] lg:shrink-0",
               mobileShowChat ? "hidden lg:flex" : "flex",
             ].join(" ")}
           >
@@ -310,7 +348,7 @@ export default function ChatPage({ renderHeader }) {
               </div>
             </div>
 
-            <ul className="flex-1 space-y-1 overflow-y-auto p-2">
+            <ul className="min-h-0 flex-1 space-y-1 overflow-y-auto p-2">
               {loadingConversations ? (
                 <li className="px-3 py-6 text-center text-sm text-slate-500">Loading...</li>
               ) : filteredConversations.length === 0 ? (
@@ -334,7 +372,7 @@ export default function ChatPage({ renderHeader }) {
           {/* Chat panel */}
           <section
             className={[
-              "flex min-w-0 flex-1 flex-col",
+              "flex min-h-0 min-w-0 flex-1 flex-col",
               mobileShowChat ? "flex" : "hidden lg:flex",
             ].join(" ")}
           >
@@ -345,7 +383,7 @@ export default function ChatPage({ renderHeader }) {
             ) : (
               <>
                 {/* Chat header */}
-                <div className="flex items-center gap-3 border-b border-slate-200 px-4 py-3">
+                <div className="flex shrink-0 items-center gap-3 border-b border-slate-200 px-4 py-3">
                   <button
                     type="button"
                     className="rounded-lg p-2 text-slate-600 hover:bg-slate-100 lg:hidden"
@@ -374,7 +412,11 @@ export default function ChatPage({ renderHeader }) {
                 </div>
 
                 {/* Messages */}
-                <div ref={scrollRef} className="flex-1 overflow-y-auto bg-slate-50/80 px-4 py-4">
+                <div
+                  ref={scrollRef}
+                  onScroll={handleMessagesScroll}
+                  className="min-h-0 flex-1 overflow-y-auto bg-slate-50/80 px-4 py-4"
+                >
                   {loadingMessages ? (
                     <p className="text-center text-sm text-slate-500">Loading messages...</p>
                   ) : (
@@ -405,7 +447,7 @@ export default function ChatPage({ renderHeader }) {
                 </div>
 
                 {/* Input */}
-                <div className="border-t border-slate-200 bg-white px-4 py-3">
+                <div className="shrink-0 border-t border-slate-200 bg-white px-4 py-3">
                   <div className="flex gap-2">
                     <div className="relative flex-1">
                       <textarea
@@ -414,7 +456,7 @@ export default function ChatPage({ renderHeader }) {
                         onKeyDown={handleKeyDown}
                         placeholder="Type a message..."
                         rows={1}
-                        className="max-h-32 min-h-[44px] w-full resize-none rounded-xl border border-slate-200 bg-slate-50 py-2.5 pl-4 pr-10 text-sm focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/20"
+                        className="h-11 w-full resize-none overflow-y-auto rounded-xl border border-slate-200 bg-slate-50 py-2.5 pl-4 pr-10 text-sm focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/20"
                         aria-label="Message input"
                       />
                       <input

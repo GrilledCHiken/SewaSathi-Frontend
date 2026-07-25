@@ -58,20 +58,16 @@ export function AuthProvider({ children }) {
     return sessionUser;
   }, []);
 
+  // Registration creates the account only — the token returned by the API is
+  // deliberately discarded so the user has to sign in before reaching a dashboard.
   const registerCustomer = useCallback(async (payload) => {
-    const { token, user } = await authApi.registerCustomer(payload);
-    setToken(token);
-    const sessionUser = toSessionUser(user);
-    setSession(sessionUser);
-    return sessionUser;
+    const { user } = await authApi.registerCustomer(payload);
+    return toSessionUser(user);
   }, []);
 
   const registerWorker = useCallback(async (payload) => {
-    const { token, user } = await authApi.registerWorker(payload);
-    setToken(token);
-    const sessionUser = toSessionUser(user);
-    setSession(sessionUser);
-    return sessionUser;
+    const { user } = await authApi.registerWorker(payload);
+    return toSessionUser(user);
   }, []);
 
   const logout = useCallback(() => {

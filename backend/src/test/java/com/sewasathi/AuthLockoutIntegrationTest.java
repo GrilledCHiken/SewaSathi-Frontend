@@ -25,7 +25,7 @@ class AuthLockoutIntegrationTest {
     void fifthFailedAttempt_locksAccountEvenOnSubsequentCorrectPassword() throws Exception {
         String email = "lockout-itest-" + System.currentTimeMillis() + "@example.com";
         String registerBody = """
-                {"fullName":"Lockout Itest","email":"%s","phone":"9800000030","password":"correctPassword1"}
+                {"fullName":"Lockout Itest","email":"%s","phone":"9800000030","password":"CorrectPass1!"}
                 """.formatted(email);
         mockMvc.perform(post("/api/auth/register/customer")
                         .contentType("application/json")
@@ -43,7 +43,7 @@ class AuthLockoutIntegrationTest {
         }
 
         String correctLoginBody = """
-                {"email":"%s","password":"correctPassword1"}
+                {"email":"%s","password":"CorrectPass1!"}
                 """.formatted(email);
         mockMvc.perform(post("/api/auth/login")
                         .contentType("application/json")

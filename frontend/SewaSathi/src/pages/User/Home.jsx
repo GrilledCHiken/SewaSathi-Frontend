@@ -1,51 +1,12 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import Reveal from "../../components/User/Reveal";
+import SectionHeading from "../../components/User/SectionHeading";
+import ServiceIcon from "../../components/User/ServiceIcon";
+import StarRating from "../../components/User/StarRating";
+import { POPULAR_SERVICES } from "../../data/services";
 import heroImage from "../../assets/images/hero-moving.jpg";
 import testimonialImage from "../../assets/images/testimonial.jpg";
-
-const POPULAR_SERVICES = [
-  {
-    name: "Furniture Assembly",
-    description: "Expert assembly for beds, desks, shelves, and more.",
-    icon: "furniture",
-  },
-  {
-    name: "Home Cleaning",
-    description: "Deep cleaning and regular upkeep for every room.",
-    icon: "cleaning",
-  },
-  {
-    name: "Mounting",
-    description: "TVs, shelves, art, and fixtures mounted securely.",
-    icon: "mounting",
-  },
-  {
-    name: "Moving Help",
-    description: "Loading, unloading, and heavy lifting assistance.",
-    icon: "moving",
-  },
-  {
-    name: "Plumbing",
-    description: "Leaks, fixtures, and pipe repairs done right.",
-    icon: "plumbing",
-  },
-  {
-    name: "Electrical",
-    description: "Wiring, outlets, and lighting installations.",
-    icon: "electrical",
-  },
-  {
-    name: "Handyman",
-    description: "General repairs and small home improvement tasks.",
-    icon: "handyman",
-  },
-  {
-    name: "Painting",
-    description: "Interior and exterior painting with a clean finish.",
-    icon: "painting",
-  },
-];
 
 const HOW_IT_WORKS_STEPS = [
   {
@@ -72,19 +33,41 @@ const HOW_IT_WORKS_STEPS = [
 ];
 
 const SAFETY_FEATURES = [
-  { label: "Background Checked", icon: "shield" },
-  { label: "Insurance Covered", icon: "insurance" },
-  { label: "Secure Payments", icon: "payment" },
-  { label: "Verified Reviews", icon: "reviews" },
-  { label: "24/7 Support", icon: "support" },
+  {
+    label: "Background Checked",
+    description: "Identity and record verification before a tasker's first job.",
+    icon: "shield",
+  },
+  {
+    label: "Insurance Covered",
+    description: "Every booking is protected against damage and accidents.",
+    icon: "insurance",
+  },
+  {
+    label: "Secure Payments",
+    description: "Pay through eSewa or Khalti — funds release only on completion.",
+    icon: "payment",
+  },
+  {
+    label: "Verified Reviews",
+    description: "Ratings come only from customers with a completed booking.",
+    icon: "reviews",
+  },
+  {
+    label: "24/7 Support",
+    description: "Our Kathmandu-based team is reachable any hour, any day.",
+    icon: "support",
+  },
 ];
 
 const STATS = [
-  { value: "12,500+", label: "Taskers", icon: "users" },
-  { value: "3,200+", label: "Services", icon: "services" },
-  { value: "50,000+", label: "Happy Customers", icon: "customers" },
-  { value: "98%", label: "Satisfaction Rate", icon: "star" },
+  { value: "12,500+", label: "Verified taskers" },
+  { value: "3,200+", label: "Services offered" },
+  { value: "50,000+", label: "Happy customers" },
+  { value: "98%", label: "Satisfaction rate" },
 ];
+
+const POPULAR_SEARCHES = ["Cleaning", "Handyman", "Plumbing", "Moving"];
 
 const TESTIMONIALS = [
   {
@@ -110,179 +93,42 @@ const TESTIMONIALS = [
   },
 ];
 
-const AVATARS = [
-  "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=80&q=80",
-  "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=80&q=80",
-  "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?auto=format&fit=crop&w=80&q=80",
-  "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&w=80&q=80",
+const TASKER_BENEFITS = [
+  {
+    title: "Set your own rates",
+    description: "You price your work. We never take a cut of your tips.",
+  },
+  {
+    title: "Work when you want",
+    description: "Accept only the jobs that fit your week — no minimum hours.",
+  },
+  {
+    title: "Get paid securely",
+    description: "Payments land in your wallet within 24 hours of completion.",
+  },
 ];
 
-const ICONS = {
-  furniture: (
-    <path
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      strokeWidth={1.75}
-      d="M4 10h16M6 10V6a2 2 0 012-2h2m4 0h2a2 2 0 012 2v4m-8 0v8m4-8v8"
-    />
-  ),
-  cleaning: (
-    <path
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      strokeWidth={1.75}
-      d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
-    />
-  ),
-  mounting: (
-    <path
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      strokeWidth={1.75}
-      d="M4 6h16M4 12h16M4 18h7"
-    />
-  ),
-  moving: (
-    <path
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      strokeWidth={1.75}
-      d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"
-    />
-  ),
-  plumbing: (
-    <path
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      strokeWidth={1.75}
-      d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4v4m8-4v4m-8 4h8"
-    />
-  ),
-  electrical: (
-    <path
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      strokeWidth={1.75}
-      d="M13 10V3L4 14h7v7l9-11h-7z"
-    />
-  ),
-  handyman: (
-    <path
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      strokeWidth={1.75}
-      d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"
-    />
-  ),
-  painting: (
-    <path
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      strokeWidth={1.75}
-      d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01"
-    />
-  ),
-  book: (
-    <path
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      strokeWidth={1.75}
-      d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
-    />
-  ),
-  match: (
-    <path
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      strokeWidth={1.75}
-      d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"
-    />
-  ),
-  complete: (
-    <path
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      strokeWidth={1.75}
-      d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-    />
-  ),
-  shield: (
-    <path
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      strokeWidth={1.75}
-      d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"
-    />
-  ),
-  insurance: (
-    <path
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      strokeWidth={1.75}
-      d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-    />
-  ),
-  payment: (
-    <path
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      strokeWidth={1.75}
-      d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"
-    />
-  ),
-  reviews: (
-    <path
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      strokeWidth={1.75}
-      d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"
-    />
-  ),
-  support: (
-    <path
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      strokeWidth={1.75}
-      d="M18.364 5.636l-3.536 3.536m0 5.656l3.536 3.536M9.172 9.172L5.636 5.636m3.536 9.192l-3.536 3.536M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-5 0a4 4 0 11-8 0 4 4 0 018 0z"
-    />
-  ),
-  users: (
-    <path
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      strokeWidth={1.75}
-      d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"
-    />
-  ),
-  services: (
-    <path
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      strokeWidth={1.75}
-      d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"
-    />
-  ),
-  customers: (
-    <path
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      strokeWidth={1.75}
-      d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-    />
-  ),
-  star: (
-    <path
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      strokeWidth={1.75}
-      d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"
-    />
-  ),
-};
+// Matches the deterministic avatar palette used across the dashboard
+// (src/components/tasks/taskUi.jsx).
+const AVATAR_PALETTE = [
+  "bg-sky-100 text-sky-700",
+  "bg-emerald-100 text-emerald-700",
+  "bg-amber-100 text-amber-700",
+  "bg-violet-100 text-violet-700",
+  "bg-rose-100 text-rose-700",
+];
 
-function ServiceIcon({ name, className = "h-6 w-6" }) {
-  const path = ICONS[name] ?? ICONS.handyman;
+const initialsOf = (name) =>
+  name
+    .split(" ")
+    .slice(0, 2)
+    .map((part) => part[0])
+    .join("")
+    .toUpperCase();
 
+const serviceHref = (name) => `/services?search=${encodeURIComponent(name)}`;
+
+function CheckIcon({ className = "h-5 w-5" }) {
   return (
     <svg
       className={className}
@@ -291,35 +137,37 @@ function ServiceIcon({ name, className = "h-6 w-6" }) {
       stroke="currentColor"
       aria-hidden="true"
     >
-      {path}
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={2}
+        d="M5 13l4 4L19 7"
+      />
     </svg>
   );
 }
 
-function StarRating({ rating }) {
+function ArrowIcon({ className = "h-4 w-4" }) {
   return (
-    <div className="flex gap-0.5" aria-label={`${rating} out of 5 stars`}>
-      {Array.from({ length: 5 }, (_, i) => (
-        <svg
-          key={i}
-          className={`h-5 w-5 ${
-            i < rating ? "text-amber-400" : "text-slate-300"
-          }`}
-          fill="currentColor"
-          viewBox="0 0 20 20"
-          aria-hidden="true"
-        >
-          <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-        </svg>
-      ))}
-    </div>
+    <svg
+      className={className}
+      fill="none"
+      viewBox="0 0 24 24"
+      stroke="currentColor"
+      aria-hidden="true"
+    >
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={2}
+        d="M9 5l7 7-7 7"
+      />
+    </svg>
   );
 }
 
 function Home() {
   const [query, setQuery] = useState("");
-  const [activeTestimonial, setActiveTestimonial] = useState(0);
-  const currentTestimonial = TESTIMONIALS[activeTestimonial];
   const navigate = useNavigate();
 
   const handleSearch = (e) => {
@@ -328,34 +176,47 @@ function Home() {
     navigate(trimmed ? `/services?search=${encodeURIComponent(trimmed)}` : "/services");
   };
 
+  const featuredServices = POPULAR_SERVICES.filter((s) => s.featured);
+  const compactServices = POPULAR_SERVICES.filter((s) => !s.featured);
+
   return (
     <div className="flex-1 bg-white">
+      {/* ---------------------------------------------------------------- */}
       {/* Hero */}
+      {/* ---------------------------------------------------------------- */}
       <section className="relative overflow-hidden bg-white">
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top_left,rgba(43,140,255,0.08),transparent_50%),radial-gradient(ellipse_at_bottom_right,rgba(16,185,129,0.06),transparent_50%)]" />
         <div className="pointer-events-none absolute -left-32 top-1/4 h-72 w-72 rounded-full bg-brand/10 blur-3xl" />
         <div className="pointer-events-none absolute -right-24 -top-16 h-72 w-72 rounded-full bg-emerald-300/10 blur-3xl" />
 
         <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="grid items-center gap-12 py-16 lg:grid-cols-2 lg:gap-16 lg:py-24">
-            <div className="animate-fade-up">
-              <span className="inline-flex items-center gap-2 rounded-full bg-emerald-50 px-4 py-1.5 text-sm font-medium text-emerald-700 ring-1 ring-emerald-200/80 transition hover:bg-emerald-100">
-                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-                Top-rated professionals at your fingertips
+          <div className="grid items-center gap-12 py-16 lg:grid-cols-12 lg:gap-16 lg:py-24">
+            {/* Copy column — 7 of 12 */}
+            <div className="animate-fade-up lg:col-span-7">
+              <span className="inline-flex items-center gap-2 rounded-full bg-emerald-50 px-4 py-1.5 text-sm font-medium text-emerald-700 ring-1 ring-emerald-200/80">
+                <svg
+                  className="h-4 w-4 text-amber-400"
+                  fill="currentColor"
+                  viewBox="0 0 20 20"
+                  aria-hidden="true"
+                >
+                  <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                </svg>
+                4.8 average rating · Trusted by 50,000+ across Nepal
               </span>
 
-              <h1 className="mt-6 text-4xl font-extrabold leading-[1.1] tracking-tight text-slate-900 sm:text-5xl lg:text-[3.25rem]">
+              <h1 className="mt-6 text-[2.75rem] font-extrabold leading-[1.05] tracking-tight text-slate-900 sm:text-6xl lg:text-[4rem]">
                 Trusted help{" "}
                 <span className="text-brand">is always nearby</span>
               </h1>
 
-              <p className="mt-5 max-w-xl text-lg leading-relaxed text-slate-600">
+              <p className="mt-6 max-w-xl text-lg leading-relaxed text-slate-600 sm:text-xl">
                 Book verified local professionals for cleaning, repairs, moving,
                 and more — safely, simply, and affordably across Nepal.
               </p>
 
               <form
-                className="mt-8 flex max-w-xl flex-col gap-3 sm:flex-row sm:items-stretch"
+                className="mt-9 flex max-w-xl flex-col gap-3 sm:flex-row sm:items-stretch"
                 onSubmit={handleSearch}
               >
                 <div className="relative flex flex-1 items-center rounded-2xl border border-slate-200 bg-white shadow-sm shadow-slate-200/50 transition focus-within:border-brand focus-within:ring-2 focus-within:ring-brand/20">
@@ -391,24 +252,23 @@ function Home() {
                 </button>
               </form>
 
-              <div className="mt-5 flex flex-wrap gap-3">
-                {[
-                  { label: "Popular: Cleaning", term: "Cleaning" },
-                  { label: "Popular: Handyman", term: "Handyman" },
-                ].map(({ label, term }) => (
+              <div className="mt-5 flex flex-wrap items-center gap-2">
+                <span className="text-sm text-slate-500">Popular:</span>
+                {POPULAR_SEARCHES.map((term) => (
                   <button
-                    key={label}
+                    key={term}
                     type="button"
-                    onClick={() => navigate(`/services?search=${encodeURIComponent(term)}`)}
-                    className="rounded-full border border-slate-200 bg-slate-50 px-4 py-2 text-sm font-medium text-slate-700 transition hover:border-brand/40 hover:bg-brand/5 hover:text-brand"
+                    onClick={() => navigate(serviceHref(term))}
+                    className="rounded-full border border-slate-200 bg-slate-50 px-4 py-1.5 text-sm font-medium text-slate-700 transition hover:border-brand/40 hover:bg-brand/5 hover:text-brand"
                   >
-                    {label}
+                    {term}
                   </button>
                 ))}
               </div>
             </div>
 
-            <div className="relative animate-fade-up-delay">
+            {/* Image column — 5 of 12 */}
+            <div className="relative animate-fade-up-delay lg:col-span-5">
               <div className="relative overflow-hidden rounded-3xl shadow-2xl shadow-slate-300/40 ring-1 ring-slate-200/80">
                 <img
                   src={heroImage}
@@ -418,22 +278,22 @@ function Home() {
                 <div className="absolute inset-0 bg-gradient-to-t from-slate-900/20 via-transparent to-transparent" />
               </div>
 
-              <div className="absolute -bottom-4 left-4 right-4 mx-auto max-w-sm rounded-2xl border border-slate-100 bg-white p-4 shadow-xl shadow-slate-200/60 transition hover:-translate-y-0.5 sm:left-6 sm:right-auto sm:max-w-xs">
+              {/* Floating anchor — top left */}
+              <div className="absolute -left-3 top-6 rounded-2xl border border-slate-100 bg-white px-4 py-3 shadow-xl shadow-slate-200/60 sm:-left-6">
+                <div className="flex items-center gap-2">
+                  <StarRating rating={5} className="h-4 w-4" />
+                  <span className="text-sm font-bold text-slate-900">4.8</span>
+                </div>
+                <p className="mt-0.5 text-xs font-medium text-slate-500">
+                  from 12,000+ reviews
+                </p>
+              </div>
+
+              {/* Floating anchor — bottom */}
+              <div className="absolute -bottom-5 left-4 right-4 rounded-2xl border border-slate-100 bg-white p-4 shadow-xl shadow-slate-200/60 transition hover:-translate-y-0.5 sm:left-auto sm:-right-4 sm:max-w-[16rem]">
                 <div className="flex items-start gap-3">
                   <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-emerald-100 text-emerald-600">
-                    <svg
-                      className="h-5 w-5"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M5 13l4 4L19 7"
-                      />
-                    </svg>
+                    <CheckIcon />
                   </span>
                   <div>
                     <p className="text-sm font-semibold text-slate-900">
@@ -447,252 +307,416 @@ function Home() {
               </div>
             </div>
           </div>
+
+          {/* Stat band — closes the hero */}
+          <div className="grid grid-cols-2 gap-y-8 border-t border-slate-200/70 py-10 sm:grid-cols-4 sm:divide-x sm:divide-slate-200/70 lg:py-12">
+            {STATS.map((stat, index) => (
+              <Reveal
+                key={stat.label}
+                delay={index % 4}
+                className="px-2 text-center sm:px-6"
+              >
+                <p className="text-3xl font-extrabold tracking-tight text-slate-900 sm:text-4xl">
+                  {stat.value}
+                </p>
+                <p className="mt-1 text-sm text-slate-500">{stat.label}</p>
+              </Reveal>
+            ))}
+          </div>
         </div>
       </section>
 
-      {/* Popular Services */}
-      <section className="bg-slate-50 py-20 lg:py-24" id="services">
+      {/* ---------------------------------------------------------------- */}
+      {/* Popular services — bento grid */}
+      {/* ---------------------------------------------------------------- */}
+      <section className="bg-slate-50 py-20 lg:py-28" id="services">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <Reveal className="mx-auto max-w-2xl text-center">
-            <h2 className="text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">
-              Popular services in your area
-            </h2>
-            <p className="mt-4 text-lg text-slate-600">
-              Browse trusted professionals for the most requested home services
-              near you.
-            </p>
-          </Reveal>
+          <div className="sm:flex sm:items-end sm:justify-between sm:gap-8">
+            <SectionHeading
+              align="left"
+              eyebrow="What we do"
+              title="Popular services in your area"
+              description="Browse trusted professionals for the most requested home services near you."
+            />
+            <Reveal className="mt-6 shrink-0 sm:mt-0 sm:pb-2">
+              <Link
+                to="/services"
+                className="group inline-flex items-center gap-1.5 text-base font-semibold text-brand transition hover:text-brand-dark"
+              >
+                View all services
+                <ArrowIcon className="h-4 w-4 transition group-hover:translate-x-0.5" />
+              </Link>
+            </Reveal>
+          </div>
 
-          <div className="mt-14 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
-            {POPULAR_SERVICES.map((service, index) => (
+          <div className="mt-12 grid gap-5 sm:grid-cols-2 lg:grid-cols-6">
+            {/* Two featured cards — half width each on lg */}
+            {featuredServices.map((service, index) => (
               <Reveal
                 key={service.name}
                 as={Link}
-                to="/services"
-                delay={index % 4}
-                className="group flex flex-col rounded-2xl border border-slate-200/80 bg-white p-6 shadow-sm transition duration-300 hover:-translate-y-1 hover:border-brand/30 hover:shadow-lg hover:shadow-brand/10"
+                to={serviceHref(service.name)}
+                delay={index}
+                className="group flex flex-col rounded-2xl border border-slate-200/80 bg-white p-7 shadow-sm transition duration-300 hover:-translate-y-1 hover:border-brand/30 hover:shadow-lg hover:shadow-brand/10 sm:col-span-2 lg:col-span-3"
               >
-                <span className="flex h-12 w-12 items-center justify-center rounded-xl bg-brand/10 text-brand transition group-hover:bg-brand group-hover:text-white">
-                  <ServiceIcon name={service.icon} />
-                </span>
-                <h3 className="mt-4 text-lg font-semibold text-slate-900 group-hover:text-brand">
+                <div className="flex items-start justify-between gap-4">
+                  <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-brand/10 text-brand transition group-hover:bg-brand group-hover:text-white">
+                    <ServiceIcon name={service.icon} className="h-7 w-7" />
+                  </span>
+                  <span className="rounded-full bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-700">
+                    Most booked
+                  </span>
+                </div>
+
+                <h3 className="mt-5 text-xl font-semibold text-slate-900 transition group-hover:text-brand">
                   {service.name}
                 </h3>
                 <p className="mt-2 flex-1 text-sm leading-relaxed text-slate-600">
                   {service.description}
                 </p>
-                <span className="mt-4 inline-flex items-center text-sm font-medium text-brand opacity-0 transition group-hover:opacity-100">
-                  Book now
-                  <svg
-                    className="ml-1 h-4 w-4"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M9 5l7 7-7 7"
-                    />
-                  </svg>
-                </span>
-              </Reveal>
-            ))}
-          </div>
 
-          <div className="mt-12 text-center">
-            <Link
-              to="/services"
-              className="inline-flex items-center justify-center rounded-full bg-navy px-8 py-3.5 text-base font-semibold text-white shadow-lg transition hover:bg-navy-light hover:shadow-xl active:scale-[0.98]"
-            >
-              View All Services
-            </Link>
-          </div>
-        </div>
-      </section>
-
-      {/* How it works */}
-      <section className="bg-white py-20 lg:py-24" id="how-it-works">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <Reveal className="mx-auto max-w-2xl text-center">
-            <h2 className="text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">
-              How SewaSathi works
-            </h2>
-            <p className="mt-4 text-lg text-slate-600">
-              Get help in three simple steps — from booking to a job well done.
-            </p>
-          </Reveal>
-
-          <div className="mt-16 grid gap-10 md:grid-cols-3 md:gap-8">
-            {HOW_IT_WORKS_STEPS.map((item, index) => (
-              <Reveal
-                key={item.step}
-                delay={index % 4}
-                className="group relative rounded-2xl border border-slate-100 bg-slate-50/50 p-8 text-center transition duration-300 hover:border-brand/20 hover:bg-white hover:shadow-lg hover:shadow-slate-200/60"
-              >
-                {index < HOW_IT_WORKS_STEPS.length - 1 && (
-                  <span
-                    className="absolute right-0 top-1/2 hidden h-px w-8 translate-x-full bg-slate-200 md:block lg:w-16"
-                    aria-hidden="true"
-                  />
-                )}
-                <span className="text-sm font-bold text-brand">
-                  Step {item.step}
-                </span>
-                <span className="mx-auto mt-6 flex h-14 w-14 items-center justify-center rounded-2xl bg-brand/10 text-brand transition group-hover:scale-110 group-hover:bg-brand group-hover:text-white">
-                  <ServiceIcon name={item.icon} className="h-7 w-7" />
-                </span>
-                <h3 className="mt-5 text-xl font-semibold text-slate-900">
-                  {item.title}
-                </h3>
-                <p className="mt-3 text-sm leading-relaxed text-slate-600">
-                  {item.description}
-                </p>
-              </Reveal>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Safety / Trust */}
-      <section className="bg-navy py-20 lg:py-24" id="safety">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <Reveal className="mx-auto max-w-3xl text-center">
-            <h2 className="text-3xl font-bold tracking-tight text-white sm:text-4xl">
-              Your safety is our highest priority
-            </h2>
-            <p className="mt-4 text-lg leading-relaxed text-slate-400">
-              Every tasker is vetted, insured, and reviewed so you can book with
-              complete confidence — whether it is a quick fix or a full-day
-              project.
-            </p>
-            <div className="mt-8 flex flex-col items-center justify-center gap-4 sm:flex-row">
-              <Link
-                to="/safety"
-                className="inline-flex w-full items-center justify-center rounded-full bg-white px-8 py-3.5 text-base font-semibold text-navy transition hover:bg-slate-100 active:scale-[0.98] sm:w-auto"
-              >
-                Our Safety Policy
-              </Link>
-              <Link
-                to="/about"
-                className="inline-flex w-full items-center justify-center rounded-full border border-slate-600 px-8 py-3.5 text-base font-semibold text-white transition hover:border-slate-400 hover:bg-white/5 active:scale-[0.98] sm:w-auto"
-              >
-                Learn More
-              </Link>
-            </div>
-          </Reveal>
-
-          <div className="mt-14 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
-            {SAFETY_FEATURES.map((feature, index) => (
-              <Reveal
-                key={feature.label}
-                delay={index % 4}
-                className="flex flex-col items-center rounded-2xl border border-slate-800 bg-slate-900/50 p-6 text-center transition duration-300 hover:border-slate-600 hover:bg-slate-800/80"
-              >
-                <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-brand/20 text-brand">
-                  <ServiceIcon name={feature.icon} className="h-5 w-5" />
-                </span>
-                <p className="mt-4 text-sm font-medium text-slate-300">
-                  {feature.label}
-                </p>
-              </Reveal>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Testimonial */}
-      <section className="bg-white py-20 lg:py-24">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <Reveal className="grid items-center gap-12 lg:grid-cols-2 lg:gap-16" as="div">
-            <div className="relative overflow-hidden rounded-3xl shadow-xl shadow-slate-200/60 ring-1 ring-slate-200/80">
-              <img
-                src={testimonialImage}
-                alt="Happy SewaSathi customer"
-                className="aspect-square w-full object-cover transition duration-500 hover:scale-[1.02]"
-              />
-            </div>
-
-            <div>
-              <p className="text-sm font-semibold uppercase tracking-wider text-brand">
-                What our customers say
-              </p>
-              <h2 className="mt-3 text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">
-                Trusted by thousands across Nepal
-              </h2>
-
-              <blockquote className="mt-8 min-h-[120px]">
-                <p className="text-xl leading-relaxed text-slate-700 transition-opacity duration-300 sm:text-2xl">
-                  &ldquo;{currentTestimonial.quote}&rdquo;
-                </p>
-              </blockquote>
-
-              <footer className="mt-8">
-                <p className="text-lg font-semibold text-slate-900">
-                  {currentTestimonial.author}
-                </p>
-                <p className="text-sm text-slate-500">
-                  {currentTestimonial.role}
-                </p>
-                <div className="mt-3">
-                  <StarRating rating={currentTestimonial.rating} />
+                <div className="mt-5 flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-slate-100 pt-4">
+                  <span className="inline-flex items-center gap-1.5 text-xs font-medium text-slate-500">
+                    <StarRating rating={5} className="h-3.5 w-3.5" />
+                    <span className="font-semibold text-slate-900">
+                      {service.rating}
+                    </span>
+                    · {service.reviews} reviews
+                  </span>
+                  <span className="text-xs font-medium text-slate-500">
+                    {service.workers} pros available
+                  </span>
                 </div>
-              </footer>
+              </Reveal>
+            ))}
 
-              <div
-                className="mt-8 flex gap-2"
-                role="tablist"
-                aria-label="Testimonials"
+            {/* Six compact cards — a third of the row each on lg */}
+            {compactServices.map((service, index) => (
+              <Reveal
+                key={service.name}
+                as={Link}
+                to={serviceHref(service.name)}
+                delay={index % 4}
+                className="group flex flex-col rounded-2xl border border-slate-200/80 bg-white p-6 shadow-sm transition duration-300 hover:-translate-y-1 hover:border-brand/30 hover:shadow-lg hover:shadow-brand/10 lg:col-span-2"
               >
-                {TESTIMONIALS.map((_, index) => (
-                  <button
-                    key={index}
-                    type="button"
-                    role="tab"
-                    aria-selected={activeTestimonial === index}
-                    aria-label={`View testimonial ${index + 1}`}
-                    onClick={() => setActiveTestimonial(index)}
-                    className={`h-2.5 rounded-full transition-all duration-300 ${
-                      activeTestimonial === index
-                        ? "w-8 bg-brand"
-                        : "w-2.5 bg-slate-300 hover:bg-slate-400"
-                    }`}
-                  />
+                <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-brand/10 text-brand transition group-hover:bg-brand group-hover:text-white">
+                  <ServiceIcon name={service.icon} className="h-5 w-5" />
+                </span>
+                <h3 className="mt-4 text-lg font-semibold text-slate-900 transition group-hover:text-brand">
+                  {service.name}
+                </h3>
+                <p className="mt-2 flex-1 text-sm leading-relaxed text-slate-600">
+                  {service.description}
+                </p>
+                <span className="mt-4 inline-flex items-center gap-1 text-sm font-medium text-brand opacity-0 transition group-hover:opacity-100">
+                  Book now
+                  <ArrowIcon />
+                </span>
+              </Reveal>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ---------------------------------------------------------------- */}
+      {/* How it works */}
+      {/* ---------------------------------------------------------------- */}
+      <section className="bg-white py-20 lg:py-28" id="how-it-works">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <SectionHeading
+            eyebrow="Simple by design"
+            title="How SewaSathi works"
+            description="Get help in three simple steps — from booking to a job well done."
+          />
+
+          <div className="relative mt-16">
+            {/* Single dashed connector, center-of-icon to center-of-icon.
+                Sits behind the opaque cards, so the dashes only show in the
+                gutters. 3.75rem = card p-8 (2rem) + half the h-14 tile. */}
+            <span
+              className="absolute left-[16.6%] right-[16.6%] top-[3.75rem] hidden border-t border-dashed border-slate-300 md:block"
+              aria-hidden="true"
+            />
+
+            <div className="relative grid gap-8 md:grid-cols-3">
+              {HOW_IT_WORKS_STEPS.map((item, index) => (
+                <Reveal
+                  key={item.step}
+                  delay={index % 4}
+                  className="group relative overflow-hidden rounded-2xl border border-slate-200/80 bg-white p-8 transition duration-300 hover:-translate-y-1 hover:border-brand/20 hover:shadow-lg hover:shadow-slate-200/60"
+                >
+                  {/* Oversized ghost numeral for scale contrast */}
+                  <span
+                    className="pointer-events-none absolute -top-2 right-4 text-7xl font-extrabold leading-none text-slate-100 transition group-hover:text-brand/10"
+                    aria-hidden="true"
+                  >
+                    {String(item.step).padStart(2, "0")}
+                  </span>
+
+                  <span className="relative flex h-14 w-14 items-center justify-center rounded-2xl bg-brand/10 text-brand transition group-hover:scale-110 group-hover:bg-brand group-hover:text-white">
+                    <ServiceIcon name={item.icon} className="h-7 w-7" />
+                  </span>
+                  <h3 className="relative mt-6 text-xl font-semibold text-slate-900">
+                    {item.title}
+                  </h3>
+                  <p className="relative mt-3 text-sm leading-relaxed text-slate-600">
+                    {item.description}
+                  </p>
+                </Reveal>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ---------------------------------------------------------------- */}
+      {/* Safety / Trust */}
+      {/* ---------------------------------------------------------------- */}
+      <section className="relative overflow-hidden bg-navy py-20 lg:py-28" id="safety">
+        <div className="pointer-events-none absolute -left-24 top-1/3 h-80 w-80 rounded-full bg-brand/10 blur-3xl" />
+        <div className="pointer-events-none absolute -right-20 bottom-0 h-72 w-72 rounded-full bg-emerald-400/10 blur-3xl" />
+
+        <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <div className="grid gap-12 lg:grid-cols-12 lg:gap-16">
+            <div className="lg:col-span-5">
+              <SectionHeading
+                align="left"
+                tone="dark"
+                eyebrow="Safety first"
+                title="Your safety is our highest priority"
+                description="Every tasker is vetted, insured, and reviewed so you can book with complete confidence — whether it is a quick fix or a full-day project."
+              />
+              <Reveal className="mt-8 flex flex-col gap-4 sm:flex-row">
+                <Link
+                  to="/safety"
+                  className="inline-flex items-center justify-center rounded-full bg-white px-8 py-3.5 text-base font-semibold text-navy transition hover:bg-slate-100 active:scale-[0.98]"
+                >
+                  Our Safety Policy
+                </Link>
+                <Link
+                  to="/about"
+                  className="inline-flex items-center justify-center rounded-full border border-slate-600 px-8 py-3.5 text-base font-semibold text-white transition hover:border-slate-400 hover:bg-white/5 active:scale-[0.98]"
+                >
+                  Learn More
+                </Link>
+              </Reveal>
+            </div>
+
+            <div className="grid gap-4 sm:grid-cols-2 lg:col-span-7">
+              {SAFETY_FEATURES.map((feature, index) => (
+                <Reveal
+                  key={feature.label}
+                  delay={index % 4}
+                  className={`rounded-2xl border border-slate-800 bg-slate-900/50 p-6 transition duration-300 hover:border-slate-600 hover:bg-slate-800/80 ${
+                    index === SAFETY_FEATURES.length - 1 ? "sm:col-span-2" : ""
+                  }`}
+                >
+                  <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-brand/20 text-brand">
+                    <ServiceIcon name={feature.icon} className="h-5 w-5" />
+                  </span>
+                  <p className="mt-4 text-base font-semibold text-white">
+                    {feature.label}
+                  </p>
+                  <p className="mt-1.5 text-sm leading-relaxed text-slate-400">
+                    {feature.description}
+                  </p>
+                </Reveal>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ---------------------------------------------------------------- */}
+      {/* Testimonials */}
+      {/* ---------------------------------------------------------------- */}
+      <section className="bg-white py-20 lg:py-28">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <div className="grid items-center gap-12 lg:grid-cols-12 lg:gap-16">
+            <Reveal className="relative lg:col-span-5">
+              <div className="overflow-hidden rounded-3xl shadow-xl shadow-slate-200/60 ring-1 ring-slate-200/80">
+                <img
+                  src={testimonialImage}
+                  alt="Happy SewaSathi customer"
+                  className="aspect-square w-full object-cover transition duration-500 hover:scale-[1.02]"
+                />
+              </div>
+
+              <div className="absolute -bottom-5 left-5 right-5 rounded-2xl border border-slate-100 bg-white p-4 shadow-xl shadow-slate-200/60 sm:right-auto sm:max-w-[17rem]">
+                <div className="flex items-center gap-3">
+                  <p className="text-3xl font-extrabold tracking-tight text-slate-900">
+                    4.8
+                  </p>
+                  <div>
+                    <StarRating rating={5} className="h-4 w-4" />
+                    <p className="mt-1 text-xs font-medium text-slate-500">
+                      from 12,000+ verified reviews
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </Reveal>
+
+            <div className="lg:col-span-7">
+              <SectionHeading
+                align="left"
+                eyebrow="What our customers say"
+                title="Trusted by thousands across Nepal"
+              />
+
+              <div className="mt-8 space-y-4">
+                {TESTIMONIALS.map((item, index) => (
+                  <Reveal
+                    key={item.author}
+                    delay={index % 4}
+                    className="rounded-2xl border border-slate-200/80 bg-white p-6 shadow-sm transition duration-300 hover:border-brand/30 hover:shadow-md"
+                  >
+                    <StarRating rating={item.rating} className="h-4 w-4" />
+                    <blockquote className="mt-3 text-base leading-relaxed text-slate-700">
+                      &ldquo;{item.quote}&rdquo;
+                    </blockquote>
+                    <footer className="mt-4 flex items-center gap-3">
+                      <span
+                        className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-sm font-bold ${
+                          AVATAR_PALETTE[index % AVATAR_PALETTE.length]
+                        }`}
+                        aria-hidden="true"
+                      >
+                        {initialsOf(item.author)}
+                      </span>
+                      <div>
+                        <p className="text-sm font-semibold text-slate-900">
+                          {item.author}
+                        </p>
+                        <p className="text-xs text-slate-500">{item.role}</p>
+                      </div>
+                    </footer>
+                  </Reveal>
                 ))}
               </div>
             </div>
-          </Reveal>
-        </div>
-      </section>
-
-      {/* Statistics */}
-      <section className="bg-sky-50 py-16 lg:py-20">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="grid gap-10 sm:grid-cols-2 lg:grid-cols-4">
-            {STATS.map((stat, index) => (
-              <Reveal
-                key={stat.label}
-                delay={index % 4}
-                className="group flex flex-col items-center text-center transition hover:-translate-y-1"
-              >
-                <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white text-brand shadow-sm ring-1 ring-sky-100 transition group-hover:bg-brand group-hover:text-white">
-                  <ServiceIcon name={stat.icon} />
-                </span>
-                <p className="mt-4 text-3xl font-extrabold tracking-tight text-slate-900 sm:text-4xl">
-                  {stat.value}
-                </p>
-                <p className="mt-1 text-base font-medium text-slate-600">
-                  {stat.label}
-                </p>
-              </Reveal>
-            ))}
           </div>
         </div>
       </section>
 
+      {/* ---------------------------------------------------------------- */}
+      {/* Become a tasker — the second audience */}
+      {/* ---------------------------------------------------------------- */}
+      <section className="bg-emerald-50/40 py-20 lg:py-28">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <div className="grid items-center gap-12 lg:grid-cols-2 lg:gap-16">
+            <div>
+              <Reveal className="max-w-xl">
+                <p className="text-sm font-semibold uppercase tracking-wider text-emerald-600">
+                  For service professionals
+                </p>
+                <h2 className="mt-3 text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">
+                  Earn on your schedule
+                </h2>
+                <p className="mt-4 text-lg leading-relaxed text-slate-600">
+                  Join 12,500+ taskers already building a business on SewaSathi.
+                  You choose the jobs, the hours, and the price.
+                </p>
+              </Reveal>
+
+              <div className="mt-8 space-y-5">
+                {TASKER_BENEFITS.map((benefit, index) => (
+                  <Reveal
+                    key={benefit.title}
+                    delay={index % 4}
+                    className="flex gap-4"
+                  >
+                    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-emerald-100 text-emerald-600">
+                      <CheckIcon className="h-4 w-4" />
+                    </span>
+                    <div>
+                      <p className="text-base font-semibold text-slate-900">
+                        {benefit.title}
+                      </p>
+                      <p className="mt-1 text-sm leading-relaxed text-slate-600">
+                        {benefit.description}
+                      </p>
+                    </div>
+                  </Reveal>
+                ))}
+              </div>
+
+              <Reveal className="mt-9 flex flex-col items-start gap-4 sm:flex-row sm:items-center">
+                <Link
+                  to="/signup/worker"
+                  className="inline-flex w-full items-center justify-center rounded-full bg-emerald-600 px-8 py-3.5 text-base font-semibold text-white shadow-lg shadow-emerald-600/25 transition hover:bg-emerald-700 hover:shadow-xl hover:shadow-emerald-600/30 active:scale-[0.98] sm:w-auto"
+                >
+                  Become a Tasker
+                </Link>
+                <Link
+                  to="/work-with-us"
+                  className="group inline-flex items-center gap-1.5 text-base font-semibold text-slate-700 transition hover:text-emerald-700"
+                >
+                  See how earning works
+                  <ArrowIcon className="h-4 w-4 transition group-hover:translate-x-0.5" />
+                </Link>
+              </Reveal>
+            </div>
+
+            {/* Composed earnings card — shows the product, no image asset needed */}
+            <Reveal delay={1} className="relative">
+              <div className="rounded-3xl border border-slate-200/80 bg-white p-6 shadow-2xl shadow-emerald-900/5 sm:p-8">
+                <div className="flex items-start justify-between gap-4">
+                  <div>
+                    <p className="text-xs font-medium uppercase tracking-wide text-slate-400">
+                      This week
+                    </p>
+                    <p className="mt-1.5 text-4xl font-extrabold tracking-tight text-slate-900">
+                      Rs 18,400
+                    </p>
+                  </div>
+                  <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700">
+                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                    100% completion
+                  </span>
+                </div>
+
+                <div className="mt-6 space-y-3 border-t border-slate-100 pt-6">
+                  {[
+                    { name: "Home Cleaning", meta: "Lalitpur · 3 hrs", amount: "Rs 4,200", icon: "cleaning" },
+                    { name: "Furniture Assembly", meta: "Baneshwor · 2 hrs", amount: "Rs 3,600", icon: "furniture" },
+                    { name: "TV Mounting", meta: "Patan · 1 hr", amount: "Rs 2,100", icon: "mounting" },
+                  ].map((job) => (
+                    <div key={job.name} className="flex items-center gap-3">
+                      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600">
+                        <ServiceIcon name={job.icon} className="h-5 w-5" />
+                      </span>
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-sm font-semibold text-slate-900">
+                          {job.name}
+                        </p>
+                        <p className="text-xs text-slate-500">{job.meta}</p>
+                      </div>
+                      <p className="shrink-0 text-sm font-bold text-emerald-600">
+                        {job.amount}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="mt-6 flex items-center justify-between rounded-xl bg-slate-50 px-4 py-3">
+                  <span className="text-xs font-medium text-slate-500">
+                    Next payout
+                  </span>
+                  <span className="text-sm font-semibold text-slate-900">
+                    In 2 days
+                  </span>
+                </div>
+              </div>
+            </Reveal>
+          </div>
+        </div>
+      </section>
+
+      {/* ---------------------------------------------------------------- */}
       {/* Final CTA */}
-      <section className="bg-white py-20 lg:py-24">
+      {/* ---------------------------------------------------------------- */}
+      <section className="bg-white py-20 lg:py-28">
         <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
           <Reveal
             as="div"
@@ -727,15 +751,24 @@ function Home() {
 
               <div className="mt-10 flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
                 <div className="flex -space-x-3">
-                  {AVATARS.map((src, i) => (
-                    <img
-                      key={src}
-                      src={src}
-                      alt=""
-                      className="h-10 w-10 rounded-full border-2 border-white object-cover"
-                      style={{ zIndex: AVATARS.length - i }}
-                    />
+                  {TESTIMONIALS.map((item, i) => (
+                    <span
+                      key={item.author}
+                      className={`flex h-10 w-10 items-center justify-center rounded-full border-2 border-white text-xs font-bold ${
+                        AVATAR_PALETTE[i % AVATAR_PALETTE.length]
+                      }`}
+                      style={{ zIndex: TESTIMONIALS.length - i }}
+                      aria-hidden="true"
+                    >
+                      {initialsOf(item.author)}
+                    </span>
                   ))}
+                  <span
+                    className="flex h-10 w-10 items-center justify-center rounded-full border-2 border-white bg-white/20 text-xs font-bold text-white backdrop-blur"
+                    aria-hidden="true"
+                  >
+                    50k
+                  </span>
                 </div>
                 <p className="text-sm font-medium text-white/90">
                   Join <span className="font-semibold text-white">50,000+</span>{" "}

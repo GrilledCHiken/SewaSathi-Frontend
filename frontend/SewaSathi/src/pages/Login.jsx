@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom'
 import { toast } from 'react-toastify'
 import { useAuth } from '../context/AuthContext'
@@ -90,12 +90,21 @@ const TRUST_POINTS = [
 
 function Login() {
   const [showPassword, setShowPassword] = useState(false)
-  const [email, setEmail] = useState('')
+  const location = useLocation()
+  // Captured once on mount: router state survives a refresh, so reading it on every
+  // render would re-show a stale "account created" banner.
+  const [signupNotice] = useState(() => (location.state?.registered ? location.state : null))
+  const [email, setEmail] = useState(() => location.state?.email ?? '')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const { isCustomerAuthenticated, user, login } = useAuth()
   const navigate = useNavigate()
-  const location = useLocation()
+
+  useEffect(() => {
+    if (signupNotice) {
+      window.history.replaceState({}, '')
+    }
+  }, [signupNotice])
 
   const from = location.state?.from?.pathname || '/dashboard'
 
@@ -202,6 +211,17 @@ function Login() {
               Sign in to your SewaSathi account
             </p>
           </div>
+
+          {signupNotice && (
+            <div className="mt-6 rounded-xl bg-emerald-50 px-4 py-4 text-sm text-emerald-800">
+              <p className="font-semibold">Account created successfully!</p>
+              <p className="mt-1">
+                {signupNotice.role === 'WORKER'
+                  ? 'Your worker application is under review. Sign in below to track its status.'
+                  : 'Please sign in with your new credentials to continue.'}
+              </p>
+            </div>
+          )}
 
           <form className="mt-8 space-y-5" onSubmit={handleSubmit}>
             <div>

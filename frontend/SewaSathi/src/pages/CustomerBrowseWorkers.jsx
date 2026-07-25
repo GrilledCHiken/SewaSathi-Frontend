@@ -2,11 +2,16 @@ import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { toast } from "react-toastify";
 import DashboardHeader from "../components/User/DashboardHeader";
+import TaskEmptyState from "../components/tasks/TaskEmptyState";
+import TaskFilterBar from "../components/tasks/TaskFilterBar";
+import { SEARCH_ICON, initialsOf, paletteFor } from "../components/tasks/taskUi.jsx";
+import WorkerCard from "../components/workers/WorkerCard";
+import WorkerCardSkeleton from "../components/workers/WorkerCardSkeleton";
 import { listWorkers } from "../api/workerApi";
 import { assignWorker, listMyTasks } from "../api/taskApi";
 
-const SKILLS = [
-  "All Skills",
+/** Preferred pill order. Skills outside this list are appended alphabetically. */
+const SKILL_ORDER = [
   "Furniture Assembly",
   "Mounting",
   "Cleaning",
@@ -27,27 +32,20 @@ const LOCATIONS = [
   "Biratnagar",
 ];
 
-const AVATAR_PALETTE = [
-  { bg: "bg-sky-100", text: "text-sky-700" },
-  { bg: "bg-emerald-100", text: "text-emerald-700" },
-  { bg: "bg-amber-100", text: "text-amber-700" },
-  { bg: "bg-rose-100", text: "text-rose-700" },
-  { bg: "bg-violet-100", text: "text-violet-700" },
-  { bg: "bg-cyan-100", text: "text-cyan-700" },
+const RATE_BANDS = [
+  { key: "any", label: "Any rate", min: 0, max: Infinity },
+  { key: "lt500", label: "Under NPR 500", min: 0, max: 500 },
+  { key: "500", label: "NPR 500 - 1,000", min: 500, max: 1000 },
+  { key: "1000", label: "NPR 1,000 - 2,000", min: 1000, max: 2000 },
+  { key: "2000", label: "NPR 2,000+", min: 2000, max: Infinity },
 ];
 
-function initialsOf(name) {
-  return name
-    .split(" ")
-    .filter(Boolean)
-    .map((part) => part[0])
-    .join("")
-    .slice(0, 2)
-    .toUpperCase();
+function rateBandFor(key) {
+  return RATE_BANDS.find((band) => band.key === key) || RATE_BANDS[0];
 }
 
 function mapWorker(worker) {
-  const palette = AVATAR_PALETTE[worker.id % AVATAR_PALETTE.length];
+  const palette = paletteFor(worker.id);
   return {
     id: worker.id,
     name: worker.fullName,
@@ -64,14 +62,6 @@ function mapWorker(worker) {
       ? worker.skills.split(",").map((s) => s.trim()).filter(Boolean)
       : [],
   };
-}
-
-function VerifiedBadge() {
-  return (
-    <svg className="h-4 w-4 shrink-0 text-brand" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-      <path d="M9 12.75 11.25 15 15 9.75M21 12c0 1.268-.63 2.39-1.593 3.068a3.745 3.745 0 0 1-1.043 3.296 3.745 3.745 0 0 1-3.296 1.043A3.745 3.745 0 0 1 12 21c-1.268 0-2.39-.63-3.068-1.593a3.746 3.746 0 0 1-3.296-1.043 3.745 3.745 0 0 1-1.043-3.296A3.745 3.745 0 0 1 3 12c0-1.268.63-2.39 1.593-3.068a3.745 3.745 0 0 1 1.043-3.296 3.746 3.746 0 0 1 3.296-1.043A3.746 3.746 0 0 1 12 3c1.268 0 2.39.63 3.068 1.593a3.746 3.746 0 0 1 3.296 1.043 3.746 3.746 0 0 1 1.043 3.296A3.745 3.745 0 0 1 21 12Z" />
-    </svg>
-  );
 }
 
 function HireModal({ worker, onClose }) {
@@ -195,87 +185,44 @@ function HireModal({ worker, onClose }) {
   );
 }
 
-function WorkerCard({ worker, onHire }) {
+const compactSelect =
+  "w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/20 sm:w-auto";
+
+/** Removable chip for a non-default dropdown filter. */
+function ActiveFilterChip({ label, onClear }) {
   return (
-    <article className="flex h-full flex-col rounded-2xl border border-slate-200/80 bg-white p-5 shadow-sm transition hover:border-brand/20 hover:shadow-md">
-      <div className="flex items-start justify-between gap-3">
-        <div className="flex min-w-0 items-center gap-3">
-          <span
-            className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-full text-sm font-bold ${worker.avatarBg} ${worker.avatarText}`}
-          >
-            {worker.initials}
-          </span>
-          <div className="min-w-0">
-            <div className="flex items-center gap-1">
-              <h3 className="truncate font-bold text-slate-900">{worker.name}</h3>
-              <VerifiedBadge />
-            </div>
-          </div>
-        </div>
-        <p className="shrink-0 text-right text-sm font-bold text-emerald-600">
-          NPR {worker.rate}
-          <span className="block text-xs font-medium text-slate-500">per hour</span>
-        </p>
-      </div>
-
-      <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-500 sm:text-sm">
-        <span className="inline-flex items-center gap-1">
-          <svg className="h-3.5 w-3.5 text-amber-400" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
-            <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-          </svg>
-          {worker.rating} ({worker.reviews})
-        </span>
-        <span>· {worker.location}</span>
-        <span>· {worker.tasksDone} tasks done</span>
-      </div>
-
-      <p className="mt-3 line-clamp-2 flex-1 text-sm leading-relaxed text-slate-600">
-        {worker.description}
-      </p>
-
-      <div className="mt-4 flex flex-wrap gap-1.5">
-        {worker.skills.map((skill) => (
-          <span
-            key={skill}
-            className="rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-medium text-slate-600"
-          >
-            {skill}
-          </span>
-        ))}
-      </div>
-
-      <div className="mt-5 flex flex-col gap-2 sm:flex-row">
-        <button
-          type="button"
-          onClick={() => onHire(worker)}
-          className="flex-1 rounded-full bg-brand py-2.5 text-sm font-semibold text-white transition hover:bg-brand-dark"
+    <span className="inline-flex items-center gap-1 rounded-full bg-brand/10 py-1 pl-2.5 pr-1 text-xs font-medium text-brand">
+      {label}
+      <button
+        type="button"
+        onClick={onClear}
+        aria-label={`Remove ${label} filter`}
+        className="rounded-full p-0.5 transition hover:bg-brand/15"
+      >
+        <svg
+          className="h-3 w-3"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2.5"
+          strokeLinecap="round"
+          aria-hidden="true"
         >
-          Hire Now
-        </button>
-        <button
-          type="button"
-          className="flex-1 rounded-full border border-slate-200 bg-white py-2.5 text-sm font-semibold text-slate-800 transition hover:bg-slate-50"
-        >
-          Message
-        </button>
-      </div>
-    </article>
+          <path d="M18 6 6 18M6 6l12 12" />
+        </svg>
+      </button>
+    </span>
   );
 }
-
-const selectClassName =
-  "w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-800 focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/20";
 
 export default function CustomerBrowseWorkers() {
   const [searchParams] = useSearchParams();
   const [workers, setWorkers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState(() => searchParams.get("search") || "");
-  const [skill, setSkill] = useState("All Skills");
+  const [skill, setSkill] = useState("all");
   const [location, setLocation] = useState("All Locations");
-  const [minRate, setMinRate] = useState("0");
-  const [maxRate, setMaxRate] = useState("");
-  const [showFilters, setShowFilters] = useState(true);
+  const [rateBand, setRateBand] = useState("any");
   const [hireWorker, setHireWorker] = useState(null);
 
   useEffect(() => {
@@ -286,23 +233,19 @@ export default function CustomerBrowseWorkers() {
   }, []);
 
   const clearFilters = () => {
-    setSkill("All Skills");
+    setSkill("all");
     setLocation("All Locations");
-    setMinRate("0");
-    setMaxRate("");
+    setRateBand("any");
     setSearch("");
   };
 
-  const filteredWorkers = useMemo(() => {
+  /* Everything except the skill filter — skill pill counts are derived from
+     this so each badge shows what clicking that pill would actually return. */
+  const baseMatches = useMemo(() => {
     const query = search.trim().toLowerCase();
-    const min = Number(minRate) || 0;
-    const max = maxRate.trim() === "" || maxRate.toLowerCase() === "any"
-      ? Infinity
-      : Number(maxRate);
+    const { min, max } = rateBandFor(rateBand);
 
     return workers.filter((worker) => {
-      const matchesSkill =
-        skill === "All Skills" || worker.skills.includes(skill);
       const matchesLocation =
         location === "All Locations" || worker.location === location;
       const matchesRate = worker.rate >= min && worker.rate <= max;
@@ -312,9 +255,46 @@ export default function CustomerBrowseWorkers() {
         worker.skills.some((s) => s.toLowerCase().includes(query)) ||
         worker.description.toLowerCase().includes(query);
 
-      return matchesSkill && matchesLocation && matchesRate && matchesSearch;
+      return matchesLocation && matchesRate && matchesSearch;
     });
-  }, [workers, search, skill, location, minRate, maxRate]);
+  }, [workers, search, location, rateBand]);
+
+  /* Pills come from the skills workers actually list, ordered by SKILL_ORDER
+     with anything unrecognised appended alphabetically. */
+  const skillFilters = useMemo(() => {
+    const present = new Set();
+    workers.forEach((worker) => worker.skills.forEach((s) => present.add(s)));
+
+    const known = SKILL_ORDER.filter((s) => present.has(s));
+    const extras = [...present].filter((s) => !SKILL_ORDER.includes(s)).sort();
+
+    return [
+      { key: "all", label: "All" },
+      ...[...known, ...extras].map((s) => ({ key: s, label: s })),
+    ];
+  }, [workers]);
+
+  const skillCounts = useMemo(() => {
+    const tally = { all: baseMatches.length };
+    skillFilters.slice(1).forEach(({ key }) => {
+      tally[key] = baseMatches.filter((w) => w.skills.includes(key)).length;
+    });
+    return tally;
+  }, [baseMatches, skillFilters]);
+
+  const filteredWorkers = useMemo(
+    () =>
+      skill === "all"
+        ? baseMatches
+        : baseMatches.filter((worker) => worker.skills.includes(skill)),
+    [baseMatches, skill],
+  );
+
+  const hasActiveFilters =
+    skill !== "all" ||
+    location !== "All Locations" ||
+    rateBand !== "any" ||
+    search.trim() !== "";
 
   return (
     <div className="flex min-h-svh flex-1 flex-col">
@@ -322,84 +302,31 @@ export default function CustomerBrowseWorkers() {
 
       <main className="flex-1 px-4 py-6 sm:px-6 lg:px-8">
         <div className="mx-auto max-w-6xl">
-          {/* Page header + search */}
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-            <div>
-              <h2 className="text-2xl font-bold text-slate-900 sm:text-3xl">
-                Browse Workers
-              </h2>
-              <p className="mt-1 text-sm text-slate-600 sm:text-base">
-                Find trusted professionals for your tasks.
-              </p>
-            </div>
-
-            <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center">
-              <div className="relative flex-1 sm:min-w-[240px]">
-                <svg
-                  className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                  aria-hidden="true"
-                >
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                </svg>
-                <input
-                  type="search"
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  placeholder="Search by name or skill..."
-                  className="w-full rounded-xl border border-slate-200 bg-white py-2.5 pl-10 pr-4 text-sm focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/20"
-                  aria-label="Search workers"
-                />
-              </div>
-              <button
-                type="button"
-                onClick={() => setShowFilters((v) => !v)}
-                className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 lg:hidden"
-              >
-                <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                  <path d="M22 3H2l8 9.46V19l4 2v-8.54L22 3z" />
-                </svg>
-                Filters
-              </button>
-            </div>
+          <div className="mb-4">
+            <h2 className="text-2xl font-bold text-slate-900 sm:text-3xl">
+              Browse Workers
+            </h2>
+            <p className="mt-1 text-sm text-slate-600 sm:text-base">
+              Find trusted professionals for your tasks.
+            </p>
           </div>
 
-          {/* Filter card */}
-          <div
-            className={[
-              "mt-6 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6",
-              showFilters ? "block" : "hidden lg:block",
-            ].join(" ")}
-          >
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-              <div>
-                <label htmlFor="filter-skill" className="mb-1.5 block text-sm font-semibold text-slate-800">
-                  Skill
-                </label>
+          <TaskFilterBar
+            filters={skillFilters}
+            active={skill}
+            onChange={setSkill}
+            counts={skillCounts}
+            search={search}
+            onSearchChange={setSearch}
+            searchPlaceholder="Search workers..."
+            accent="brand"
+            trailing={
+              <>
                 <select
-                  id="filter-skill"
-                  value={skill}
-                  onChange={(e) => setSkill(e.target.value)}
-                  className={selectClassName}
-                >
-                  {SKILLS.map((s) => (
-                    <option key={s} value={s}>
-                      {s}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label htmlFor="filter-location" className="mb-1.5 block text-sm font-semibold text-slate-800">
-                  Location
-                </label>
-                <select
-                  id="filter-location"
                   value={location}
                   onChange={(e) => setLocation(e.target.value)}
-                  className={selectClassName}
+                  aria-label="Filter by location"
+                  className={compactSelect}
                 >
                   {LOCATIONS.map((loc) => (
                     <option key={loc} value={loc}>
@@ -407,71 +334,80 @@ export default function CustomerBrowseWorkers() {
                     </option>
                   ))}
                 </select>
-              </div>
-              <div>
-                <label htmlFor="filter-min-rate" className="mb-1.5 block text-sm font-semibold text-slate-800">
-                  Min Rate (NPR)
-                </label>
-                <input
-                  id="filter-min-rate"
-                  type="number"
-                  min="0"
-                  value={minRate}
-                  onChange={(e) => setMinRate(e.target.value)}
-                  className={selectClassName}
-                />
-              </div>
-              <div>
-                <label htmlFor="filter-max-rate" className="mb-1.5 block text-sm font-semibold text-slate-800">
-                  Max Rate (NPR)
-                </label>
-                <input
-                  id="filter-max-rate"
-                  type="text"
-                  value={maxRate}
-                  onChange={(e) => setMaxRate(e.target.value)}
-                  placeholder="Any"
-                  className={selectClassName}
-                />
-              </div>
-            </div>
-            <div className="mt-4 flex justify-end">
-              <button
-                type="button"
-                onClick={clearFilters}
-                className="text-sm font-semibold text-brand transition hover:text-brand-dark"
-              >
-                Clear All Filters
-              </button>
-            </div>
-          </div>
+                <select
+                  value={rateBand}
+                  onChange={(e) => setRateBand(e.target.value)}
+                  aria-label="Filter by hourly rate"
+                  className={compactSelect}
+                >
+                  {RATE_BANDS.map((band) => (
+                    <option key={band.key} value={band.key}>
+                      {band.label}
+                    </option>
+                  ))}
+                </select>
+              </>
+            }
+          />
 
-          {/* Results */}
+          {/* Result count + removable chips for the dropdown filters */}
           {!loading && (
-            <p className="mt-6 text-sm font-medium text-slate-600">
-              {filteredWorkers.length} worker{filteredWorkers.length !== 1 ? "s" : ""} found
-            </p>
+            <div className="mb-4 flex flex-wrap items-center gap-x-3 gap-y-2">
+              <p className="text-sm font-medium text-slate-600">
+                {filteredWorkers.length} worker
+                {filteredWorkers.length !== 1 ? "s" : ""} found
+              </p>
+
+              {location !== "All Locations" && (
+                <ActiveFilterChip
+                  label={location}
+                  onClear={() => setLocation("All Locations")}
+                />
+              )}
+              {rateBand !== "any" && (
+                <ActiveFilterChip
+                  label={rateBandFor(rateBand).label}
+                  onClear={() => setRateBand("any")}
+                />
+              )}
+
+              {hasActiveFilters && (
+                <button
+                  type="button"
+                  onClick={clearFilters}
+                  className="text-sm font-semibold text-brand transition hover:text-brand-dark"
+                >
+                  Clear all
+                </button>
+              )}
+            </div>
           )}
 
           {loading ? (
-            <p className="mt-6 text-sm text-slate-500">Loading workers...</p>
-          ) : filteredWorkers.length === 0 ? (
-            <div className="mt-6 rounded-2xl border border-dashed border-slate-200 bg-white px-6 py-12 text-center">
-              <p className="text-sm text-slate-600">
-                No workers match your search. Try adjusting your filters.
-              </p>
-              <button
-                type="button"
-                onClick={clearFilters}
-                className="mt-3 text-sm font-semibold text-brand hover:text-brand-dark"
-              >
-                Clear all filters
-              </button>
+            <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+              {Array.from({ length: 6 }).map((_, index) => (
+                <WorkerCardSkeleton key={index} />
+              ))}
             </div>
+          ) : filteredWorkers.length === 0 ? (
+            <TaskEmptyState
+              icon={SEARCH_ICON}
+              title="No workers match your filters"
+              body="Try a different skill, widen the rate range, or clear your search."
+              action={
+                <button
+                  type="button"
+                  onClick={clearFilters}
+                  className="rounded-full bg-brand px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-brand-dark"
+                >
+                  Clear all filters
+                </button>
+              }
+            />
           ) : (
-            <ul className="mt-4 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+            <ul className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
               {filteredWorkers.map((worker) => (
-                <li key={worker.id} className="flex">
+                <li key={worker.id}>
                   <WorkerCard worker={worker} onHire={setHireWorker} />
                 </li>
               ))}

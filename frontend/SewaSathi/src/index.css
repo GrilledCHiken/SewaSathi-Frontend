@@ -9,6 +9,13 @@
 }
 
 @layer base {
+  :root {
+    /* Height of the sticky dashboard/worker header at sm and up:
+       py-3 (24px) + the UserMenu button (46px) + border-b (1px).
+       Sticky in-page toolbars offset themselves by this. */
+    --dash-header-h: 71px;
+  }
+
   html {
     scroll-behavior: smooth;
   }
@@ -45,5 +52,28 @@
   to {
     opacity: 1;
     transform: translateY(0);
+  }
+}
+
+/* Respect reduced-motion. The Reveal component parks elements at opacity-0
+   until they scroll into view, so this must collapse the transition rather
+   than disable it — otherwise that content would never become visible. */
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  .animate-fade-up,
+  .animate-fade-up-delay {
+    animation: none;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    transition-delay: 0ms !important;
   }
 }

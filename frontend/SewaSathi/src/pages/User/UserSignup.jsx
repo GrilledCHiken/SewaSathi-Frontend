@@ -2,6 +2,8 @@ import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { toast } from 'react-toastify'
 import { useAuth } from '../../context/AuthContext'
+import PasswordChecklist from '../../components/PasswordChecklist'
+import { sanitizePhone, validateSignupForm } from '../../utils/validation'
 
 function LogoIcon() {
   return (
@@ -96,10 +98,14 @@ function CheckIcon({ className = 'h-4 w-4' }) {
 const inputClass =
   'w-full rounded-xl border border-slate-200 bg-white py-3.5 pl-11 pr-4 text-slate-800 shadow-sm placeholder:text-slate-400 transition focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/20'
 
+const errorInputClass = 'border-red-300 focus:border-red-400 focus:ring-red-500/20'
+
 function UserSignup() {
   const [showPassword, setShowPassword] = useState(false)
   const [agreed, setAgreed] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [errors, setErrors] = useState({})
+  const [passwordTouched, setPasswordTouched] = useState(false)
   const [form, setForm] = useState({
     fullName: '',
     email: '',
@@ -110,7 +116,16 @@ function UserSignup() {
   const { registerCustomer } = useAuth()
   const navigate = useNavigate()
 
-  const update = (field) => (e) => setForm((prev) => ({ ...prev, [field]: e.target.value }))
+  const update = (field) => (e) => {
+    const value = field === 'phone' ? sanitizePhone(e.target.value) : e.target.value
+    setForm((prev) => ({ ...prev, [field]: value }))
+    setErrors((prev) => (prev[field] ? { ...prev, [field]: '' } : prev))
+  }
+
+  const toggleAgreed = (e) => {
+    setAgreed(e.target.checked)
+    setErrors((prev) => (prev.agreed ? { ...prev, agreed: '' } : prev))
+  }
 
   const passwordsMatch = form.confirmPassword.length > 0 && form.password === form.confirmPassword
   const passwordsMismatch = form.confirmPassword.length > 0 && form.password !== form.confirmPassword
@@ -118,8 +133,10 @@ function UserSignup() {
   const handleSubmit = async (e) => {
     e.preventDefault()
 
-    if (form.password !== form.confirmPassword) {
-      toast.error('Passwords do not match')
+    const nextErrors = validateSignupForm(form, { agreed })
+    setErrors(nextErrors)
+    if (Object.keys(nextErrors).length > 0) {
+      setPasswordTouched(true)
       return
     }
 
@@ -131,8 +148,11 @@ function UserSignup() {
         phone: form.phone.trim(),
         password: form.password,
       })
-      toast.success('Account created! Welcome to SewaSathi.')
-      navigate('/dashboard')
+      toast.success('Account created! Please sign in to continue.')
+      navigate('/login', {
+        replace: true,
+        state: { registered: true, email: form.email.trim(), role: 'CUSTOMER' },
+      })
     } catch (err) {
       toast.error(err.response?.data?.message || 'Could not create account. Please try again.')
     } finally {
@@ -178,7 +198,7 @@ function UserSignup() {
           </p>
         </div>
 
-        <form className="mt-7 space-y-4" onSubmit={handleSubmit}>
+        <form className="mt-7 space-y-4" onSubmit={handleSubmit} noValidate>
           <div>
             <label htmlFor="fullName" className="block text-sm font-semibold text-slate-800">
               Full Name
@@ -194,10 +214,18 @@ function UserSignup() {
                 onChange={update('fullName')}
                 placeholder="Ram Bahadur"
                 autoComplete="name"
+                maxLength={150}
                 required
-                className={inputClass}
+                aria-invalid={Boolean(errors.fullName)}
+                aria-describedby={errors.fullName ? 'fullName-error' : undefined}
+                className={`${inputClass} ${errors.fullName ? errorInputClass : ''}`}
               />
             </div>
+            {errors.fullName && (
+              <p id="fullName-error" className="mt-1.5 text-sm text-red-600">
+                {errors.fullName}
+              </p>
+            )}
           </div>
 
           <div className="grid gap-4 sm:grid-cols-2">
@@ -216,10 +244,18 @@ function UserSignup() {
                   onChange={update('email')}
                   placeholder="you@example.com"
                   autoComplete="email"
+                  maxLength={255}
                   required
-                  className={inputClass}
+                  aria-invalid={Boolean(errors.email)}
+                  aria-describedby={errors.email ? 'email-error' : undefined}
+                  className={`${inputClass} ${errors.email ? errorInputClass : ''}`}
                 />
               </div>
+              {errors.email && (
+                <p id="email-error" className="mt-1.5 text-sm text-red-600">
+                  {errors.email}
+                </p>
+              )}
             </div>
             <div>
               <label htmlFor="phone" className="block text-sm font-semibold text-slate-800">
@@ -232,14 +268,23 @@ function UserSignup() {
                 <input
                   id="phone"
                   type="tel"
+                  inputMode="numeric"
                   value={form.phone}
                   onChange={update('phone')}
                   placeholder="98XXXXXXXX"
                   autoComplete="tel"
+                  maxLength={10}
                   required
-                  className={inputClass}
+                  aria-invalid={Boolean(errors.phone)}
+                  aria-describedby={errors.phone ? 'phone-error' : undefined}
+                  className={`${inputClass} ${errors.phone ? errorInputClass : ''}`}
                 />
               </div>
+              {errors.phone && (
+                <p id="phone-error" className="mt-1.5 text-sm text-red-600">
+                  {errors.phone}
+                </p>
+              )}
             </div>
           </div>
 
@@ -256,11 +301,15 @@ function UserSignup() {
                 type={showPassword ? 'text' : 'password'}
                 value={form.password}
                 onChange={update('password')}
+                onFocus={() => setPasswordTouched(true)}
                 placeholder="Create a password"
                 autoComplete="new-password"
                 minLength={8}
+                maxLength={72}
                 required
-                className={`${inputClass} pr-11`}
+                aria-invalid={Boolean(errors.password)}
+                aria-describedby={errors.password ? 'password-error' : undefined}
+                className={`${inputClass} pr-11 ${errors.password ? errorInputClass : ''}`}
               />
               <button
                 type="button"
@@ -271,7 +320,16 @@ function UserSignup() {
                 <EyeIcon open={showPassword} />
               </button>
             </div>
-            <p className="mt-1.5 text-xs text-slate-400">Must be at least 8 characters.</p>
+            {errors.password && (
+              <p id="password-error" className="mt-1.5 text-sm text-red-600">
+                {errors.password}
+              </p>
+            )}
+            <PasswordChecklist
+              value={form.password}
+              accent="brand"
+              show={passwordTouched || form.password.length > 0}
+            />
           </div>
 
           <div>
@@ -290,8 +348,11 @@ function UserSignup() {
                 placeholder="Repeat your password"
                 autoComplete="new-password"
                 minLength={8}
+                maxLength={72}
                 required
-                className={`${inputClass} pr-11`}
+                aria-invalid={Boolean(errors.confirmPassword)}
+                aria-describedby={errors.confirmPassword ? 'confirmPassword-error' : undefined}
+                className={`${inputClass} pr-11 ${errors.confirmPassword ? errorInputClass : ''}`}
               />
               {passwordsMatch && (
                 <span className="absolute right-3.5 top-1/2 -translate-y-1/2 text-emerald-500">
@@ -299,34 +360,49 @@ function UserSignup() {
                 </span>
               )}
             </div>
-            {passwordsMismatch && (
-              <p className="mt-1.5 text-xs font-medium text-amber-600">Passwords don&apos;t match yet.</p>
+            {errors.confirmPassword ? (
+              <p id="confirmPassword-error" className="mt-1.5 text-sm text-red-600">
+                {errors.confirmPassword}
+              </p>
+            ) : (
+              passwordsMismatch && (
+                <p className="mt-1.5 text-xs font-medium text-amber-600">Passwords don&apos;t match yet.</p>
+              )
             )}
           </div>
 
-          <label className="flex cursor-pointer items-start gap-3 pt-1">
-            <input
-              type="checkbox"
-              checked={agreed}
-              onChange={(e) => setAgreed(e.target.checked)}
-              required
-              className="mt-1 h-4 w-4 shrink-0 rounded border-slate-300 text-brand focus:ring-brand/30"
-            />
-            <span className="text-sm leading-relaxed text-slate-600">
-              I agree to the{' '}
-              <Link to="/terms" className="font-medium text-brand hover:text-brand-dark">
-                Terms of Service
-              </Link>{' '}
-              and{' '}
-              <Link to="/privacy" className="font-medium text-brand hover:text-brand-dark">
-                Privacy Policy
-              </Link>
-            </span>
-          </label>
+          <div className="pt-1">
+            <label className="flex cursor-pointer items-start gap-3">
+              <input
+                type="checkbox"
+                checked={agreed}
+                onChange={toggleAgreed}
+                required
+                aria-invalid={Boolean(errors.agreed)}
+                aria-describedby={errors.agreed ? 'agreed-error' : undefined}
+                className="mt-1 h-4 w-4 shrink-0 rounded border-slate-300 text-brand focus:ring-brand/30"
+              />
+              <span className="text-sm leading-relaxed text-slate-600">
+                I agree to the{' '}
+                <Link to="/terms" className="font-medium text-brand hover:text-brand-dark">
+                  Terms of Service
+                </Link>{' '}
+                and{' '}
+                <Link to="/privacy" className="font-medium text-brand hover:text-brand-dark">
+                  Privacy Policy
+                </Link>
+              </span>
+            </label>
+            {errors.agreed && (
+              <p id="agreed-error" className="mt-1.5 text-sm text-red-600">
+                {errors.agreed}
+              </p>
+            )}
+          </div>
 
           <button
             type="submit"
-            disabled={!agreed || loading}
+            disabled={loading}
             className="flex w-full items-center justify-center gap-2 rounded-xl bg-brand py-3.5 text-base font-semibold text-white shadow-md shadow-brand/25 transition hover:bg-brand-dark hover:shadow-lg hover:shadow-brand/30 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60"
           >
             {loading ? 'Creating account...' : 'Create Account'}
