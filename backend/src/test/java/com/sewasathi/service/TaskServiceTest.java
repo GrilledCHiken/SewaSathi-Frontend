@@ -188,7 +188,7 @@ class TaskServiceTest {
     }
 
     @Test
-    void assignWorker_valid_setsAssignedWorkerAndStatus() {
+    void assignWorker_valid_setsAssignedWorkerAndAwaitsAdvancePayment() {
         Task task = openTaskOwnedBy(customer);
         when(userRepository.findByEmail("customer@example.com")).thenReturn(Optional.of(customer));
         when(taskRepository.findById(100L)).thenReturn(Optional.of(task));
@@ -196,7 +196,7 @@ class TaskServiceTest {
 
         TaskResponse response = taskService.assignWorker(100L, "customer@example.com", 3L);
 
-        assertThat(response.getStatus()).isEqualTo(TaskStatus.ASSIGNED);
+        assertThat(response.getStatus()).isEqualTo(TaskStatus.ACCEPTED);
         assertThat(response.getAssignedWorker().getId()).isEqualTo(3L);
 
         ArgumentCaptor<Task> captor = ArgumentCaptor.forClass(Task.class);
@@ -229,14 +229,28 @@ class TaskServiceTest {
     }
 
     @Test
-    void acceptTask_open_succeeds() {
+    void acceptTask_open_parksTaskAtAcceptedUntilAdvanceIsPaid() {
         Task task = openTaskOwnedBy(customer);
         when(userRepository.findByEmail("worker@example.com")).thenReturn(Optional.of(approvedWorker));
         when(taskRepository.findById(100L)).thenReturn(Optional.of(task));
 
         TaskResponse response = taskService.acceptTask(100L, "worker@example.com");
 
-        assertThat(response.getStatus()).isEqualTo(TaskStatus.ASSIGNED);
+        assertThat(response.getStatus()).isEqualTo(TaskStatus.ACCEPTED);
         assertThat(response.getAssignedWorker().getId()).isEqualTo(3L);
+    }
+
+    @Test
+    void startTask_beforeAdvanceIsPaid_isRejected() {
+        Task task = openTaskOwnedBy(customer);
+        task.setStatus(TaskStatus.ACCEPTED);
+        task.setAssignedWorker(approvedWorker);
+        when(userRepository.findByEmail("worker@example.com")).thenReturn(Optional.of(approvedWorker));
+        when(taskRepository.findById(100L)).thenReturn(Optional.of(task));
+
+        assertThatThrownBy(() -> taskService.startTask(100L, "worker@example.com"))
+                .isInstanceOf(InvalidOperationException.class)
+                .hasMessageContaining("not ready to be started");
+        assertThat(task.getStatus()).isEqualTo(TaskStatus.ACCEPTED);
     }
 }

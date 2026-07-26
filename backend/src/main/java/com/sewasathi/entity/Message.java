@@ -51,6 +51,11 @@ public class Message {
     @Column(name = "attachment_type", length = 100)
     private String attachmentType;
 
+    // Deleted messages are kept as tombstones so both sides see the same thread.
+    @Builder.Default
+    @Column(nullable = false)
+    private boolean deleted = false;
+
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;

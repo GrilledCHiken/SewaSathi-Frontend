@@ -20,10 +20,12 @@ function LogoIcon() {
 export default function VerifyEmail() {
   const [searchParams] = useSearchParams();
   const token = searchParams.get("token");
-  const { isAuthenticated } = useAuth();
+  const { user } = useAuth();
 
   const [status, setStatus] = useState(token ? "verifying" : "missing");
   const [resending, setResending] = useState(false);
+  // Prefilled when we already know who is asking; typed in otherwise.
+  const [email, setEmail] = useState(() => user?.email ?? "");
 
   useEffect(() => {
     if (!token) return;
@@ -32,13 +34,16 @@ export default function VerifyEmail() {
       .catch(() => setStatus("failed"));
   }, [token]);
 
-  const handleResend = async () => {
+  const handleResend = async (e) => {
+    e.preventDefault();
     setResending(true);
     try {
-      await resendVerification();
-      toast.success("Verification email sent. Check the server console for the link.");
+      await resendVerification(email.trim());
+      // Worded so it holds whether or not that address has an account - the API
+      // deliberately does not say, and neither should this message.
+      toast.success("If that address has an unverified account, a new link is on its way.");
     } catch {
-      toast.error("Could not resend verification email.");
+      toast.error("Could not send the email. Please try again shortly.");
     } finally {
       setResending(false);
     }
@@ -83,23 +88,41 @@ export default function VerifyEmail() {
                 ? "This page needs a verification token from your email."
                 : "This verification link is no longer valid. Request a new one below."}
             </p>
-            {isAuthenticated ? (
+            {/*
+              An expired link leaves the user signed out, and an unverified account cannot
+              sign in at all - so asking for the address here is the only route back. The
+              endpoint answers identically for unknown addresses, so this cannot be used to
+              discover which emails have accounts.
+            */}
+            <form className="mt-6 text-left" onSubmit={handleResend}>
+              <label htmlFor="resend-email" className="block text-sm font-semibold text-slate-800">
+                Email address
+              </label>
+              <input
+                id="resend-email"
+                type="email"
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="you@example.com"
+                autoComplete="email"
+                className="mt-2 w-full rounded-xl border border-slate-300 px-3.5 py-3 text-sm text-slate-900 outline-none transition focus:border-brand focus:ring-2 focus:ring-brand/25"
+              />
               <button
-                type="button"
-                onClick={handleResend}
+                type="submit"
                 disabled={resending}
-                className="mt-6 inline-flex w-full items-center justify-center rounded-xl bg-brand py-3.5 text-base font-semibold text-white shadow-md shadow-brand/25 transition hover:bg-brand-dark disabled:cursor-not-allowed disabled:opacity-60"
+                className="mt-4 inline-flex w-full items-center justify-center rounded-xl bg-brand py-3.5 text-base font-semibold text-white shadow-md shadow-brand/25 transition hover:bg-brand-dark disabled:cursor-not-allowed disabled:opacity-60"
               >
-                {resending ? "Sending..." : "Resend Verification Email"}
+                {resending ? "Sending..." : "Send a new link"}
               </button>
-            ) : (
-              <Link
-                to="/login"
-                className="mt-6 inline-flex w-full items-center justify-center rounded-xl border border-slate-200 bg-white py-3.5 text-base font-semibold text-slate-800 transition hover:bg-slate-50"
-              >
-                Sign in to resend
-              </Link>
-            )}
+            </form>
+
+            <Link
+              to="/login"
+              className="mt-4 inline-flex w-full items-center justify-center rounded-xl border border-slate-200 bg-white py-3 text-sm font-semibold text-slate-800 transition hover:bg-slate-50"
+            >
+              Back to sign in
+            </Link>
           </>
         )}
       </div>

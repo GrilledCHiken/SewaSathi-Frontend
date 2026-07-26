@@ -14,12 +14,22 @@ import { completeTask, listMyJobs, startTask } from "../../api/workerTaskApi";
 
 const STATUS_FILTERS = [
   { key: "all", label: "All" },
+  { key: "accepted", label: "accepted" },
   { key: "assigned", label: "assigned" },
   { key: "in progress", label: "in progress" },
   { key: "completed", label: "completed" },
 ];
 
 function JobActions({ status, onStart, onComplete, working }) {
+  // The customer owes a 10% advance before this job is confirmed; until it lands
+  // the backend won't let the job be started.
+  if (status === "accepted") {
+    return (
+      <span className="rounded-full border border-violet-200 bg-violet-50 px-3.5 py-1.5 text-xs font-semibold text-violet-700">
+        Awaiting customer payment
+      </span>
+    );
+  }
   if (status === "assigned") {
     return (
       <button

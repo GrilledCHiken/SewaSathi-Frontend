@@ -9,12 +9,14 @@ import com.sewasathi.dto.response.AuthResponse;
 import com.sewasathi.dto.response.UserResponse;
 import com.sewasathi.entity.ApprovalStatus;
 import com.sewasathi.entity.EmailVerificationToken;
+import com.sewasathi.entity.OtpPurpose;
 import com.sewasathi.entity.PasswordResetToken;
 import com.sewasathi.entity.Role;
 import com.sewasathi.entity.User;
 import com.sewasathi.entity.WorkerProfile;
 import com.sewasathi.exception.AccountLockedException;
 import com.sewasathi.exception.DuplicateEmailException;
+import com.sewasathi.exception.EmailNotVerifiedException;
 import com.sewasathi.exception.InvalidCredentialsException;
 import com.sewasathi.exception.InvalidTokenException;
 import com.sewasathi.exception.SuspendedAccountException;
@@ -31,6 +33,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.Map;
 import java.util.UUID;
 
 @Service
@@ -41,6 +44,7 @@ public class AuthService {
     private static final long LOCKOUT_MINUTES = 15;
     private static final long RESET_TOKEN_EXPIRY_MINUTES = 60;
     private static final long VERIFY_TOKEN_EXPIRY_HOURS = 48;
+    private static final DateTimeFormatter DISPLAY_DATE = DateTimeFormatter.ofPattern("MMM d, yyyy HH:mm");
 
     private final UserRepository userRepository;
     private final WorkerProfileRepository workerProfileRepository;
@@ -49,6 +53,7 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
     private final EmailService emailService;
+    private final OtpService otpService;
 
     @Value("${app.frontend-url:http://localhost:5174}")
     private String frontendUrl;
@@ -70,7 +75,10 @@ public class AuthService {
 
         user = userRepository.save(user);
         sendVerificationEmail(user);
-        return buildAuthResponse(user);
+        // Deliberately no token: the account must confirm its email address before it can
+        // sign in. Handing out a working 24h token here would make the verification step
+        // decorative, which is exactly what it used to be.
+        return AuthResponse.pendingVerification(UserResponse.from(user));
     }
 
     @Transactional
@@ -99,11 +107,18 @@ public class AuthService {
         workerProfileRepository.save(profile);
 
         sendVerificationEmail(user);
-        return buildAuthResponse(user);
+        return AuthResponse.pendingVerification(UserResponse.from(user));
     }
 
+    /**
+     * Signs a user in, or raises a second-factor challenge.
+     *
+     * <p>The order of the checks matters. Lockout and password come first, so neither the
+     * verification state nor the 2FA state of an account can be probed without the correct
+     * password. Only once the password is proven do the account-state checks run.
+     */
     @Transactional(noRollbackFor = InvalidCredentialsException.class)
-    public AuthResponse login(LoginRequest request) {
+    public AuthResponse login(LoginRequest request, DeviceContext device) {
         String email = request.getEmail().trim().toLowerCase();
         User user = userRepository.findByEmail(email)
                 .orElseThrow(InvalidCredentialsException::new);
@@ -124,13 +139,55 @@ public class AuthService {
             throw new SuspendedAccountException();
         }
 
+        if (!user.isEmailVerified()) {
+            throw new EmailNotVerifiedException();
+        }
+
         if (user.getFailedLoginAttempts() > 0 || user.getLockedUntil() != null) {
             user.setFailedLoginAttempts(0);
             user.setLockedUntil(null);
             userRepository.save(user);
         }
 
+        if (user.isTwoFactorEnabled()) {
+            return AuthResponse.challenge(
+                    otpService.issue(user, OtpPurpose.LOGIN_2FA, device),
+                    "Two-factor authentication is on for this account.");
+        }
+
+        if (otpService.isNewDevice(user, device)) {
+            return AuthResponse.challenge(
+                    otpService.issue(user, OtpPurpose.NEW_DEVICE, device),
+                    "This is the first sign-in from this device.");
+        }
+
+        // Recognised device (or the account's very first sign-in): record it and proceed.
+        otpService.trustDevice(user, device);
         return buildAuthResponse(user);
+    }
+
+    /**
+     * Completes a challenged sign-in. The challenge token identifies the account, so the
+     * caller never re-sends the email address and cannot swap it for someone else's.
+     */
+    @Transactional
+    public AuthResponse verifyOtp(String challengeToken, String code) {
+        User user = otpService.verify(challengeToken, code);
+
+        // Re-check account state: suspension or a lockout could have landed between the
+        // challenge being issued and the code coming back.
+        if (user.isSuspended()) {
+            throw new SuspendedAccountException();
+        }
+        return buildAuthResponse(user);
+    }
+
+    @Transactional
+    public void setTwoFactor(String email, boolean enabled) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(InvalidCredentialsException::new);
+        user.setTwoFactorEnabled(enabled);
+        userRepository.save(user);
     }
 
     public UserResponse getCurrentUser(String email) {
@@ -152,11 +209,18 @@ public class AuthService {
             passwordResetTokenRepository.save(resetToken);
 
             String link = frontendUrl + "/reset-password?token=" + token;
-            emailService.send(
+            // Values are materialised here rather than passing the entity: SmtpEmailService
+            // renders on another thread, after this transaction (and its persistence
+            // context) has closed.
+            emailService.sendTemplate(
                     user.getEmail(),
-                    "Reset your SewaSathi password",
-                    "We received a request to reset your password. This link expires in "
-                            + RESET_TOKEN_EXPIRY_MINUTES + " minutes:\n" + link
+                    "Reset your Sewa Sathi password",
+                    "email/password-reset",
+                    Map.of(
+                            "name", user.getFullName(),
+                            "actionUrl", link,
+                            "expiryMinutes", RESET_TOKEN_EXPIRY_MINUTES
+                    )
             );
         });
         // Intentionally do not reveal whether the email exists - caller always gets a generic response.
@@ -196,13 +260,18 @@ public class AuthService {
         emailVerificationTokenRepository.delete(verificationToken);
     }
 
+    /**
+     * Re-sends the activation link. Public by necessity - an unverified account cannot sign
+     * in, so it could never authenticate to request one.
+     *
+     * <p>Returns silently for unknown or already-verified addresses, matching
+     * {@link #forgotPassword}: the response must not reveal which addresses have accounts.
+     */
     @Transactional
     public void resendVerification(String email) {
-        User user = userRepository.findByEmail(email)
-                .orElseThrow(InvalidCredentialsException::new);
-        if (!user.isEmailVerified()) {
-            sendVerificationEmail(user);
-        }
+        userRepository.findByEmail(email.trim().toLowerCase())
+                .filter(user -> !user.isEmailVerified())
+                .ifPresent(this::sendVerificationEmail);
     }
 
     private void sendVerificationEmail(User user) {
@@ -215,13 +284,15 @@ public class AuthService {
         emailVerificationTokenRepository.save(verificationToken);
 
         String link = frontendUrl + "/verify-email?token=" + token;
-        emailService.send(
+        emailService.sendTemplate(
                 user.getEmail(),
-                "Verify your SewaSathi email",
-                "Welcome to SewaSathi! Please verify your email address:\n" + link
-                        + "\n\nThis link expires "
-                        + verificationToken.getExpiresAt().format(DateTimeFormatter.ofPattern("MMM d, yyyy HH:mm"))
-                        + "."
+                "Verify your Sewa Sathi email",
+                "email/verification",
+                Map.of(
+                        "name", user.getFullName(),
+                        "actionUrl", link,
+                        "expiresAt", verificationToken.getExpiresAt().format(DISPLAY_DATE)
+                )
         );
     }
 
@@ -243,6 +314,6 @@ public class AuthService {
 
     private AuthResponse buildAuthResponse(User user) {
         String token = jwtService.generateToken(user.getEmail());
-        return new AuthResponse(token, UserResponse.from(user));
+        return AuthResponse.authenticated(token, UserResponse.from(user));
     }
 }

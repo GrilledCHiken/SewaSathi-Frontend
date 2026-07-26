@@ -33,13 +33,13 @@ export default function useChatSocket() {
     };
   }, []);
 
-  const subscribeToTask = (taskId, onMessage) => {
+  const subscribeToConversation = (conversationKey, onMessage) => {
     const client = clientRef.current;
     if (!client) return () => {};
 
     let subscription = null;
     const doSubscribe = () => {
-      subscription = client.subscribe(`/topic/tasks/${taskId}`, (frame) => {
+      subscription = client.subscribe(`/topic/conversations/${conversationKey}`, (frame) => {
         onMessage(JSON.parse(frame.body));
       });
     };
@@ -58,15 +58,15 @@ export default function useChatSocket() {
     };
   };
 
-  const sendMessage = (taskId, content) => {
+  const sendMessage = (conversationKey, content) => {
     const client = clientRef.current;
     if (!client || !client.connected) return false;
     client.publish({
-      destination: `/app/tasks/${taskId}/send`,
+      destination: `/app/conversations/${conversationKey}/send`,
       body: JSON.stringify({ content }),
     });
     return true;
   };
 
-  return { connected, subscribeToTask, sendMessage };
+  return { connected, subscribeToConversation, sendMessage };
 }

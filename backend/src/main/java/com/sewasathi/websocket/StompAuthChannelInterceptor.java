@@ -6,6 +6,7 @@ import com.sewasathi.entity.User;
 import com.sewasathi.repository.TaskRepository;
 import com.sewasathi.repository.UserRepository;
 import com.sewasathi.security.JwtService;
+import com.sewasathi.service.ConversationKey;
 import lombok.RequiredArgsConstructor;
 import org.springframework.messaging.Message;
 import org.springframework.messaging.MessageChannel;
@@ -21,6 +22,7 @@ import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.stereotype.Component;
 
 import java.security.Principal;
+import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -28,7 +30,8 @@ import java.util.regex.Pattern;
 @RequiredArgsConstructor
 public class StompAuthChannelInterceptor implements ChannelInterceptor {
 
-    private static final Pattern TASK_ID_PATTERN = Pattern.compile("/(?:topic|app)/tasks/(\\d+)");
+    private static final Pattern CONVERSATION_PATTERN =
+            Pattern.compile("/(?:topic|app)/conversations/(c\\d+-w\\d+)");
 
     private final JwtService jwtService;
     private final UserDetailsService userDetailsService;
@@ -43,7 +46,7 @@ public class StompAuthChannelInterceptor implements ChannelInterceptor {
         if (command == StompCommand.CONNECT) {
             authenticate(accessor);
         } else if (command == StompCommand.SUBSCRIBE || command == StompCommand.SEND) {
-            authorizeTaskAccess(accessor);
+            authorizeConversationAccess(accessor);
         }
 
         return message;
@@ -65,7 +68,7 @@ public class StompAuthChannelInterceptor implements ChannelInterceptor {
         accessor.setUser(authToken);
     }
 
-    private void authorizeTaskAccess(StompHeaderAccessor accessor) {
+    private void authorizeConversationAccess(StompHeaderAccessor accessor) {
         Principal principal = accessor.getUser();
         if (principal == null) {
             throw new AccessDeniedException("Not authenticated");
@@ -74,25 +77,27 @@ public class StompAuthChannelInterceptor implements ChannelInterceptor {
         if (destination == null) {
             return;
         }
-        Matcher matcher = TASK_ID_PATTERN.matcher(destination);
+        Matcher matcher = CONVERSATION_PATTERN.matcher(destination);
         if (!matcher.find()) {
             return;
         }
-        Long taskId = Long.valueOf(matcher.group(1));
-        if (!isParticipant(principal.getName(), taskId)) {
-            throw new AccessDeniedException("Not a participant of task " + taskId);
+        String conversationKey = matcher.group(1);
+        if (!isParticipant(principal.getName(), ConversationKey.parse(conversationKey))) {
+            throw new AccessDeniedException("Not a participant of conversation " + conversationKey);
         }
     }
 
-    private boolean isParticipant(String email, Long taskId) {
+    private boolean isParticipant(String email, ConversationKey key) {
         User user = userRepository.findByEmail(email).orElse(null);
-        Task task = taskRepository.findById(taskId).orElse(null);
-        if (user == null || task == null || task.getAssignedWorker() == null) {
+        if (user == null || key == null) {
             return false;
         }
-        boolean isCustomer = task.getCustomer().getId().equals(user.getId());
-        boolean isWorker = task.getAssignedWorker().getId().equals(user.getId());
-        boolean isAdmin = user.getRole() == Role.ADMIN;
-        return isCustomer || isWorker || isAdmin;
+        if (!key.includes(user) && user.getRole() != Role.ADMIN) {
+            return false;
+        }
+        // The pair must actually share an assigned task for the chat to exist.
+        List<Task> sharedTasks = taskRepository
+                .findByCustomerIdAndAssignedWorkerIdOrderByCreatedAtAsc(key.customerId(), key.workerId());
+        return !sharedTasks.isEmpty();
     }
 }

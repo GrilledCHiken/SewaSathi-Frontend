@@ -9,6 +9,11 @@
 
 export const STATUS_META = {
   open: { badge: "bg-slate-100 text-slate-600", dot: "bg-slate-400" },
+  // A worker has said yes but the customer still owes the confirmation advance.
+  accepted: {
+    badge: "bg-violet-100 text-violet-700",
+    dot: "bg-violet-500 animate-pulse",
+  },
   assigned: { badge: "bg-amber-100 text-amber-700", dot: "bg-amber-500" },
   "in progress": {
     badge: "bg-sky-100 text-sky-700",
@@ -213,6 +218,23 @@ export function formatStatus(status) {
 export function formatMoney(amount) {
   if (amount == null) return "";
   return `NPR ${Number(amount).toLocaleString()}`;
+}
+
+/**
+ * Share of the budget a customer pays up front to confirm a booking. Kept in step
+ * with `app.esewa.advance-rate` on the backend, which is the authoritative figure —
+ * this is only for what we show before checkout.
+ */
+export const ADVANCE_RATE = 0.1;
+
+export function advanceFor(budget) {
+  if (budget == null) return 0;
+  return Math.round(Number(budget) * ADVANCE_RATE * 100) / 100;
+}
+
+export function remainingAfter(budget) {
+  if (budget == null) return 0;
+  return Math.round((Number(budget) - advanceFor(budget)) * 100) / 100;
 }
 
 export function formatDate(iso, fallback = "Flexible") {

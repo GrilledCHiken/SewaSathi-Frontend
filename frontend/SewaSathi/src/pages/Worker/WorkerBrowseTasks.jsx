@@ -32,7 +32,9 @@ export default function WorkerBrowseTasks() {
     try {
       await acceptTask(id);
       setTasks((prev) => prev.filter((t) => t.id !== id));
-      toast.success("Task accepted! Check My Jobs to get started.");
+      toast.success(
+        "Task accepted! It's confirmed once the customer pays their advance.",
+      );
     } catch (err) {
       toast.error(err.response?.data?.message || "Could not accept this task.");
     } finally {

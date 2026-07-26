@@ -2,12 +2,39 @@ import { useEffect, useState } from "react";
 import { toast } from "react-toastify";
 import AdminHeader from "../../components/Admin/AdminHeader";
 import { approveWorker, listPendingWorkers, rejectWorker } from "../../api/adminApi";
+import { downloadFile } from "../../api/fileApi";
 
-const UPLOADS_BASE_URL = (import.meta.env.VITE_API_BASE_URL || "http://localhost:8080/api").replace(/\/api\/?$/, "");
+/**
+ * Opens a worker's uploaded document. Identity documents are no longer publicly readable,
+ * so the bytes come back through the authenticated /api/files endpoint and are handed to
+ * the browser as a download rather than a plain link.
+ */
+function DocumentLink({ url, label }) {
+  const [busy, setBusy] = useState(false);
 
-function docUrl(path) {
-  if (!path) return null;
-  return `${UPLOADS_BASE_URL}${path}`;
+  if (!url) return null;
+
+  const open = async () => {
+    setBusy(true);
+    try {
+      await downloadFile(url, label);
+    } catch {
+      toast.error("Could not open that document.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <button
+      type="button"
+      onClick={open}
+      disabled={busy}
+      className="text-xs font-semibold text-brand underline underline-offset-2 hover:text-brand-dark disabled:opacity-60"
+    >
+      {busy ? "Opening…" : label}
+    </button>
+  );
 }
 
 function formatDate(iso) {
@@ -126,37 +153,14 @@ export default function AdminVerificationQueue() {
                       <p className="mt-3 text-sm text-slate-600">{worker.bio}</p>
                     )}
 
+                    {/*
+                      These are identity documents behind an authenticated endpoint, so they
+                      are fetched with the admin's token rather than linked to directly.
+                    */}
                     <div className="mt-3 flex flex-wrap gap-3">
-                      {worker.policeClearanceUrl && (
-                        <a
-                          href={docUrl(worker.policeClearanceUrl)}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="text-xs font-semibold text-brand underline underline-offset-2 hover:text-brand-dark"
-                        >
-                          View Police Clearance Report
-                        </a>
-                      )}
-                      {worker.citizenshipDocUrl && (
-                        <a
-                          href={docUrl(worker.citizenshipDocUrl)}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="text-xs font-semibold text-brand underline underline-offset-2 hover:text-brand-dark"
-                        >
-                          View Citizenship / ID
-                        </a>
-                      )}
-                      {worker.profilePhotoUrl && (
-                        <a
-                          href={docUrl(worker.profilePhotoUrl)}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="text-xs font-semibold text-brand underline underline-offset-2 hover:text-brand-dark"
-                        >
-                          View Profile Photo
-                        </a>
-                      )}
+                      <DocumentLink url={worker.policeClearanceUrl} label="View Police Clearance Report" />
+                      <DocumentLink url={worker.citizenshipDocUrl} label="View Citizenship / ID" />
+                      <DocumentLink url={worker.profilePhotoUrl} label="View Profile Photo" />
                     </div>
                   </div>
 

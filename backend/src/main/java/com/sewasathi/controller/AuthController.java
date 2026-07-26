@@ -4,11 +4,15 @@ import com.sewasathi.dto.request.ForgotPasswordRequest;
 import com.sewasathi.dto.request.LoginRequest;
 import com.sewasathi.dto.request.RegisterCustomerRequest;
 import com.sewasathi.dto.request.RegisterWorkerRequest;
+import com.sewasathi.dto.request.ResendVerificationRequest;
 import com.sewasathi.dto.request.ResetPasswordRequest;
 import com.sewasathi.dto.request.VerifyEmailRequest;
+import com.sewasathi.dto.request.VerifyOtpRequest;
 import com.sewasathi.dto.response.AuthResponse;
 import com.sewasathi.security.UserPrincipal;
 import com.sewasathi.service.AuthService;
+import com.sewasathi.service.DeviceContext;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -36,9 +40,32 @@ public class AuthController {
         return ResponseEntity.status(HttpStatus.CREATED).body(authService.registerWorker(request));
     }
 
+    /**
+     * May return a token, or a challenge that must be answered via {@link #verifyOtp}. The
+     * servlet request is read here only to derive the device fingerprint, keeping servlet
+     * types out of the service layer.
+     */
     @PostMapping("/login")
-    public ResponseEntity<AuthResponse> login(@Valid @RequestBody LoginRequest request) {
-        return ResponseEntity.ok(authService.login(request));
+    public ResponseEntity<AuthResponse> login(@Valid @RequestBody LoginRequest request,
+                                              HttpServletRequest httpRequest) {
+        return ResponseEntity.ok(authService.login(request, DeviceContext.from(httpRequest)));
+    }
+
+    @PostMapping("/verify-otp")
+    public ResponseEntity<AuthResponse> verifyOtp(@Valid @RequestBody VerifyOtpRequest request) {
+        return ResponseEntity.ok(authService.verifyOtp(request.getChallengeToken(), request.getCode()));
+    }
+
+    @PostMapping("/2fa/enable")
+    public ResponseEntity<Void> enableTwoFactor(@AuthenticationPrincipal UserPrincipal principal) {
+        authService.setTwoFactor(principal.getUsername(), true);
+        return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/2fa/disable")
+    public ResponseEntity<Void> disableTwoFactor(@AuthenticationPrincipal UserPrincipal principal) {
+        authService.setTwoFactor(principal.getUsername(), false);
+        return ResponseEntity.noContent().build();
     }
 
     @PostMapping("/forgot-password")
@@ -59,9 +86,14 @@ public class AuthController {
         return ResponseEntity.ok().build();
     }
 
+    /**
+     * Public: an unverified account cannot sign in, so requiring a token here would leave
+     * anyone whose link expired permanently locked out. Always answers 200, whether or not
+     * the address has an account, so it cannot be used to enumerate users.
+     */
     @PostMapping("/resend-verification")
-    public ResponseEntity<Void> resendVerification(@AuthenticationPrincipal UserPrincipal principal) {
-        authService.resendVerification(principal.getUsername());
+    public ResponseEntity<Void> resendVerification(@Valid @RequestBody ResendVerificationRequest request) {
+        authService.resendVerification(request.getEmail());
         return ResponseEntity.ok().build();
     }
 }
