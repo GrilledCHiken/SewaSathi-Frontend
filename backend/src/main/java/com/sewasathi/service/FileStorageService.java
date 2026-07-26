@@ -70,4 +70,23 @@ public class FileStorageService {
 
         return new StoredFile("/uploads/" + storedName, originalName, contentType);
     }
+
+    /**
+     * Removes a file previously returned by {@link #store}. Best effort: a missing or
+     * unreadable file must never fail the request that triggered the cleanup.
+     */
+    public void delete(String url) {
+        if (url == null || !url.startsWith("/uploads/")) {
+            return;
+        }
+        Path target = uploadPath.resolve(url.substring("/uploads/".length())).normalize();
+        if (!target.startsWith(uploadPath)) {
+            return;
+        }
+        try {
+            Files.deleteIfExists(target);
+        } catch (IOException ignored) {
+            // Orphaned file on disk is preferable to a failed delete.
+        }
+    }
 }

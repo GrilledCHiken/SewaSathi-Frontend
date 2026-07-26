@@ -16,8 +16,12 @@ public class ChatWebSocketController {
 
     private final MessageService messageService;
 
-    @MessageMapping("/tasks/{taskId}/send")
-    public void send(@DestinationVariable Long taskId, @Payload SendMessageRequest request, Principal principal) {
-        messageService.sendTextMessage(principal.getName(), taskId, request.getContent());
+    @MessageMapping("/conversations/{conversationKey}/send")
+    public void send(
+            @DestinationVariable String conversationKey,
+            @Payload SendMessageRequest request,
+            Principal principal
+    ) {
+        messageService.sendTextMessage(principal.getName(), conversationKey, request.getContent());
     }
 }
