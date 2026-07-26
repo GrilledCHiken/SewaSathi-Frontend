@@ -20,4 +20,22 @@ app.upload-dir=uploads
 spring.servlet.multipart.max-file-size=10MB
 spring.servlet.multipart.max-request-size=10MB
 
-app.frontend-url=http://localhost:5174
+app.frontend-url=http://localhost:5173
+
+# eSewa ePay v2. These are eSewa's public UAT sandbox values (demo only, no real
+# money). Replace all four with your merchant credentials for production.
+# Sandbox secret key and test login credentials: see "Testing eSewa payments" in ../../../README.md
+app.esewa.form-url=https://rc-epay.esewa.com.np/api/epay/main/v2/form
+app.esewa.status-url=https://rc.esewa.com.np/api/epay/transaction/status/
+app.esewa.merchant-code=EPAYTEST
+app.esewa.secret-key=REPLACE_WITH_YOUR_ESEWA_SECRET_KEY
+# Share of the task budget collected up front to confirm a booking.
+app.esewa.advance-rate=0.10
+
+# Khalti ePayment (KPG-2). These are the dev sandbox endpoints. Khalti issues every
+# merchant its own key — there is no shared demo secret — so get one from
+# https://test-admin.khalti.com. Swap both URLs for https://khalti.com/api/v2/... in
+# production. Left blank, choosing Khalti at checkout fails with a "not configured" error.
+app.khalti.initiate-url=https://dev.khalti.com/api/v2/epayment/initiate/
+app.khalti.lookup-url=https://dev.khalti.com/api/v2/epayment/lookup/
+app.khalti.secret-key=REPLACE_WITH_YOUR_KHALTI_LIVE_SECRET_KEY

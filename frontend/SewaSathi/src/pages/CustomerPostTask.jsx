@@ -137,8 +137,9 @@ export default function CustomerPostTask() {
 
           {targetWorkerId && !submitted && (
             <div className="mb-6 rounded-xl border border-brand/20 bg-brand/5 px-4 py-3 text-sm font-medium text-brand">
-              This task will be posted and assigned directly to{" "}
-              {targetWorkerName || "the selected worker"}.
+              This task will be posted and given directly to{" "}
+              {targetWorkerName || "the selected worker"}. A 10% advance confirms the
+              booking.
             </div>
           )}
 
@@ -158,7 +159,7 @@ export default function CustomerPostTask() {
               </h3>
               <p className="mx-auto mt-2 max-w-md text-sm text-slate-600">
                 {targetWorkerId
-                  ? `Your task has been assigned to ${targetWorkerName || "the selected worker"}.`
+                  ? `${targetWorkerName || "The selected worker"} has taken your task. Pay the 10% advance from My Tasks to confirm it.`
                   : "Your task is now live. Verified workers in your area can view and apply shortly."}
               </p>
               <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:justify-center">

@@ -7,9 +7,12 @@ import TaskEmptyState from "../components/tasks/TaskEmptyState";
 import TaskFilterBar from "../components/tasks/TaskFilterBar";
 import TaskListSkeleton from "../components/tasks/TaskListSkeleton";
 import {
+  ADVANCE_RATE,
   INBOX_ICON,
   SEARCH_ICON,
+  advanceFor,
   formatLocation,
+  formatMoney,
   formatStatus,
 } from "../components/tasks/taskUi";
 import { cancelTask, listMyTasks } from "../api/taskApi";
@@ -18,14 +21,60 @@ import { listReviewableTasks } from "../api/reviewApi";
 const STATUS_FILTERS = [
   { key: "all", label: "All" },
   { key: "open", label: "open" },
+  { key: "accepted", label: "accepted" },
   { key: "assigned", label: "assigned" },
   { key: "in progress", label: "in progress" },
   { key: "completed", label: "completed" },
   { key: "cancelled", label: "cancelled" },
 ];
 
+const ADVANCE_PERCENT = `${Math.round(ADVANCE_RATE * 100)}%`;
+
+function AdvanceNotice({ count }) {
+  return (
+    <div
+      className="mb-4 flex items-start gap-3 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800"
+      role="status"
+    >
+      <svg
+        className="mt-0.5 h-5 w-5 shrink-0"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.75"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        aria-hidden="true"
+      >
+        <circle cx="12" cy="12" r="10" />
+        <path d="M12 16v-4M12 8h.01" />
+      </svg>
+      <p>
+        <span className="font-semibold">
+          {count === 1
+            ? "A worker accepted your task."
+            : `${count} of your tasks have been accepted.`}
+        </span>{" "}
+        You need to pay a {ADVANCE_PERCENT} advance to confirm the booking and lock
+        in your worker. The rest is due once the work is completed.
+      </p>
+    </div>
+  );
+}
+
 function TaskActions({ task, status, canReview, onCancel, canceling }) {
   switch (status) {
+    // Paying the advance is the only thing to do here, so it takes the primary
+    // slot that Message occupies once the task is confirmed.
+    case "accepted":
+      return (
+        <Link
+          to={`/dashboard/checkout/${task.id}`}
+          className="rounded-full bg-brand px-3.5 py-1.5 text-xs font-semibold text-white shadow-sm shadow-brand/25 transition hover:bg-brand-dark"
+        >
+          Pay For Confirmation
+        </Link>
+      );
     case "assigned":
     case "in progress":
       return task.assignedWorker ? (
@@ -120,6 +169,7 @@ export default function CustomerMyTask() {
 
   const isSearching = taskSearch.trim().length > 0;
   const hasNoTasksAtAll = tasks.length === 0;
+  const awaitingAdvance = counts.accepted || 0;
 
   return (
     <div className="flex min-h-svh flex-1 flex-col">
@@ -135,6 +185,8 @@ export default function CustomerMyTask() {
               Manage and track all your posted tasks.
             </p>
           </div>
+
+          {awaitingAdvance > 0 && <AdvanceNotice count={awaitingAdvance} />}
 
           <TaskFilterBar
             filters={STATUS_FILTERS}
@@ -194,14 +246,34 @@ export default function CustomerMyTask() {
                       task={task}
                       accent="brand"
                       party={{
-                        role: "Assigned worker",
+                        role:
+                          status === "accepted"
+                            ? "Awaiting your advance payment"
+                            : "Assigned worker",
                         person: task.assignedWorker,
                         emptyLabel:
                           status === "open"
                             ? "Waiting for a worker to accept"
-                            : undefined,
-                        messageHref: `/dashboard/messages?taskId=${task.id}`,
+                            : status === "accepted"
+                              ? "Pay the advance to confirm"
+                              : undefined,
+                        // Chat opens once the booking is confirmed, so no Message
+                        // link while the advance is still outstanding.
+                        messageHref:
+                          status === "accepted"
+                            ? undefined
+                            : `/dashboard/messages?taskId=${task.id}`,
                       }}
+                      extraDetails={
+                        status === "accepted"
+                          ? [
+                              {
+                                label: `Advance due (${ADVANCE_PERCENT})`,
+                                value: formatMoney(advanceFor(task.budget)),
+                              },
+                            ]
+                          : []
+                      }
                       actions={
                         <TaskActions
                           task={task}

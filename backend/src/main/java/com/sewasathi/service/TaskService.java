@@ -24,7 +24,7 @@ import java.util.List;
 public class TaskService {
 
     private static final List<TaskStatus> ACTIVE_STATUSES =
-            List.of(TaskStatus.OPEN, TaskStatus.ASSIGNED, TaskStatus.IN_PROGRESS);
+            List.of(TaskStatus.OPEN, TaskStatus.ACCEPTED, TaskStatus.ASSIGNED, TaskStatus.IN_PROGRESS);
 
     private final TaskRepository taskRepository;
     private final UserRepository userRepository;
@@ -101,7 +101,8 @@ public class TaskService {
         }
 
         task.setAssignedWorker(worker);
-        task.setStatus(TaskStatus.ASSIGNED);
+        // The customer still owes the 10% advance before the worker can start.
+        task.setStatus(TaskStatus.ACCEPTED);
         return TaskResponse.from(taskRepository.save(task));
     }
 
@@ -138,7 +139,8 @@ public class TaskService {
             throw new InvalidOperationException("This task is no longer open");
         }
         task.setAssignedWorker(worker);
-        task.setStatus(TaskStatus.ASSIGNED);
+        // Stays ACCEPTED until the customer pays the advance; PaymentService moves it to ASSIGNED.
+        task.setStatus(TaskStatus.ACCEPTED);
         return TaskResponse.from(taskRepository.save(task));
     }
 

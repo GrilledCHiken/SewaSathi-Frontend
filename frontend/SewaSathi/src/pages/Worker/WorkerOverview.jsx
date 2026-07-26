@@ -5,7 +5,7 @@ import WorkerHeader from "../../components/Worker/WorkerHeader";
 import { listMyJobs, listOpenTasks } from "../../api/workerTaskApi";
 import { getMyWorkerProfile } from "../../api/workerProfileApi";
 
-const ACTIVE_STATUSES = ["ASSIGNED", "IN_PROGRESS"];
+const ACTIVE_STATUSES = ["ACCEPTED", "ASSIGNED", "IN_PROGRESS"];
 
 function SearchIcon() {
   return (

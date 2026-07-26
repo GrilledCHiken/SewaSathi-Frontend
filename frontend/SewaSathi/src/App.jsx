@@ -31,6 +31,9 @@ const CustomerMyTask = lazy(() => import("./pages/CustomerMyTask"));
 const CustomerBrowseWorkers = lazy(() => import("./pages/CustomerBrowseWorkers"));
 const CustomerMessage = lazy(() => import("./pages/CustomerMessage"));
 const CustomerPayment = lazy(() => import("./pages/CustomerPayment"));
+const CustomerCheckout = lazy(() => import("./pages/CustomerCheckout"));
+const EsewaCallback = lazy(() => import("./pages/EsewaCallback"));
+const KhaltiCallback = lazy(() => import("./pages/KhaltiCallback"));
 const CustomerReview = lazy(() => import("./pages/CustomerReview"));
 
 const AdminLayout = lazy(() => import("./components/Admin/AdminLayout"));
@@ -175,6 +178,12 @@ function App() {
           <Route path="workers" element={<CustomerBrowseWorkers />} />
           <Route path="messages" element={<CustomerMessage />} />
           <Route path="payments" element={<CustomerPayment />} />
+          <Route path="checkout/:taskId" element={<CustomerCheckout />} />
+          {/* eSewa redirects the browser back to these after checkout. */}
+          <Route path="payments/esewa/success" element={<EsewaCallback />} />
+          <Route path="payments/esewa/failure/:taskId" element={<EsewaCallback />} />
+          {/* Khalti has a single return URL, whatever the outcome. */}
+          <Route path="payments/khalti/callback" element={<KhaltiCallback />} />
           <Route path="reviews" element={<CustomerReview />} />
         </Route>
         <Route

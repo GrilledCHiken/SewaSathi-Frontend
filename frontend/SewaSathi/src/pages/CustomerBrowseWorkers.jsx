@@ -86,7 +86,9 @@ function HireModal({ worker, onClose }) {
     setAssigning(true);
     try {
       await assignWorker(selectedTaskId, worker.id);
-      toast.success(`${worker.name} has been assigned to your task.`);
+      toast.success(
+        `${worker.name} has taken your task. Pay the 10% advance to confirm it.`,
+      );
       onClose();
       navigate("/dashboard/tasks");
     } catch (err) {
@@ -121,7 +123,8 @@ function HireModal({ worker, onClose }) {
         ) : openTasks.length > 0 ? (
           <>
             <p className="mt-2 text-sm text-slate-600">
-              Assign {worker.name} directly to one of your open tasks.
+              Assign {worker.name} directly to one of your open tasks. You&apos;ll pay
+              a 10% advance from My Tasks to confirm the booking.
             </p>
             <label htmlFor="hire-task-select" className="mt-4 block text-sm font-semibold text-slate-800">
               Select a task
