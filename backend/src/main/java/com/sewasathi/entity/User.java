@@ -57,6 +57,21 @@ public class User {
     @Builder.Default
     private boolean emailVerified = true;
 
+    /** Which identity provider owns this account's credentials. */
+    @Enumerated(EnumType.STRING)
+    @Column(name = "auth_provider", nullable = false, length = 20)
+    @Builder.Default
+    private AuthProvider authProvider = AuthProvider.LOCAL;
+
+    /** The provider's own immutable id for this user; null for local accounts. */
+    @Column(name = "provider_id", length = 128)
+    private String providerId;
+
+    /** Opt-in: when set, every sign-in is challenged with an emailed one-time code. */
+    @Column(name = "two_factor_enabled", nullable = false, columnDefinition = "TINYINT(1) DEFAULT 0")
+    @Builder.Default
+    private boolean twoFactorEnabled = false;
+
     @Column(name = "failed_login_attempts", nullable = false, columnDefinition = "INT DEFAULT 0")
     @Builder.Default
     private int failedLoginAttempts = 0;

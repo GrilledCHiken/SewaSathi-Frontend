@@ -3,15 +3,14 @@ import { useSearchParams } from "react-router-dom";
 import { toast } from "react-toastify";
 import { useAuth } from "../../context/AuthContext";
 import useChatSocket from "../../hooks/useChatSocket";
+import AuthedImage from "../AuthedImage";
+import { downloadFile } from "../../api/fileApi";
 import {
   deleteMessage,
   getMessageHistory,
   listConversations,
   uploadAttachment,
 } from "../../api/messageApi";
-
-const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://localhost:8080/api";
-const API_ORIGIN = API_BASE.replace(/\/api\/?$/, "");
 
 const AVATAR_PALETTE = [
   { bg: "bg-sky-100", text: "text-sky-700" },
@@ -137,30 +136,42 @@ function ConversationItem({ conversation, active, onSelect }) {
   );
 }
 
+/**
+ * Attachments are served by the authenticated /api/files endpoint, so they are fetched
+ * through the axios client rather than linked to directly — a bare href would arrive
+ * without a token and come back 401.
+ */
 function AttachmentBubble({ message }) {
   const isImage = message.attachmentType?.startsWith("image/");
-  const url = `${API_ORIGIN}${message.attachmentUrl}`;
 
   if (isImage) {
     return (
-      <a href={url} target="_blank" rel="noreferrer" className="block overflow-hidden rounded-xl">
-        <img src={url} alt={message.attachmentName || "attachment"} className="max-h-64 w-full object-cover" />
-      </a>
+      <button
+        type="button"
+        onClick={() => downloadFile(message.attachmentUrl, message.attachmentName)}
+        className="block overflow-hidden rounded-xl"
+        title="Download image"
+      >
+        <AuthedImage
+          storedUrl={message.attachmentUrl}
+          alt={message.attachmentName || "attachment"}
+          className="max-h-64 w-full object-cover"
+        />
+      </button>
     );
   }
 
   return (
-    <a
-      href={url}
-      target="_blank"
-      rel="noreferrer"
+    <button
+      type="button"
+      onClick={() => downloadFile(message.attachmentUrl, message.attachmentName)}
       className="flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100"
     >
       <svg className="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.75">
         <path strokeLinecap="round" strokeLinejoin="round" d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48" />
       </svg>
       <span className="truncate">{message.attachmentName || "Attachment"}</span>
-    </a>
+    </button>
   );
 }
 

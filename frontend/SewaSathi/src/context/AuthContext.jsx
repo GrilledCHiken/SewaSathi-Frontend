@@ -50,16 +50,38 @@ export function AuthProvider({ children }) {
       .finally(() => setInitializing(false));
   }, []);
 
+  // Signing in no longer always yields a token. When two-factor authentication is on,
+  // or the sign-in comes from an unrecognised device, the API answers with a challenge
+  // that has to be completed on the /verify-otp screen first. Callers branch on `status`
+  // rather than assuming a session was established.
   const login = useCallback(async ({ email, password }) => {
-    const { token, user } = await authApi.login({ email, password });
+    const data = await authApi.login({ email, password });
+
+    if (data.challengeRequired) {
+      return {
+        status: "challenge",
+        challengeToken: data.challengeToken,
+        challengeReason: data.challengeReason,
+      };
+    }
+
+    setToken(data.token);
+    const sessionUser = toSessionUser(data.user);
+    setSession(sessionUser);
+    return { status: "authenticated", user: sessionUser };
+  }, []);
+
+  /** Completes a challenged sign-in with the code emailed to the user. */
+  const verifyOtp = useCallback(async (challengeToken, code) => {
+    const { token, user } = await authApi.verifyOtp(challengeToken, code);
     setToken(token);
     const sessionUser = toSessionUser(user);
     setSession(sessionUser);
     return sessionUser;
   }, []);
 
-  // Registration creates the account only — the token returned by the API is
-  // deliberately discarded so the user has to sign in before reaching a dashboard.
+  // Registration creates the account only. The API deliberately returns no token: the
+  // email address has to be confirmed before the account can sign in at all.
   const registerCustomer = useCallback(async (payload) => {
     const { user } = await authApi.registerCustomer(payload);
     return toSessionUser(user);
@@ -83,11 +105,12 @@ export function AuthProvider({ children }) {
       isCustomerAuthenticated: Boolean(session) && session.role === "CUSTOMER",
       initializing,
       login,
+      verifyOtp,
       logoutCustomer: logout,
       registerCustomer,
       registerWorker,
     }),
-    [session, initializing, login, logout, registerCustomer, registerWorker],
+    [session, initializing, login, verifyOtp, logout, registerCustomer, registerWorker],
   );
 
   return (

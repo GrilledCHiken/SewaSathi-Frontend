@@ -1,4 +1,9 @@
+# Copy this file to application.properties (which is gitignored) and fill in the
+# secrets. Profile-specific settings live in application-{dev,prod}.properties,
+# which are tracked in git and deliberately contain no secrets.
 spring.application.name=sewasathi-api
+
+spring.profiles.active=dev
 
 spring.datasource.url=jdbc:mysql://127.0.0.1:3306/sewasathi?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
 spring.datasource.username=root
@@ -6,11 +11,23 @@ spring.datasource.password=changeme
 spring.datasource.driver-class-name=com.mysql.cj.jdbc.Driver
 
 spring.jpa.hibernate.ddl-auto=update
-spring.jpa.show-sql=true
 spring.jpa.properties.hibernate.format_sql=true
 spring.jpa.open-in-view=false
 
 server.port=8080
+
+# Directory for rotated log files (see logback-spring.xml).
+app.log-dir=logs
+
+# Browser origins allowed to call this API.
+app.cors.allowed-origins=http://localhost:5173,http://localhost:5174
+
+# Spring Boot Actuator. /actuator/health and /actuator/info are public; every other
+# endpoint requires an ADMIN token.
+management.endpoints.web.exposure.include=health,info,metrics,loggers
+management.endpoint.health.show-details=when-authorized
+management.endpoint.health.roles=ADMIN
+management.info.env.enabled=true
 
 # Generate your own secret, e.g.: openssl rand -base64 64
 jwt.secret=REPLACE_WITH_A_LONG_RANDOM_BASE64_SECRET
@@ -21,6 +38,46 @@ spring.servlet.multipart.max-file-size=10MB
 spring.servlet.multipart.max-request-size=10MB
 
 app.frontend-url=http://localhost:5173
+
+# --- Email (requirement #13) ---
+# false  -> ConsoleEmailService logs each email (no credentials needed; the default)
+# true   -> SmtpEmailService delivers over SMTP using the spring.mail.* settings below
+app.mail.enabled=false
+app.mail.from=${spring.mail.username:noreply@sewasathi.com}
+app.mail.from-name=Sewa Sathi
+
+spring.mail.host=smtp.gmail.com
+spring.mail.port=587
+# Gmail requires an App Password (16 characters), not your account password. Turn on
+# 2-Step Verification, then generate one at https://myaccount.google.com/apppasswords
+spring.mail.username=REPLACE_WITH_YOUR_GMAIL_ADDRESS
+spring.mail.password=REPLACE_WITH_YOUR_GMAIL_APP_PASSWORD
+spring.mail.properties.mail.smtp.auth=true
+spring.mail.properties.mail.smtp.starttls.enable=true
+spring.mail.properties.mail.smtp.starttls.required=true
+spring.mail.properties.mail.smtp.connectiontimeout=5000
+spring.mail.properties.mail.smtp.timeout=5000
+spring.mail.properties.mail.smtp.writetimeout=5000
+
+# --- Social sign-in (Google / Facebook OAuth 2.0) ---
+# Leave these commented out and the app runs normally with email+password only: with no
+# registrations configured, Spring creates no ClientRegistrationRepository and SecurityConfig
+# skips oauth2Login entirely, so /api/auth/providers returns [] and the SPA hides the buttons.
+#
+# Google:   https://console.cloud.google.com/apis/credentials -> OAuth client ID -> Web application
+# Facebook: https://developers.facebook.com/apps -> Facebook Login -> Settings
+#
+# Both need this exact redirect URI registered on the provider's side:
+#   http://localhost:8080/login/oauth2/code/google
+#   http://localhost:8080/login/oauth2/code/facebook
+#
+#spring.security.oauth2.client.registration.google.client-id=REPLACE_WITH_GOOGLE_CLIENT_ID
+#spring.security.oauth2.client.registration.google.client-secret=REPLACE_WITH_GOOGLE_CLIENT_SECRET
+#spring.security.oauth2.client.registration.google.scope=email,profile
+#
+#spring.security.oauth2.client.registration.facebook.client-id=REPLACE_WITH_FACEBOOK_APP_ID
+#spring.security.oauth2.client.registration.facebook.client-secret=REPLACE_WITH_FACEBOOK_APP_SECRET
+#spring.security.oauth2.client.registration.facebook.scope=email,public_profile
 
 # eSewa ePay v2. These are eSewa's public UAT sandbox values (demo only, no real
 # money). Replace all four with your merchant credentials for production.

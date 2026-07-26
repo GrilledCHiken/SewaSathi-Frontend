@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
 import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom'
 import { toast } from 'react-toastify'
+import { resendVerification } from '../api/authApi'
+import SocialSignIn from '../components/SocialSignIn'
 import { useAuth } from '../context/AuthContext'
 
 function LogoIcon({ className = '' }) {
@@ -97,6 +99,10 @@ function Login() {
   const [email, setEmail] = useState(() => location.state?.email ?? '')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
+  // Set when sign-in was refused purely because the address is unconfirmed, which is
+  // recoverable in place rather than a dead end.
+  const [unverifiedEmail, setUnverifiedEmail] = useState(null)
+  const [resending, setResending] = useState(false)
   const { isCustomerAuthenticated, user, login } = useAuth()
   const navigate = useNavigate()
 
@@ -105,6 +111,15 @@ function Login() {
       window.history.replaceState({}, '')
     }
   }, [signupNotice])
+
+  // A failed social sign-in redirects back here with the reason in the query string.
+  useEffect(() => {
+    const oauthError = new URLSearchParams(location.search).get('error')
+    if (oauthError) {
+      toast.error(oauthError)
+      window.history.replaceState({}, '', '/login')
+    }
+  }, [location.search])
 
   const from = location.state?.from?.pathname || '/dashboard'
 
@@ -123,8 +138,26 @@ function Login() {
   const handleSubmit = async (e) => {
     e.preventDefault()
     setLoading(true)
+    setUnverifiedEmail(null)
     try {
-      const sessionUser = await login({ email: email.trim(), password })
+      const result = await login({ email: email.trim(), password })
+
+      // Two-factor is on, or this device has not been seen before: the password was
+      // right but a code has been emailed and must be entered before a session exists.
+      if (result.status === 'challenge') {
+        navigate('/verify-otp', {
+          replace: true,
+          state: {
+            challengeToken: result.challengeToken,
+            challengeReason: result.challengeReason,
+            email: email.trim(),
+            from,
+          },
+        })
+        return
+      }
+
+      const sessionUser = result.user
       toast.success('Welcome back!')
       if (sessionUser.role === 'ADMIN') {
         navigate('/admin', { replace: true })
@@ -134,9 +167,29 @@ function Login() {
         navigate('/worker', { replace: true })
       }
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Invalid email or password')
+      // 403 here means the password was correct but the address was never confirmed.
+      // Surfacing a resend action beats repeating "invalid email or password", which
+      // would send the user off hunting for a problem with their credentials.
+      if (err.response?.status === 403) {
+        setUnverifiedEmail(email.trim())
+        toast.error(err.response?.data?.message || 'Please verify your email address first.')
+      } else {
+        toast.error(err.response?.data?.message || 'Invalid email or password')
+      }
     } finally {
       setLoading(false)
+    }
+  }
+
+  const handleResendVerification = async () => {
+    setResending(true)
+    try {
+      await resendVerification(unverifiedEmail)
+      toast.success('Verification email sent. Check your inbox.')
+    } catch {
+      toast.error('Could not send the email. Please try again shortly.')
+    } finally {
+      setResending(false)
     }
   }
 
@@ -216,10 +269,28 @@ function Login() {
             <div className="mt-6 rounded-xl bg-emerald-50 px-4 py-4 text-sm text-emerald-800">
               <p className="font-semibold">Account created successfully!</p>
               <p className="mt-1">
-                {signupNotice.role === 'WORKER'
-                  ? 'Your worker application is under review. Sign in below to track its status.'
-                  : 'Please sign in with your new credentials to continue.'}
+                We&apos;ve emailed you a link to confirm your address. Click it, then sign in below.
+                {signupNotice.role === 'WORKER' &&
+                  ' Your worker application will be reviewed after that.'}
               </p>
+            </div>
+          )}
+
+          {unverifiedEmail && (
+            <div className="mt-6 rounded-xl bg-amber-50 px-4 py-4 text-sm text-amber-900">
+              <p className="font-semibold">Confirm your email to continue</p>
+              <p className="mt-1">
+                We sent a verification link to <strong>{unverifiedEmail}</strong>. Click it to
+                activate your account, then sign in.
+              </p>
+              <button
+                type="button"
+                onClick={handleResendVerification}
+                disabled={resending}
+                className="mt-3 rounded-lg bg-amber-600 px-3.5 py-2 text-xs font-semibold text-white transition hover:bg-amber-700 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {resending ? 'Sending…' : 'Resend verification email'}
+              </button>
             </div>
           )}
 
@@ -295,22 +366,11 @@ function Login() {
             </button>
           </form>
 
-          <div className="relative my-7">
-            <div className="absolute inset-0 flex items-center" aria-hidden="true">
-              <div className="w-full border-t border-slate-200" />
-            </div>
-            <div className="relative flex justify-center">
-              <span className="bg-white px-3 text-sm text-slate-400">Or continue with</span>
-            </div>
-          </div>
-
-          <button
-            type="button"
-            className="flex w-full items-center justify-center gap-2.5 rounded-xl border border-slate-200 bg-white py-3.5 text-base font-medium text-slate-700 transition hover:border-slate-300 hover:bg-slate-50 active:scale-[0.99]"
-          >
-            <PhoneIcon />
-            Phone Number
-          </button>
+          {/*
+            Replaces a "Phone Number" button that was never wired to anything. Renders
+            nothing at all unless the backend reports configured OAuth providers.
+          */}
+          <SocialSignIn />
         </div>
 
         <p className="mt-8 text-sm text-slate-600">

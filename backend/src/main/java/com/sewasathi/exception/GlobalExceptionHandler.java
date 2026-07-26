@@ -38,6 +38,22 @@ public class GlobalExceptionHandler {
                 .body(ErrorResponse.of(HttpStatus.LOCKED.value(), ex.getMessage()));
     }
 
+    /**
+     * 403 rather than 401: the password was right, so this is not a credentials problem.
+     * The client keys off this status to offer "resend verification email".
+     */
+    @ExceptionHandler(EmailNotVerifiedException.class)
+    public ResponseEntity<ErrorResponse> handleEmailNotVerified(EmailNotVerifiedException ex) {
+        return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                .body(ErrorResponse.of(HttpStatus.FORBIDDEN.value(), ex.getMessage()));
+    }
+
+    @ExceptionHandler(OtpException.class)
+    public ResponseEntity<ErrorResponse> handleOtp(OtpException ex) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(ErrorResponse.of(HttpStatus.BAD_REQUEST.value(), ex.getMessage()));
+    }
+
     @ExceptionHandler(InvalidTokenException.class)
     public ResponseEntity<ErrorResponse> handleInvalidToken(InvalidTokenException ex) {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)

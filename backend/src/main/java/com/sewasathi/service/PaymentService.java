@@ -15,12 +15,16 @@ import com.sewasathi.repository.TaskRepository;
 import com.sewasathi.repository.UserRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -41,28 +45,37 @@ public class PaymentService {
 
     private static final Logger log = LoggerFactory.getLogger(PaymentService.class);
 
+    private static final DateTimeFormatter RECEIPT_DATE = DateTimeFormatter.ofPattern("MMM d, yyyy HH:mm");
+
     private final PaymentRepository paymentRepository;
     private final TaskRepository taskRepository;
     private final UserRepository userRepository;
     private final EsewaService esewaService;
     private final KhaltiService khaltiService;
+    private final EmailService emailService;
+    private final NotificationService notificationService;
     private final BigDecimal advanceRate;
     private final String frontendUrl;
 
+    @Autowired
     public PaymentService(
             PaymentRepository paymentRepository,
             TaskRepository taskRepository,
             UserRepository userRepository,
             EsewaService esewaService,
             KhaltiService khaltiService,
+            EmailService emailService,
+            NotificationService notificationService,
             @Value("${app.esewa.advance-rate:0.10}") BigDecimal advanceRate,
             @Value("${app.frontend-url}") String frontendUrl
     ) {
+        this.notificationService = notificationService;
         this.paymentRepository = paymentRepository;
         this.taskRepository = taskRepository;
         this.userRepository = userRepository;
         this.esewaService = esewaService;
         this.khaltiService = khaltiService;
+        this.emailService = emailService;
         this.advanceRate = advanceRate;
         this.frontendUrl = trimTrailingSlash(frontendUrl);
     }
@@ -191,6 +204,7 @@ public class PaymentService {
         payment.setStatus(PaymentStatus.COMPLETED);
         payment.setTransactionCode(payload.transactionCode());
         promoteTask(payment.getTask());
+        sendReceipt(payment);
 
         return PaymentResponse.from(paymentRepository.save(payment));
     }
@@ -229,6 +243,7 @@ public class PaymentService {
         payment.setStatus(PaymentStatus.COMPLETED);
         payment.setRefId(lookup.transactionId());
         promoteTask(payment.getTask());
+        sendReceipt(payment);
 
         return PaymentResponse.from(paymentRepository.save(payment));
     }
@@ -296,12 +311,82 @@ public class PaymentService {
         return false;
     }
 
+    /**
+     * Emails the customer a receipt for a settled advance payment.
+     *
+     * <p>Values are read out here rather than passed as entities: delivery happens on a
+     * mail worker thread after this transaction closes, and a lazy proxy dereferenced
+     * there would blow up with {@code open-in-view=false}. Delivery failures are absorbed
+     * by the mail layer - a paid booking must never be rolled back because the mail
+     * server was unreachable.
+     */
+    private void sendReceipt(Payment payment) {
+        Task task = payment.getTask();
+        Map<String, String> details = new LinkedHashMap<>();
+        details.put("Task", task.getTitle());
+        details.put("Amount paid", "NPR " + payment.getAmount().setScale(2, RoundingMode.HALF_UP));
+        details.put("Paid via", payment.getProvider() == PaymentProvider.ESEWA ? "eSewa" : "Khalti");
+        details.put("Reference", payment.getTransactionUuid());
+        details.put("Date", LocalDateTime.now().format(RECEIPT_DATE));
+
+        emailService.sendTemplate(
+                payment.getCustomer().getEmail(),
+                "Your Sewa Sathi payment receipt",
+                "email/payment-receipt",
+                Map.of(
+                        "name", payment.getCustomer().getFullName(),
+                        "details", details,
+                        "actionUrl", frontendUrl + "/dashboard/payments"
+                )
+        );
+    }
+
     /** A worker already at work must not be dragged back to {@link TaskStatus#ASSIGNED}. */
     private void promoteTask(Task task) {
         if (task.getStatus() == TaskStatus.ACCEPTED) {
             task.setStatus(TaskStatus.ASSIGNED);
             taskRepository.save(task);
+            announceAssignment(task);
         }
+    }
+
+    /**
+     * Tells both sides the booking is now confirmed. This is the moment that matters -
+     * acceptTask only marks a task ACCEPTED, which is still pending the advance payment.
+     */
+    private void announceAssignment(Task task) {
+        User customer = task.getCustomer();
+        User worker = task.getAssignedWorker();
+        if (worker == null) {
+            return;
+        }
+
+        notificationService.notify(customer, "TASK_ASSIGNED",
+                "Your booking is confirmed",
+                worker.getFullName() + " is confirmed for \"" + task.getTitle() + "\".",
+                "/dashboard/tasks");
+
+        notificationService.notify(worker, "TASK_ASSIGNED",
+                "A job was confirmed",
+                "The advance for \"" + task.getTitle() + "\" has been paid. You can start when ready.",
+                "/worker/jobs");
+
+        Map<String, String> details = new LinkedHashMap<>();
+        details.put("Task", task.getTitle());
+        details.put("Worker", worker.getFullName());
+        details.put("Status", "Assigned");
+
+        emailService.sendTemplate(
+                customer.getEmail(),
+                "Your Sewa Sathi booking is confirmed",
+                "email/task-assigned",
+                Map.of(
+                        "name", customer.getFullName(),
+                        "workerName", worker.getFullName(),
+                        "details", details,
+                        "actionUrl", frontendUrl + "/dashboard/tasks"
+                )
+        );
     }
 
     /** Khalti reports in paisa, so the comparison happens in paisa too. */

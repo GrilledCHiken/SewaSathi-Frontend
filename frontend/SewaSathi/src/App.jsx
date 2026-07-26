@@ -10,6 +10,8 @@ import ProtectedRoute from "./components/ProtectedRoute";
 const ForgotPassword = lazy(() => import("./pages/ForgotPassword"));
 const ResetPassword = lazy(() => import("./pages/ResetPassword"));
 const VerifyEmail = lazy(() => import("./pages/VerifyEmail"));
+const VerifyOtp = lazy(() => import("./pages/VerifyOtp"));
+const OAuthCallback = lazy(() => import("./pages/OAuthCallback"));
 const Signupoption = lazy(() => import("./pages/User/SignupOption"));
 const UserSignup = lazy(() => import("./pages/User/UserSignup"));
 const WorkerSignup = lazy(() => import("./pages/Worker/WorkerSignup"));
@@ -35,6 +37,7 @@ const CustomerCheckout = lazy(() => import("./pages/CustomerCheckout"));
 const EsewaCallback = lazy(() => import("./pages/EsewaCallback"));
 const KhaltiCallback = lazy(() => import("./pages/KhaltiCallback"));
 const CustomerReview = lazy(() => import("./pages/CustomerReview"));
+const AccountSecurity = lazy(() => import("./pages/AccountSecurity"));
 
 const AdminLayout = lazy(() => import("./components/Admin/AdminLayout"));
 const AdminOverview = lazy(() => import("./pages/Admin/AdminOverview"));
@@ -80,6 +83,8 @@ function App() {
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/reset-password" element={<ResetPassword />} />
         <Route path="/verify-email" element={<VerifyEmail />} />
+        <Route path="/verify-otp" element={<VerifyOtp />} />
+        <Route path="/oauth/callback" element={<OAuthCallback />} />
         <Route path="/signup" element={<Signupoption />} />
         <Route path="/signup/user" element={<UserSignup />} />
         <Route path="/signup/worker" element={<WorkerSignup />} />
@@ -185,6 +190,7 @@ function App() {
           {/* Khalti has a single return URL, whatever the outcome. */}
           <Route path="payments/khalti/callback" element={<KhaltiCallback />} />
           <Route path="reviews" element={<CustomerReview />} />
+          <Route path="security" element={<AccountSecurity />} />
         </Route>
         <Route
           path="/admin"

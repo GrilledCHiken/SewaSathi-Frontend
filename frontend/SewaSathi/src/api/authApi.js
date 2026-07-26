@@ -32,6 +32,19 @@ export async function verifyEmail(token) {
   await httpClient.post("/auth/verify-email", { token });
 }
 
-export async function resendVerification() {
-  await httpClient.post("/auth/resend-verification");
+// Takes the address explicitly: an unverified account cannot sign in, so this
+// endpoint has to work without a token or the user would be permanently stuck.
+export async function resendVerification(email) {
+  await httpClient.post("/auth/resend-verification", { email });
+}
+
+// Second half of a challenged sign-in. The challenge token identifies the account,
+// so the email address is never re-sent from the client.
+export async function verifyOtp(challengeToken, code) {
+  const { data } = await httpClient.post("/auth/verify-otp", { challengeToken, code });
+  return data;
+}
+
+export async function setTwoFactor(enabled) {
+  await httpClient.post(`/auth/2fa/${enabled ? "enable" : "disable"}`);
 }

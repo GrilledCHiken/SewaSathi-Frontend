@@ -1,21 +1,61 @@
 package com.sewasathi.service;
 
+import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;
+import org.thymeleaf.context.Context;
+import org.thymeleaf.spring6.SpringTemplateEngine;
+
+import java.util.Map;
 
 /**
- * No SMTP provider is configured for this project, so outgoing email is simulated by logging
- * it. Swap this out for a real {@link EmailService} implementation (e.g. JavaMailSender-backed)
- * once mail credentials are available - nothing else in the codebase needs to change.
+ * Development/test stand-in for {@link SmtpEmailService}: logs what would have been sent
+ * instead of contacting an SMTP server, so the app runs with no mail credentials.
+ *
+ * <p>Active unless {@code app.mail.enabled=true}.
+ *
+ * <p>It still renders the Thymeleaf template rather than skipping it, so a broken template
+ * or a missing model attribute fails locally instead of surfacing for the first time in
+ * production. The rendered HTML itself is not logged - the model map is, because that is
+ * where the verification link and OTP code live and it is what a developer actually needs
+ * to copy out of the console.
  */
 @Service
+@RequiredArgsConstructor
+@ConditionalOnProperty(name = "app.mail.enabled", havingValue = "false", matchIfMissing = true)
 public class ConsoleEmailService implements EmailService {
 
     private static final Logger log = LoggerFactory.getLogger(ConsoleEmailService.class);
 
+    private final SpringTemplateEngine templateEngine;
+
     @Override
     public void send(String to, String subject, String body) {
         log.info("==== DEV EMAIL ====\nTo: {}\nSubject: {}\n{}\n===================", to, subject, body);
+    }
+
+    @Override
+    public void sendTemplate(String to, String subject, String template, Map<String, Object> model) {
+        String renderStatus;
+        try {
+            Context context = new Context();
+            context.setVariables(model);
+            String html = templateEngine.process(template, context);
+            renderStatus = "rendered " + html.length() + " chars";
+        } catch (RuntimeException e) {
+            // Loud, but not fatal - the caller's transaction must still commit.
+            log.error("Email template '{}' failed to render", template, e);
+            renderStatus = "RENDER FAILED: " + e.getMessage();
+        }
+
+        log.info("""
+                ==== DEV EMAIL ====
+                To: {}
+                Subject: {}
+                Template: {} ({})
+                Model: {}
+                ===================""", to, subject, template, renderStatus, model);
     }
 }

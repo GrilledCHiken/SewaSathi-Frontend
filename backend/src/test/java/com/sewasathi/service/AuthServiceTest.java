@@ -8,11 +8,13 @@ import com.sewasathi.dto.request.ResetPasswordRequest;
 import com.sewasathi.dto.response.AuthResponse;
 import com.sewasathi.entity.ApprovalStatus;
 import com.sewasathi.entity.EmailVerificationToken;
+import com.sewasathi.entity.OtpPurpose;
 import com.sewasathi.entity.PasswordResetToken;
 import com.sewasathi.entity.Role;
 import com.sewasathi.entity.User;
 import com.sewasathi.exception.AccountLockedException;
 import com.sewasathi.exception.DuplicateEmailException;
+import com.sewasathi.exception.EmailNotVerifiedException;
 import com.sewasathi.exception.InvalidCredentialsException;
 import com.sewasathi.exception.InvalidTokenException;
 import com.sewasathi.exception.SuspendedAccountException;
@@ -32,6 +34,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import java.time.LocalDateTime;
+import java.util.Map;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -64,7 +67,14 @@ class AuthServiceTest {
     @Mock
     private EmailService emailService;
 
+    @Mock
+    private OtpService otpService;
+
     private final PasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
+
+    /** A stable, already-recognised device unless a test says otherwise. */
+    private static final DeviceContext DEVICE =
+            new DeviceContext("Mozilla/5.0 (Windows NT 10.0) Chrome/120.0", "203.0.113.7");
 
     private AuthService authService;
 
@@ -72,7 +82,7 @@ class AuthServiceTest {
     void setUp() {
         authService = new AuthService(
                 userRepository, workerProfileRepository, passwordResetTokenRepository,
-                emailVerificationTokenRepository, passwordEncoder, jwtService, emailService
+                emailVerificationTokenRepository, passwordEncoder, jwtService, emailService, otpService
         );
         ReflectionTestUtils.setField(authService, "frontendUrl", "http://localhost:5174");
         lenient().when(jwtService.generateToken(anyString())).thenReturn("fake-jwt-token");
@@ -133,7 +143,17 @@ class AuthServiceTest {
         authService.registerCustomer(request);
 
         verify(emailVerificationTokenRepository).save(any(EmailVerificationToken.class));
-        verify(emailService).send(org.mockito.ArgumentMatchers.eq("customer@example.com"), anyString(), anyString());
+
+        // Assert on the rendered model, not just that "an email happened": the verification
+        // link is what actually activates the account, and Phase 2 makes login depend on it.
+        @SuppressWarnings("unchecked")
+        ArgumentCaptor<Map<String, Object>> model = ArgumentCaptor.forClass(Map.class);
+        verify(emailService).sendTemplate(
+                org.mockito.ArgumentMatchers.eq("customer@example.com"),
+                anyString(),
+                org.mockito.ArgumentMatchers.eq("email/verification"),
+                model.capture());
+        assertThat(model.getValue().get("actionUrl").toString()).contains("/verify-email?token=");
     }
 
     @Test
@@ -176,7 +196,7 @@ class AuthServiceTest {
         request.setEmail("customer@example.com");
         request.setPassword("wrongPassword");
 
-        assertThatThrownBy(() -> authService.login(request))
+        assertThatThrownBy(() -> authService.login(request, DEVICE))
                 .isInstanceOf(InvalidCredentialsException.class);
         assertThat(existing.getFailedLoginAttempts()).isEqualTo(1);
     }
@@ -190,7 +210,7 @@ class AuthServiceTest {
         request.setEmail("customer@example.com");
         request.setPassword("correctPassword");
 
-        AuthResponse response = authService.login(request);
+        AuthResponse response = authService.login(request, DEVICE);
 
         assertThat(response.getToken()).isEqualTo("fake-jwt-token");
         assertThat(response.getUser().getEmail()).isEqualTo("customer@example.com");
@@ -206,7 +226,7 @@ class AuthServiceTest {
         request.setEmail("customer@example.com");
         request.setPassword("correctPassword");
 
-        assertThatThrownBy(() -> authService.login(request))
+        assertThatThrownBy(() -> authService.login(request, DEVICE))
                 .isInstanceOf(SuspendedAccountException.class);
     }
 
@@ -218,7 +238,7 @@ class AuthServiceTest {
         request.setEmail("nobody@example.com");
         request.setPassword("whatever123");
 
-        assertThatThrownBy(() -> authService.login(request))
+        assertThatThrownBy(() -> authService.login(request, DEVICE))
                 .isInstanceOf(InvalidCredentialsException.class);
     }
 
@@ -232,7 +252,7 @@ class AuthServiceTest {
         request.setPassword("wrongPassword");
 
         for (int i = 0; i < 5; i++) {
-            assertThatThrownBy(() -> authService.login(request)).isInstanceOf(InvalidCredentialsException.class);
+            assertThatThrownBy(() -> authService.login(request, DEVICE)).isInstanceOf(InvalidCredentialsException.class);
         }
 
         assertThat(existing.getFailedLoginAttempts()).isEqualTo(0);
@@ -249,7 +269,7 @@ class AuthServiceTest {
         request.setEmail("customer@example.com");
         request.setPassword("correctPassword");
 
-        assertThatThrownBy(() -> authService.login(request))
+        assertThatThrownBy(() -> authService.login(request, DEVICE))
                 .isInstanceOf(AccountLockedException.class);
     }
 
@@ -263,7 +283,15 @@ class AuthServiceTest {
         authService.forgotPassword(request);
 
         verify(passwordResetTokenRepository).save(any(PasswordResetToken.class));
-        verify(emailService).send(org.mockito.ArgumentMatchers.eq("customer@example.com"), anyString(), anyString());
+
+        @SuppressWarnings("unchecked")
+        ArgumentCaptor<Map<String, Object>> model = ArgumentCaptor.forClass(Map.class);
+        verify(emailService).sendTemplate(
+                org.mockito.ArgumentMatchers.eq("customer@example.com"),
+                anyString(),
+                org.mockito.ArgumentMatchers.eq("email/password-reset"),
+                model.capture());
+        assertThat(model.getValue().get("actionUrl").toString()).contains("/reset-password?token=");
     }
 
     @Test
@@ -275,7 +303,7 @@ class AuthServiceTest {
         authService.forgotPassword(request);
 
         verify(passwordResetTokenRepository, never()).save(any());
-        verify(emailService, never()).send(anyString(), anyString(), anyString());
+        verify(emailService, never()).sendTemplate(anyString(), anyString(), anyString(), org.mockito.ArgumentMatchers.anyMap());
     }
 
     @Test
@@ -359,5 +387,148 @@ class AuthServiceTest {
         assertThatThrownBy(() -> authService.verifyEmail("expired-verify-token"))
                 .isInstanceOf(InvalidTokenException.class);
         assertThat(existing.isEmailVerified()).isFalse();
+    }
+
+    // --- Email verification is now enforced, not decorative ---
+
+    @Test
+    void register_doesNotIssueAToken_untilTheEmailIsVerified() {
+        RegisterCustomerRequest request = new RegisterCustomerRequest();
+        request.setFullName("Test Customer");
+        request.setEmail("customer@example.com");
+        request.setPhone("9800000000");
+        request.setPassword("plaintext123");
+        when(userRepository.existsByEmail("customer@example.com")).thenReturn(false);
+
+        AuthResponse response = authService.registerCustomer(request);
+
+        // Handing out a working token here would make the verification step pointless.
+        assertThat(response.getToken()).isNull();
+        assertThat(response.getRequiresVerification()).isTrue();
+        assertThat(response.getUser().getEmail()).isEqualTo("customer@example.com");
+    }
+
+    @Test
+    void login_unverifiedEmail_isRejectedWithItsOwnError() {
+        User existing = approvedCustomer("correctPassword");
+        existing.setEmailVerified(false);
+        when(userRepository.findByEmail("customer@example.com")).thenReturn(Optional.of(existing));
+
+        LoginRequest request = new LoginRequest();
+        request.setEmail("customer@example.com");
+        request.setPassword("correctPassword");
+
+        // Distinct from InvalidCredentialsException so the UI can offer "resend link"
+        // rather than telling the user their password is wrong.
+        assertThatThrownBy(() -> authService.login(request, DEVICE))
+                .isInstanceOf(EmailNotVerifiedException.class);
+    }
+
+    @Test
+    void login_checksPasswordBeforeVerificationState() {
+        User existing = approvedCustomer("correctPassword");
+        existing.setEmailVerified(false);
+        when(userRepository.findByEmail("customer@example.com")).thenReturn(Optional.of(existing));
+
+        LoginRequest request = new LoginRequest();
+        request.setEmail("customer@example.com");
+        request.setPassword("wrongPassword");
+
+        // A wrong password must not reveal whether the account is verified, otherwise the
+        // error becomes an oracle for which addresses have registered accounts.
+        assertThatThrownBy(() -> authService.login(request, DEVICE))
+                .isInstanceOf(InvalidCredentialsException.class);
+    }
+
+    // --- Second factor ---
+
+    @Test
+    void login_withTwoFactorOn_returnsAChallengeInsteadOfAToken() {
+        User existing = approvedCustomer("correctPassword");
+        existing.setTwoFactorEnabled(true);
+        when(userRepository.findByEmail("customer@example.com")).thenReturn(Optional.of(existing));
+        when(otpService.issue(existing, OtpPurpose.LOGIN_2FA, DEVICE)).thenReturn("challenge-abc");
+
+        LoginRequest request = new LoginRequest();
+        request.setEmail("customer@example.com");
+        request.setPassword("correctPassword");
+
+        AuthResponse response = authService.login(request, DEVICE);
+
+        assertThat(response.getToken()).isNull();
+        assertThat(response.getChallengeRequired()).isTrue();
+        assertThat(response.getChallengeToken()).isEqualTo("challenge-abc");
+    }
+
+    @Test
+    void login_fromAnUnrecognisedDevice_returnsAChallenge() {
+        User existing = approvedCustomer("correctPassword");
+        when(userRepository.findByEmail("customer@example.com")).thenReturn(Optional.of(existing));
+        when(otpService.isNewDevice(existing, DEVICE)).thenReturn(true);
+        when(otpService.issue(existing, OtpPurpose.NEW_DEVICE, DEVICE)).thenReturn("challenge-xyz");
+
+        LoginRequest request = new LoginRequest();
+        request.setEmail("customer@example.com");
+        request.setPassword("correctPassword");
+
+        AuthResponse response = authService.login(request, DEVICE);
+
+        assertThat(response.getChallengeRequired()).isTrue();
+        assertThat(response.getChallengeToken()).isEqualTo("challenge-xyz");
+        verify(otpService, never()).trustDevice(any(), any());
+    }
+
+    @Test
+    void login_fromAKnownDevice_issuesATokenAndTouchesTheDevice() {
+        User existing = approvedCustomer("correctPassword");
+        when(userRepository.findByEmail("customer@example.com")).thenReturn(Optional.of(existing));
+        when(otpService.isNewDevice(existing, DEVICE)).thenReturn(false);
+
+        LoginRequest request = new LoginRequest();
+        request.setEmail("customer@example.com");
+        request.setPassword("correctPassword");
+
+        AuthResponse response = authService.login(request, DEVICE);
+
+        assertThat(response.getToken()).isEqualTo("fake-jwt-token");
+        verify(otpService).trustDevice(existing, DEVICE);
+    }
+
+    @Test
+    void verifyOtp_validCode_issuesAToken() {
+        User existing = approvedCustomer("correctPassword");
+        when(otpService.verify("challenge-abc", "123456")).thenReturn(existing);
+
+        AuthResponse response = authService.verifyOtp("challenge-abc", "123456");
+
+        assertThat(response.getToken()).isEqualTo("fake-jwt-token");
+        assertThat(response.getUser().getEmail()).isEqualTo("customer@example.com");
+    }
+
+    @Test
+    void verifyOtp_accountSuspendedSinceTheChallenge_isRejected() {
+        User existing = approvedCustomer("correctPassword");
+        existing.setSuspended(true);
+        when(otpService.verify("challenge-abc", "123456")).thenReturn(existing);
+
+        // Suspension can land between issuing the challenge and the code coming back, so
+        // account state is re-checked rather than assumed from the first half of the login.
+        assertThatThrownBy(() -> authService.verifyOtp("challenge-abc", "123456"))
+                .isInstanceOf(SuspendedAccountException.class);
+    }
+
+    @Test
+    void resendVerification_unknownOrVerifiedAddress_staysSilent() {
+        when(userRepository.findByEmail("nobody@example.com")).thenReturn(Optional.empty());
+        User verified = approvedCustomer("password");
+        when(userRepository.findByEmail("customer@example.com")).thenReturn(Optional.of(verified));
+
+        authService.resendVerification("nobody@example.com");
+        authService.resendVerification("customer@example.com");
+
+        // Neither case sends mail, and neither throws - the endpoint is public, so any
+        // difference in behaviour would let a caller enumerate registered addresses.
+        verify(emailService, never()).sendTemplate(anyString(), anyString(), anyString(),
+                org.mockito.ArgumentMatchers.anyMap());
     }
 }

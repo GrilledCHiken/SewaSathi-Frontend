@@ -17,6 +17,7 @@ public class UserResponse {
     private ApprovalStatus status;
     private boolean suspended;
     private boolean emailVerified;
+    private boolean twoFactorEnabled;
 
     public static UserResponse from(User user) {
         return new UserResponse(
@@ -27,7 +28,8 @@ public class UserResponse {
                 user.getRole(),
                 user.getStatus(),
                 user.isSuspended(),
-                user.isEmailVerified()
+                user.isEmailVerified(),
+                user.isTwoFactorEnabled()
         );
     }
 }

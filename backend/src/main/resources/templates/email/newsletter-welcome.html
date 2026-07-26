@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{email/fragments/layout :: page(
+          'Thanks for subscribing',
+          'You are on the Sewa Sathi list.',
+          ~{::#content})}">
+<head><meta charset="UTF-8"/><title>You're subscribed</title></head>
+<body>
+<div id="content">
+
+    <p style="margin:0;font-size:15px;line-height:1.65;color:#334155;">
+        You are now subscribed to Sewa Sathi updates. We will send occasional notes about new
+        services, verified workers joining your area, and seasonal offers &mdash; and nothing else.
+    </p>
+
+    <th:block th:replace="~{email/fragments/components :: button(${actionUrl}, 'Browse services')}"/>
+
+    <p style="margin:0;font-size:14px;line-height:1.65;color:#64748b;">
+        Changed your mind? Reply to this email and we will remove you straight away.
+    </p>
+
+</div>
+</body>
+</html>
