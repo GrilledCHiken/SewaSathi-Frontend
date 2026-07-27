@@ -9,7 +9,7 @@ import lombok.Setter;
 @Setter
 public class NewsletterSubscribeRequest {
 
-    @NotBlank
-    @Email
+    @NotBlank(message = "{validation.email.required}")
+    @Email(message = "{validation.email.invalid}")
     private String email;
 }

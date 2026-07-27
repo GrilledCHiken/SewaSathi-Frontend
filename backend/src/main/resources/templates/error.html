@@ -1,0 +1,9 @@
+<!DOCTYPE html>
+<!--/*
+  Catch-all error view. Boot's DefaultErrorViewResolver tries error/<status> and
+  error/<series>xx first; anything it cannot match (a 400 or a 503, say) lands here rather
+  than on the whitelabel page.
+*/-->
+<html xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{error/layout :: page(${status}, #{error.generic.title}, #{error.generic.message})}">
+</html>

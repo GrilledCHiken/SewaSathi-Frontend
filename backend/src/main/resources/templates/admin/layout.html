@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<!--/*
+  Decorator layout for the admin console. Pages call it as:
+
+    <html th:replace="~{admin/layout :: page(#{admin.dashboard.title}, ~{::main})}">
+
+  passing their own <main> element in, so each page file contains only its content.
+*/-->
+<html xmlns:th="http://www.thymeleaf.org"
+      th:fragment="page(pageTitle, content)"
+      th:lang="${#locale.language}">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <!--/* app.js reads these to authorise its AJAX calls; without them every POST is a 403. */-->
+    <meta name="_csrf" th:content="${_csrf?.token}">
+    <meta name="_csrf_header" th:content="${_csrf?.headerName}">
+    <meta name="session-timeout" th:content="${sessionTimeoutSeconds}">
+    <title th:text="${pageTitle} + ' · ' + #{admin.brand}">Admin · Sewa Sathi</title>
+    <link rel="icon" th:href="@{/admin/assets/favicon.svg}" type="image/svg+xml">
+    <link rel="stylesheet" th:href="@{/admin/assets/app.css}">
+</head>
+<body>
+
+<header class="topbar">
+    <a class="brand" th:href="@{/admin/dashboard}">
+        <span class="brand-mark">SS</span>
+        <span th:text="#{admin.brand}">Sewa Sathi</span>
+        <span class="brand-tag" th:text="#{admin.console}">Admin</span>
+    </a>
+
+    <nav class="nav" aria-label="Admin sections">
+        <a th:href="@{/admin/dashboard}" th:text="#{admin.nav.dashboard}"
+           th:classappend="${activePage == 'dashboard'} ? 'active'">Dashboard</a>
+        <a th:href="@{/admin/workers}" th:text="#{admin.nav.workers}"
+           th:classappend="${activePage == 'workers'} ? 'active'">Verification</a>
+        <a th:href="@{/admin/users}" th:text="#{admin.nav.users}"
+           th:classappend="${activePage == 'users'} ? 'active'">Users</a>
+        <a th:href="@{/admin/reports}" th:text="#{admin.nav.reports}"
+           th:classappend="${activePage == 'reports'} ? 'active'">Reports</a>
+    </nav>
+
+    <div class="topbar-right">
+        <!--/*
+          Language switcher (requirement #11). @{''(lang=...)} emits just the query string,
+          which the browser resolves against the current path - so the switch keeps you on
+          the page you were reading. LocaleChangeInterceptor reads it and stores the choice
+          on the session.
+        */-->
+        <div class="lang" role="group" th:aria-label="#{admin.language}">
+            <a th:href="@{''(lang='en')}" th:text="#{admin.language.en.short}"
+               th:classappend="${#locale.language == 'en'} ? 'active'">EN</a>
+            <a th:href="@{''(lang='ne')}" th:text="#{admin.language.ne.short}"
+               th:classappend="${#locale.language == 'ne'} ? 'active'">NE</a>
+        </div>
+
+        <span class="who" th:if="${currentAdmin}" th:text="${currentAdmin}">admin@sewasathi.com</span>
+
+        <form th:action="@{/admin/logout}" method="post" class="logout">
+            <button type="submit" class="btn btn-ghost" th:text="#{admin.signOut}">Sign out</button>
+        </form>
+    </div>
+</header>
+
+<!--/*
+  Idle warning. Hidden until app.js decides the session is close to timing out; the
+  "stay signed in" button POSTs to /admin/api/session/extend to reset the server clock.
+*/-->
+<div id="idle-warning" class="idle-warning" hidden role="alert">
+    <span th:text="#{admin.session.expiring}">Your session is about to expire.</span>
+    <button type="button" id="idle-extend" class="btn btn-small"
+            th:text="#{admin.session.stay}">Stay signed in
+    </button>
+</div>
+
+<main th:replace="${content}">
+    <p>Page content goes here.</p>
+</main>
+
+<footer class="footer">
+    <span th:text="#{admin.footer}">Sewa Sathi admin console</span>
+</footer>
+
+<div id="toast" class="toast" hidden role="status"></div>
+
+<script th:src="@{/admin/assets/app.js}" defer></script>
+</body>
+</html>

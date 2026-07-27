@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:lang="${#locale.language}">
+<!--/*
+  Standalone rather than layout-decorated: the shared layout carries a nav bar and a sign-out
+  button, none of which mean anything to someone who is not signed in yet.
+*/-->
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title th:text="#{admin.login.title} + ' · ' + #{admin.brand}">Sign in · Sewa Sathi</title>
+    <link rel="icon" th:href="@{/admin/assets/favicon.svg}" type="image/svg+xml">
+    <link rel="stylesheet" th:href="@{/admin/assets/app.css}">
+</head>
+<body class="centered">
+
+<main class="login-card">
+    <div class="brand-mark brand-mark-large">SS</div>
+    <h1 th:text="#{admin.login.title}">Sign in</h1>
+    <p class="lede" th:text="#{admin.login.lede}">Administrator access only.</p>
+
+    <!--/*
+      Spring Security signals outcomes with query parameters on the redirect back here.
+      The failure message stays deliberately vague - naming which half was wrong would let
+      an attacker enumerate valid administrator addresses.
+    */-->
+    <p class="alert alert-error" th:if="${param.error}" th:text="#{admin.login.failed}">
+        Email or password was not recognised.
+    </p>
+    <p class="alert alert-warn" th:if="${param.expired}" th:text="#{admin.login.expired}">
+        Your session timed out. Please sign in again.
+    </p>
+    <p class="alert alert-ok" th:if="${param.loggedOut}" th:text="#{admin.login.loggedOut}">
+        You have been signed out.
+    </p>
+
+    <!--/* th:action adds the hidden CSRF field automatically. */-->
+    <form method="post" th:action="@{/admin/login}" class="stack">
+        <div class="field">
+            <label for="username" th:text="#{admin.field.email}">Email</label>
+            <input id="username" name="username" type="email" required autocomplete="username" autofocus>
+        </div>
+        <div class="field">
+            <label for="password" th:text="#{admin.field.password}">Password</label>
+            <input id="password" name="password" type="password" required autocomplete="current-password">
+        </div>
+        <button type="submit" class="btn btn-primary btn-block" th:text="#{admin.login.submit}">Sign in</button>
+    </form>
+
+    <p class="muted small" th:text="#{admin.login.customerHint}">
+        Customers and workers sign in through the main app.
+    </p>
+</main>
+
+</body>
+</html>

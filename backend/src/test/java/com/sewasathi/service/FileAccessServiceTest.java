@@ -60,7 +60,7 @@ class FileAccessServiceTest {
 
     private static User user(Long id, String email, Role role) {
         return User.builder().id(id).email(email).fullName("User " + id).phone("9800000000")
-                .role(role).status(ApprovalStatus.APPROVED).emailVerified(true).build();
+                .role(role).status(ApprovalStatus.APPROVED).build();
     }
 
     private void knownUser(User u) {

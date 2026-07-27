@@ -52,7 +52,6 @@ public class PaymentService {
     private final UserRepository userRepository;
     private final EsewaService esewaService;
     private final KhaltiService khaltiService;
-    private final EmailService emailService;
     private final NotificationService notificationService;
     private final BigDecimal advanceRate;
     private final String frontendUrl;
@@ -64,7 +63,6 @@ public class PaymentService {
             UserRepository userRepository,
             EsewaService esewaService,
             KhaltiService khaltiService,
-            EmailService emailService,
             NotificationService notificationService,
             @Value("${app.esewa.advance-rate:0.10}") BigDecimal advanceRate,
             @Value("${app.frontend-url}") String frontendUrl
@@ -75,7 +73,6 @@ public class PaymentService {
         this.userRepository = userRepository;
         this.esewaService = esewaService;
         this.khaltiService = khaltiService;
-        this.emailService = emailService;
         this.advanceRate = advanceRate;
         this.frontendUrl = trimTrailingSlash(frontendUrl);
     }
@@ -312,33 +309,23 @@ public class PaymentService {
     }
 
     /**
-     * Emails the customer a receipt for a settled advance payment.
+     * Confirms a settled advance payment to the customer.
      *
-     * <p>Values are read out here rather than passed as entities: delivery happens on a
-     * mail worker thread after this transaction closes, and a lazy proxy dereferenced
-     * there would blow up with {@code open-in-view=false}. Delivery failures are absorbed
-     * by the mail layer - a paid booking must never be rolled back because the mail
-     * server was unreachable.
+     * <p>This used to be an emailed receipt. With no mail channel the confirmation goes to
+     * the in-app notification feed instead - a payment that produced no acknowledgement at
+     * all would leave the customer unsure whether their money had landed. The payment page
+     * remains the authoritative record.
      */
     private void sendReceipt(Payment payment) {
         Task task = payment.getTask();
-        Map<String, String> details = new LinkedHashMap<>();
-        details.put("Task", task.getTitle());
-        details.put("Amount paid", "NPR " + payment.getAmount().setScale(2, RoundingMode.HALF_UP));
-        details.put("Paid via", payment.getProvider() == PaymentProvider.ESEWA ? "eSewa" : "Khalti");
-        details.put("Reference", payment.getTransactionUuid());
-        details.put("Date", LocalDateTime.now().format(RECEIPT_DATE));
+        String amount = "NPR " + payment.getAmount().setScale(2, RoundingMode.HALF_UP);
+        String via = payment.getProvider() == PaymentProvider.ESEWA ? "eSewa" : "Khalti";
 
-        emailService.sendTemplate(
-                payment.getCustomer().getEmail(),
-                "Your Sewa Sathi payment receipt",
-                "email/payment-receipt",
-                Map.of(
-                        "name", payment.getCustomer().getFullName(),
-                        "details", details,
-                        "actionUrl", frontendUrl + "/dashboard/payments"
-                )
-        );
+        notificationService.notify(payment.getCustomer(), "PAYMENT_RECEIVED",
+                "Payment received",
+                amount + " paid via " + via + " for \"" + task.getTitle()
+                        + "\". Reference " + payment.getTransactionUuid() + ".",
+                "/dashboard/payments");
     }
 
     /** A worker already at work must not be dragged back to {@link TaskStatus#ASSIGNED}. */
@@ -370,23 +357,6 @@ public class PaymentService {
                 "A job was confirmed",
                 "The advance for \"" + task.getTitle() + "\" has been paid. You can start when ready.",
                 "/worker/jobs");
-
-        Map<String, String> details = new LinkedHashMap<>();
-        details.put("Task", task.getTitle());
-        details.put("Worker", worker.getFullName());
-        details.put("Status", "Assigned");
-
-        emailService.sendTemplate(
-                customer.getEmail(),
-                "Your Sewa Sathi booking is confirmed",
-                "email/task-assigned",
-                Map.of(
-                        "name", customer.getFullName(),
-                        "workerName", worker.getFullName(),
-                        "details", details,
-                        "actionUrl", frontendUrl + "/dashboard/tasks"
-                )
-        );
     }
 
     /** Khalti reports in paisa, so the comparison happens in paisa too. */

@@ -7,11 +7,6 @@ import Home from "./pages/User/Home";
 import Login from "./pages/Login";
 import ProtectedRoute from "./components/ProtectedRoute";
 
-const ForgotPassword = lazy(() => import("./pages/ForgotPassword"));
-const ResetPassword = lazy(() => import("./pages/ResetPassword"));
-const VerifyEmail = lazy(() => import("./pages/VerifyEmail"));
-const VerifyOtp = lazy(() => import("./pages/VerifyOtp"));
-const OAuthCallback = lazy(() => import("./pages/OAuthCallback"));
 const Signupoption = lazy(() => import("./pages/User/SignupOption"));
 const UserSignup = lazy(() => import("./pages/User/UserSignup"));
 const WorkerSignup = lazy(() => import("./pages/Worker/WorkerSignup"));
@@ -80,11 +75,6 @@ function App() {
           }
         />
         <Route path="/login" element={<Login />} />
-        <Route path="/forgot-password" element={<ForgotPassword />} />
-        <Route path="/reset-password" element={<ResetPassword />} />
-        <Route path="/verify-email" element={<VerifyEmail />} />
-        <Route path="/verify-otp" element={<VerifyOtp />} />
-        <Route path="/oauth/callback" element={<OAuthCallback />} />
         <Route path="/signup" element={<Signupoption />} />
         <Route path="/signup/user" element={<UserSignup />} />
         <Route path="/signup/worker" element={<WorkerSignup />} />

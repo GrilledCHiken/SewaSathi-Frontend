@@ -59,9 +59,6 @@ class PaymentServiceTest {
     private KhaltiService khaltiService;
 
     @Mock
-    private EmailService emailService;
-
-    @Mock
     private NotificationService notificationService;
 
     private PaymentService paymentService;
@@ -74,7 +71,7 @@ class PaymentServiceTest {
     void setUp() {
         paymentService = new PaymentService(
                 paymentRepository, taskRepository, userRepository, esewaService, khaltiService,
-                emailService, notificationService, new BigDecimal("0.10"), "http://localhost:5174"
+                notificationService, new BigDecimal("0.10"), "http://localhost:5174"
         );
 
         customer = User.builder()

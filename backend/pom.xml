@@ -28,6 +28,7 @@
 	</scm>
 	<properties>
 		<java.version>21</java.version>
+		<jasperreports.version>6.21.3</jasperreports.version>
 	</properties>
 	<dependencies>
 		<dependency>
@@ -54,23 +55,37 @@
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-actuator</artifactId>
 		</dependency>
-		<dependency>
-			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-starter-mail</artifactId>
-		</dependency>
-		<!--
-			Google/Facebook sign-in. Harmless when no client credentials are configured:
-			without spring.security.oauth2.client.registration.* entries Boot creates no
-			ClientRegistrationRepository, and SecurityConfig then skips oauth2Login entirely.
-		-->
-		<dependency>
-			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-starter-oauth2-client</artifactId>
-		</dependency>
-		<!-- Template engine for the HTML email bodies (and, later, server-rendered error pages). -->
+		<!-- Template engine for the server-rendered admin console and error pages. -->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-thymeleaf</artifactId>
+		</dependency>
+
+		<!--
+			Reporting (requirement #14).
+
+			Pinned to the 6.21 line rather than 7.x: JasperReports 7 replaced the JRXML
+			parser with a Jackson-based one and ships no schema in its jar, and hand-written
+			templates that the 6.x loader accepts fail there with an opaque "Unable to load
+			report". 6.21 is a single artifact carrying the schema, both exporters we use
+			(JRPdfExporter and JRXlsxExporter) and the JDT compiler that turns the Java
+			expressions in a .jrxml into bytecode.
+		-->
+		<dependency>
+			<groupId>net.sf.jasperreports</groupId>
+			<artifactId>jasperreports</artifactId>
+			<version>${jasperreports.version}</version>
+			<exclusions>
+				<!--
+					JasperReports pulls its own SLF4J binding, which would collide with the
+					Logback one Spring Boot already puts on the classpath - two bindings mean
+					SLF4J picks one arbitrarily and warns about it on every startup.
+				-->
+				<exclusion>
+					<groupId>org.slf4j</groupId>
+					<artifactId>slf4j-simple</artifactId>
+				</exclusion>
+			</exclusions>
 		</dependency>
 
 		<dependency>

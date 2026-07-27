@@ -1,0 +1,162 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Worker performance (requirement #14).
+
+  A point-in-time snapshot rather than a windowed report: the counters it reads are running
+  totals on the worker profile, so narrowing them to a date range would be misleading.
+-->
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports"
+              xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+              xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports
+                                  http://jasperreports.sourceforge.net/xsd/jasperreport.xsd"
+              name="worker-performance" pageWidth="595" pageHeight="842" columnWidth="515"
+              leftMargin="40" rightMargin="40" topMargin="40" bottomMargin="40"
+              whenNoDataType="NoDataSection">
+
+    <parameter name="REPORT_TITLE" class="java.lang.String"/>
+    <parameter name="GENERATED_AT" class="java.lang.String"/>
+    <parameter name="RANGE_LABEL" class="java.lang.String"/>
+
+    <field name="workerName" class="java.lang.String"/>
+    <field name="locationOrBlank" class="java.lang.String"/>
+    <field name="jobsCompleted" class="java.lang.Integer"/>
+    <field name="averageRating" class="java.math.BigDecimal"/>
+    <field name="ratingCount" class="java.lang.Integer"/>
+    <field name="totalEarnedOrZero" class="java.math.BigDecimal"/>
+
+    <variable name="totalJobs" class="java.lang.Integer" calculation="Sum">
+        <variableExpression><![CDATA[$F{jobsCompleted}]]></variableExpression>
+    </variable>
+    <variable name="totalEarnings" class="java.math.BigDecimal" calculation="Sum">
+        <variableExpression><![CDATA[$F{totalEarnedOrZero}]]></variableExpression>
+    </variable>
+
+    <title>
+        <band height="70">
+            <textField>
+                <reportElement x="0" y="0" width="515" height="24"/>
+                <textElement><font size="16" isBold="true"/></textElement>
+                <textFieldExpression><![CDATA[$P{REPORT_TITLE}]]></textFieldExpression>
+            </textField>
+            <textField>
+                <reportElement x="0" y="26" width="515" height="14"/>
+                <textElement><font size="9"/></textElement>
+                <textFieldExpression><![CDATA["Sewa Sathi  ·  " + $P{RANGE_LABEL}]]></textFieldExpression>
+            </textField>
+            <textField>
+                <reportElement x="0" y="42" width="515" height="14"/>
+                <textElement><font size="8"/></textElement>
+                <textFieldExpression><![CDATA["Generated " + $P{GENERATED_AT}]]></textFieldExpression>
+            </textField>
+            <line>
+                <reportElement x="0" y="62" width="515" height="1"/>
+            </line>
+        </band>
+    </title>
+
+    <columnHeader>
+        <band height="22">
+            <staticText>
+                <reportElement x="0" y="4" width="140" height="14"/>
+                <textElement><font size="9" isBold="true"/></textElement>
+                <text><![CDATA[Worker]]></text>
+            </staticText>
+            <staticText>
+                <reportElement x="140" y="4" width="105" height="14"/>
+                <textElement><font size="9" isBold="true"/></textElement>
+                <text><![CDATA[Location]]></text>
+            </staticText>
+            <staticText>
+                <reportElement x="245" y="4" width="60" height="14"/>
+                <textElement textAlignment="Right"><font size="9" isBold="true"/></textElement>
+                <text><![CDATA[Jobs]]></text>
+            </staticText>
+            <staticText>
+                <reportElement x="305" y="4" width="55" height="14"/>
+                <textElement textAlignment="Right"><font size="9" isBold="true"/></textElement>
+                <text><![CDATA[Rating]]></text>
+            </staticText>
+            <staticText>
+                <reportElement x="360" y="4" width="55" height="14"/>
+                <textElement textAlignment="Right"><font size="9" isBold="true"/></textElement>
+                <text><![CDATA[Reviews]]></text>
+            </staticText>
+            <staticText>
+                <reportElement x="415" y="4" width="100" height="14"/>
+                <textElement textAlignment="Right"><font size="9" isBold="true"/></textElement>
+                <text><![CDATA[Earned (NPR)]]></text>
+            </staticText>
+            <line>
+                <reportElement x="0" y="20" width="515" height="1"/>
+            </line>
+        </band>
+    </columnHeader>
+
+    <detail>
+        <band height="18">
+            <textField>
+                <reportElement x="0" y="2" width="140" height="14"/>
+                <textElement><font size="9"/></textElement>
+                <textFieldExpression><![CDATA[$F{workerName}]]></textFieldExpression>
+            </textField>
+            <textField>
+                <reportElement x="140" y="2" width="105" height="14"/>
+                <textElement><font size="9"/></textElement>
+                <textFieldExpression><![CDATA[$F{locationOrBlank}]]></textFieldExpression>
+            </textField>
+            <textField>
+                <reportElement x="245" y="2" width="60" height="14"/>
+                <textElement textAlignment="Right"><font size="9"/></textElement>
+                <textFieldExpression><![CDATA[$F{jobsCompleted}]]></textFieldExpression>
+            </textField>
+            <textField pattern="0.00">
+                <reportElement x="305" y="2" width="55" height="14"/>
+                <textElement textAlignment="Right"><font size="9"/></textElement>
+                <textFieldExpression><![CDATA[$F{averageRating}]]></textFieldExpression>
+            </textField>
+            <textField>
+                <reportElement x="360" y="2" width="55" height="14"/>
+                <textElement textAlignment="Right"><font size="9"/></textElement>
+                <textFieldExpression><![CDATA[$F{ratingCount}]]></textFieldExpression>
+            </textField>
+            <textField pattern="#,##0.00">
+                <reportElement x="415" y="2" width="100" height="14"/>
+                <textElement textAlignment="Right"><font size="9"/></textElement>
+                <textFieldExpression><![CDATA[$F{totalEarnedOrZero}]]></textFieldExpression>
+            </textField>
+        </band>
+    </detail>
+
+    <summary>
+        <band height="34">
+            <line>
+                <reportElement x="0" y="2" width="515" height="1"/>
+            </line>
+            <staticText>
+                <reportElement x="0" y="8" width="245" height="14"/>
+                <textElement><font size="9" isBold="true"/></textElement>
+                <text><![CDATA[All approved workers]]></text>
+            </staticText>
+            <textField>
+                <reportElement x="245" y="8" width="60" height="14"/>
+                <textElement textAlignment="Right"><font size="9" isBold="true"/></textElement>
+                <textFieldExpression><![CDATA[$V{totalJobs}]]></textFieldExpression>
+            </textField>
+            <textField pattern="#,##0.00">
+                <reportElement x="415" y="8" width="100" height="14"/>
+                <textElement textAlignment="Right"><font size="9" isBold="true"/></textElement>
+                <textFieldExpression><![CDATA[$V{totalEarnings}]]></textFieldExpression>
+            </textField>
+        </band>
+    </summary>
+
+    <noData>
+        <band height="40">
+            <staticText>
+                <reportElement x="0" y="12" width="515" height="16"/>
+                <textElement textAlignment="Center"><font size="10" isItalic="true"/></textElement>
+                <text><![CDATA[No approved workers yet.]]></text>
+            </staticText>
+        </band>
+    </noData>
+</jasperReport>

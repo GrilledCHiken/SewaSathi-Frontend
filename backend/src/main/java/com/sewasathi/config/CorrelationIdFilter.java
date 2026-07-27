@@ -42,6 +42,9 @@ public class CorrelationIdFilter extends OncePerRequestFilter {
 
         MDC.put(MDC_KEY, correlationId);
         response.setHeader(HEADER, correlationId);
+        // Also a request attribute, because the MDC is cleared below before the container
+        // dispatches to /error - and the error page is where the id is most worth showing.
+        request.setAttribute(MDC_KEY, correlationId);
         try {
             filterChain.doFilter(request, response);
         } finally {

@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{admin/layout :: page(#{admin.dashboard.title}, ~{::main})}">
+<body>
+<main class="page">
+    <h1 th:text="#{admin.dashboard.title}">Dashboard</h1>
+    <p class="lede" th:text="#{admin.dashboard.lede}">Platform activity at a glance.</p>
+
+    <section class="stats" th:aria-label="#{admin.dashboard.title}">
+        <article class="stat">
+            <span class="stat-value" th:text="${overview.totalUsers}">0</span>
+            <span class="stat-label" th:text="#{admin.stat.totalUsers}">Total users</span>
+        </article>
+        <article class="stat">
+            <span class="stat-value" th:text="${overview.totalCustomers}">0</span>
+            <span class="stat-label" th:text="#{admin.stat.customers}">Customers</span>
+        </article>
+        <article class="stat">
+            <span class="stat-value" th:text="${overview.totalWorkers}">0</span>
+            <span class="stat-label" th:text="#{admin.stat.workers}">Workers</span>
+        </article>
+        <article class="stat" th:classappend="${overview.pendingVerifications > 0} ? 'stat-alert'">
+            <span class="stat-value" th:text="${overview.pendingVerifications}">0</span>
+            <span class="stat-label" th:text="#{admin.stat.pending}">Awaiting verification</span>
+        </article>
+    </section>
+
+    <section class="panel">
+        <div class="panel-head">
+            <h2 th:text="#{admin.dashboard.queue}">Verification queue</h2>
+            <a class="btn btn-ghost btn-small" th:href="@{/admin/workers}"
+               th:text="#{admin.dashboard.viewAll}">View all</a>
+        </div>
+
+        <p class="empty" th:if="${#lists.isEmpty(pendingWorkers)}"
+           th:text="#{admin.workers.empty}">Nothing waiting for review.</p>
+
+        <div class="table-scroll" th:unless="${#lists.isEmpty(pendingWorkers)}">
+            <table>
+                <thead>
+                <tr>
+                    <th th:text="#{admin.field.name}">Name</th>
+                    <th th:text="#{admin.field.email}">Email</th>
+                    <th th:text="#{admin.field.skills}">Skills</th>
+                    <th th:text="#{admin.field.submitted}">Submitted</th>
+                </tr>
+                </thead>
+                <tbody>
+                <!--/* Only the five oldest: the full queue has its own page. */-->
+                <tr th:each="worker : ${#lists.size(pendingWorkers) > 5
+                                        ? pendingWorkers.subList(0, 5) : pendingWorkers}">
+                    <td th:text="${worker.fullName}">Ram Thapa</td>
+                    <td th:text="${worker.email}">ram@example.com</td>
+                    <td th:text="${worker.skills}">Plumbing</td>
+                    <td th:text="${#temporals.format(worker.verificationSubmittedAt, 'dd MMM yyyy')}">01 Jan 2026</td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </section>
+</main>
+</body>
+</html>
