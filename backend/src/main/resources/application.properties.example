@@ -89,10 +89,11 @@ app.esewa.secret-key=REPLACE_WITH_YOUR_ESEWA_SECRET_KEY
 # Share of the task budget collected up front to confirm a booking.
 app.esewa.advance-rate=0.10
 
-# Khalti ePayment (KPG-2). These are the dev sandbox endpoints. Khalti issues every
-# merchant its own key — there is no shared demo secret — so get one from
-# https://test-admin.khalti.com. Swap both URLs for https://khalti.com/api/v2/... in
-# production. Left blank, choosing Khalti at checkout fails with a "not configured" error.
+# Khalti ePayment (KPG-2). These are the dev sandbox endpoints, and the key is
+# Khalti's published sandbox credential (demo only, no real money) — the same deal
+# as eSewa's EPAYTEST above. Set KHALTI_SECRET_KEY to use your own key from
+# https://test-admin.khalti.com. Swap both URLs for https://khalti.com/api/v2/...
+# in production; the prod profile already does.
 app.khalti.initiate-url=https://dev.khalti.com/api/v2/epayment/initiate/
 app.khalti.lookup-url=https://dev.khalti.com/api/v2/epayment/lookup/
-app.khalti.secret-key=REPLACE_WITH_YOUR_KHALTI_LIVE_SECRET_KEY
+app.khalti.secret-key=${KHALTI_SECRET_KEY:live_secret_key_68791341fdd94846a146f0457ff7b455}

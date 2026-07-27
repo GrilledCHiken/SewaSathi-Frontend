@@ -60,22 +60,33 @@ app.esewa.status-url=https://esewa.com.np/api/epay/transaction/status/
 
 ## Testing Khalti payments
 
-`app.khalti.*` points at Khalti's ePayment (KPG-2) dev sandbox. **Unlike eSewa there is no
-shared demo merchant** — Khalti issues every merchant its own key, so you have to fetch one
-before Khalti will answer anything but `401`:
-
-1. Sign up at <https://test-admin.khalti.com/#/join/merchant> (login OTP is `987654`).
-2. Copy your `live_secret_key` — yes, it is called "live" even in the sandbox.
-3. Put it in `application.properties`:
+`app.khalti.*` points at Khalti's ePayment (KPG-2) dev sandbox. Nothing to set up — like eSewa's
+`EPAYTEST`, Khalti publishes a shared sandbox key and it is already the default in
+`application.properties`:
 
 ```properties
-app.khalti.secret-key=live_secret_key_...
+app.khalti.secret-key=${KHALTI_SECRET_KEY:live_secret_key_68791341fdd94846a146f0457ff7b455}
 ```
 
-Left blank, choosing Khalti at checkout fails with a "not configured" message rather than a
-confusing gateway error.
+To use your own merchant instead, sign up at <https://test-admin.khalti.com/#/join/merchant> (login
+OTP is `987654`), copy your `live_secret_key` — yes, it is called "live" even in the sandbox — and
+export it as `KHALTI_SECRET_KEY`, which takes precedence over the default:
 
-Then pay with Khalti's sandbox wallet:
+```powershell
+# this shell only
+$env:KHALTI_SECRET_KEY = "live_secret_key_..."
+
+# or persist it, then restart your IDE so it inherits the variable
+[Environment]::SetEnvironmentVariable("KHALTI_SECRET_KEY", "live_secret_key_...", "User")
+```
+
+In IntelliJ it can equally go in the Spring Boot run configuration's *Environment variables* field.
+
+If checkout still reports "Khalti payments are not configured on this server", the backend is running
+off stale classes — rebuild, and restart the JVM rather than reusing a process started before the
+config changed.
+
+Pay with Khalti's sandbox wallet:
 
 | Field | Value |
 | --- | --- |
@@ -92,12 +103,9 @@ Two things to know about the sandbox:
 
 Source of truth: <https://docs.khalti.com/khalti-epayment/>.
 
-For production, use your key from <https://admin.khalti.com> and the live endpoints:
-
-```properties
-app.khalti.initiate-url=https://khalti.com/api/v2/epayment/initiate/
-app.khalti.lookup-url=https://khalti.com/api/v2/epayment/lookup/
-```
+For production, `application-prod.properties` already points at the live endpoints. All it needs is
+`KHALTI_SECRET_KEY` set to your key from <https://admin.khalti.com> — the `prod` profile declares it
+with no default, so a deploy missing it fails to start instead of breaking checkout.
 
 ### How the two gateways differ
 

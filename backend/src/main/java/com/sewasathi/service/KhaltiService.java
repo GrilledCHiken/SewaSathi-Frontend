@@ -153,8 +153,9 @@ public class KhaltiService {
     }
 
     /**
-     * Khalti issues every merchant its own sandbox key, so unlike eSewa there is no
-     * shared demo secret to fall back on. Saying so beats a bare 401 from the gateway.
+     * The sandbox key is defaulted in {@code application.properties}, so this only bites
+     * in production, where {@code KHALTI_SECRET_KEY} has no default. Saying the server is
+     * unconfigured beats letting the customer see a bare 401 from the gateway.
      */
     private void requireConfigured() {
         if (secretKey.isEmpty()) {
