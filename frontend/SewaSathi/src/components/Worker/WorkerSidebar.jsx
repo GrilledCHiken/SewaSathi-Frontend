@@ -57,16 +57,7 @@ const NAV_ITEMS = [
       </svg>
     ),
   },
-  {
-    label: "My Profile",
-    to: "/worker/profile",
-    icon: (
-      <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-        <circle cx="12" cy="8" r="4" />
-        <path d="M4 21v-1a6 6 0 0 1 6-6h4a6 6 0 0 1 6 6v1" />
-      </svg>
-    ),
-  },
+  // My Profile is reached from the account menu in the header, not here.
 ];
 
 function navLinkClass({ isActive }) {

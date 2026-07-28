@@ -1,6 +1,7 @@
 package com.sewasathi.repository;
 
 import com.sewasathi.dto.report.RevenueReportRow;
+import com.sewasathi.dto.response.RevenueTotals;
 import com.sewasathi.entity.Payment;
 import com.sewasathi.entity.PaymentStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -40,6 +41,22 @@ public interface PaymentRepository extends JpaRepository<Payment, Long> {
             order by year(p.createdAt), month(p.createdAt), p.provider
             """)
     List<RevenueReportRow> revenueByMonthAndProvider(
+            @Param("status") PaymentStatus status,
+            @Param("from") LocalDateTime from,
+            @Param("to") LocalDateTime to);
+
+    /**
+     * Money settled in a window, for the admin analytics dashboard. Ungrouped, so it always
+     * returns exactly one row - with null sums when nothing matched, which
+     * {@link RevenueTotals} folds to zero.
+     */
+    @Query("""
+            select new com.sewasathi.dto.response.RevenueTotals(
+                sum(p.taskTotal), sum(p.amount), count(p))
+            from Payment p
+            where p.status = :status and p.createdAt >= :from and p.createdAt < :to
+            """)
+    RevenueTotals totalsBetween(
             @Param("status") PaymentStatus status,
             @Param("from") LocalDateTime from,
             @Param("to") LocalDateTime to);

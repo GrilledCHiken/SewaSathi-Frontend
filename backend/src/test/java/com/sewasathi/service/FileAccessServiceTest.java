@@ -168,6 +168,21 @@ class FileAccessServiceTest {
                 .doesNotThrowAnyException();
     }
 
+    @Test
+    void accountAvatar_isReadableByAnySignedInUser() {
+        knownUser(stranger);
+        when(messageRepository.findByAttachmentUrl(URL)).thenReturn(Optional.empty());
+        when(workerProfileRepository.findByPoliceClearanceUrlOrCitizenshipDocUrl(URL, URL))
+                .thenReturn(Optional.empty());
+        when(workerProfileRepository.findByProfilePhotoUrl(URL)).thenReturn(Optional.empty());
+        when(userRepository.findByAvatarUrl(URL)).thenReturn(Optional.of(customer));
+
+        // A customer's avatar is referenced only from users.avatar_url, with no worker
+        // profile behind it. Without this branch every customer photo would 404.
+        assertThatCode(() -> fileAccessService.assertCanRead(FILE, stranger.getEmail()))
+                .doesNotThrowAnyException();
+    }
+
     // --- Unreferenced files ---
 
     @Test

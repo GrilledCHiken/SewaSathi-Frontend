@@ -4,6 +4,7 @@ import { toast } from "react-toastify";
 import { useAuth } from "../../context/AuthContext";
 import useChatSocket from "../../hooks/useChatSocket";
 import AuthedImage from "../AuthedImage";
+import DocumentViewerModal from "../DocumentViewerModal";
 import { downloadFile } from "../../api/fileApi";
 import {
   deleteMessage,
@@ -140,24 +141,37 @@ function ConversationItem({ conversation, active, onSelect }) {
  * Attachments are served by the authenticated /api/files endpoint, so they are fetched
  * through the axios client rather than linked to directly — a bare href would arrive
  * without a token and come back 401.
+ *
+ * Images open in the viewer; everything else downloads, since no browser renders a Word
+ * document inline.
  */
 function AttachmentBubble({ message }) {
   const isImage = message.attachmentType?.startsWith("image/");
+  const [viewing, setViewing] = useState(false);
 
   if (isImage) {
     return (
-      <button
-        type="button"
-        onClick={() => downloadFile(message.attachmentUrl, message.attachmentName)}
-        className="block overflow-hidden rounded-xl"
-        title="Download image"
-      >
-        <AuthedImage
-          storedUrl={message.attachmentUrl}
-          alt={message.attachmentName || "attachment"}
-          className="max-h-64 w-full object-cover"
-        />
-      </button>
+      <>
+        <button
+          type="button"
+          onClick={() => setViewing(true)}
+          className="block overflow-hidden rounded-xl"
+          title="View image"
+        >
+          <AuthedImage
+            storedUrl={message.attachmentUrl}
+            alt={message.attachmentName || "attachment"}
+            className="max-h-64 w-full object-cover"
+          />
+        </button>
+        {viewing && (
+          <DocumentViewerModal
+            storedUrl={message.attachmentUrl}
+            title={message.attachmentName || "Attachment"}
+            onClose={() => setViewing(false)}
+          />
+        )}
+      </>
     );
   }
 

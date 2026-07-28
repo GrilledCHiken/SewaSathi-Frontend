@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { toast } from "react-toastify";
 import AdminHeader from "../../components/Admin/AdminHeader";
+import AnalyticsWidget from "../../components/Admin/AnalyticsWidget";
 import { getOverview } from "../../api/adminApi";
 
 function UsersIcon() {
@@ -126,35 +127,41 @@ export default function AdminOverview() {
               ))}
             </div>
 
-            <div className="mt-6 max-w-md rounded-2xl border border-slate-200/80 bg-white p-5 shadow-sm">
-              <h3 className="mb-4 text-lg font-bold text-slate-900">Quick Actions</h3>
-              <div className="space-y-1">
-                <Link
-                  to="/admin/verifications"
-                  className="flex items-center justify-between rounded-xl px-3 py-2.5 text-sm font-medium text-slate-700 transition hover:bg-slate-100"
-                >
-                  <span className="flex items-center gap-3">
-                    <ShieldIcon />
-                    Review Verifications
-                  </span>
-                  {overview.pendingVerifications > 0 && (
-                    <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-semibold text-slate-600">
-                      {overview.pendingVerifications}
+            <div className="mt-6 grid gap-4 lg:grid-cols-3">
+              <div className="lg:col-span-2">
+                <AnalyticsWidget />
+              </div>
+
+              <div className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-sm">
+                <h3 className="mb-4 text-lg font-bold text-slate-900">Quick Actions</h3>
+                <div className="space-y-1">
+                  <Link
+                    to="/admin/verifications"
+                    className="flex items-center justify-between rounded-xl px-3 py-2.5 text-sm font-medium text-slate-700 transition hover:bg-slate-100"
+                  >
+                    <span className="flex items-center gap-3">
+                      <ShieldIcon />
+                      Review Verifications
                     </span>
-                  )}
-                </Link>
-                <Link
-                  to="/admin/users"
-                  className="flex items-center justify-between rounded-xl px-3 py-2.5 text-sm font-medium text-slate-700 transition hover:bg-slate-100"
-                >
-                  <span className="flex items-center gap-3">
-                    <UsersIcon />
-                    Manage Users
-                  </span>
-                  <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-semibold text-slate-600">
-                    {overview.totalUsers}
-                  </span>
-                </Link>
+                    {overview.pendingVerifications > 0 && (
+                      <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-semibold text-slate-600">
+                        {overview.pendingVerifications}
+                      </span>
+                    )}
+                  </Link>
+                  <Link
+                    to="/admin/users"
+                    className="flex items-center justify-between rounded-xl px-3 py-2.5 text-sm font-medium text-slate-700 transition hover:bg-slate-100"
+                  >
+                    <span className="flex items-center gap-3">
+                      <UsersIcon />
+                      Manage Users
+                    </span>
+                    <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-semibold text-slate-600">
+                      {overview.totalUsers}
+                    </span>
+                  </Link>
+                </div>
               </div>
             </div>
           </>

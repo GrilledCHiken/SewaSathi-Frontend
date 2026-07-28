@@ -42,6 +42,15 @@ public class User {
     @Column(nullable = false, length = 20)
     private String phone;
 
+    /**
+     * Profile picture, stored as the {@code /uploads/<uuid>.<ext>} URL returned by
+     * {@link com.sewasathi.service.FileStorageService}. Lives on the account rather than on
+     * {@code worker_profiles} so customers and admins get one too; a worker's copy is mirrored
+     * onto their profile so the browse listing keeps a single field to read.
+     */
+    @Column(name = "avatar_url", length = 500)
+    private String avatarUrl;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     private Role role;

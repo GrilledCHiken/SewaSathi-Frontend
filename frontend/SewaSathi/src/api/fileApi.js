@@ -23,6 +23,25 @@ export async function fetchFileObjectUrl(storedUrl) {
   return URL.createObjectURL(data);
 }
 
+/**
+ * Fetches a file for inline display — a PDF in an <iframe>, an image in an <img>.
+ *
+ * Unlike downloadFile this does not send `download=true`, but that only affects the response's
+ * Content-Disposition, which a blob fetch ignores anyway. What actually decides whether the
+ * browser renders or saves the bytes is the blob's own MIME type, so it is returned alongside
+ * the URL for the caller to switch on.
+ *
+ * The caller owns the object URL and must revoke it when done.
+ */
+export async function fetchFileForViewing(storedUrl) {
+  const filename = toFilename(storedUrl);
+  if (!filename) return null;
+  const { data } = await httpClient.get(`/files/${encodeURIComponent(filename)}`, {
+    responseType: "blob",
+  });
+  return { objectUrl: URL.createObjectURL(data), contentType: data.type || "", filename };
+}
+
 /** Triggers a save-to-disk for a file the user asked to download. */
 export async function downloadFile(storedUrl, suggestedName) {
   const filename = toFilename(storedUrl);
@@ -39,5 +58,7 @@ export async function downloadFile(storedUrl, suggestedName) {
   document.body.appendChild(anchor);
   anchor.click();
   anchor.remove();
-  URL.revokeObjectURL(objectUrl);
+  // Revoked on the next tick: some browsers only start reading the blob after the click
+  // handler returns, and revoking synchronously can cancel the save.
+  setTimeout(() => URL.revokeObjectURL(objectUrl), 0);
 }

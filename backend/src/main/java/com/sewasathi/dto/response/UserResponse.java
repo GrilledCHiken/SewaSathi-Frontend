@@ -16,6 +16,7 @@ public class UserResponse {
     private Role role;
     private ApprovalStatus status;
     private boolean suspended;
+    private String avatarUrl;
 
     public static UserResponse from(User user) {
         return new UserResponse(
@@ -25,7 +26,8 @@ public class UserResponse {
                 user.getPhone(),
                 user.getRole(),
                 user.getStatus(),
-                user.isSuspended()
+                user.isSuspended(),
+                user.getAvatarUrl()
         );
     }
 }

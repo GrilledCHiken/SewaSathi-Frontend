@@ -1,8 +1,11 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "react-toastify";
 import AdminHeader from "../../components/Admin/AdminHeader";
+import AdminUserDetailModal from "../../components/Admin/AdminUserDetailModal";
 import { listUsers, suspendUser, unsuspendUser } from "../../api/adminApi";
 
+// "All" deliberately means customers and workers: administrators are bootstrap accounts
+// rather than sign-ups, so they sit behind their own filter instead of being mixed in.
 const ROLE_FILTERS = ["All", "CUSTOMER", "WORKER", "ADMIN"];
 
 const STATUS_STYLES = {
@@ -25,18 +28,36 @@ export default function AdminUserManagement() {
   const [loading, setLoading] = useState(true);
   const [roleFilter, setRoleFilter] = useState("All");
   const [actioningId, setActioningId] = useState(null);
+  const [detailUserId, setDetailUserId] = useState(null);
 
+  // Switching filters refetches, so the spinner is raised here rather than inside the effect;
+  // re-picking the current filter would otherwise leave it up with nothing to clear it.
+  const handleFilterChange = (filter) => {
+    if (filter === roleFilter) return;
+    setLoading(true);
+    setRoleFilter(filter);
+  };
+
+  // Filtering happens on the server rather than in the browser: administrators are absent
+  // from the unfiltered listing by design, so there is no complete set to filter locally.
   useEffect(() => {
-    listUsers()
-      .then(setUsers)
-      .catch(() => toast.error("Could not load users."))
-      .finally(() => setLoading(false));
-  }, []);
+    let cancelled = false;
 
-  const filteredUsers = useMemo(
-    () => (roleFilter === "All" ? users : users.filter((u) => u.role === roleFilter)),
-    [users, roleFilter],
-  );
+    listUsers(roleFilter === "All" ? {} : { role: roleFilter })
+      .then((rows) => {
+        if (!cancelled) setUsers(rows);
+      })
+      .catch(() => {
+        if (!cancelled) toast.error("Could not load users.");
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [roleFilter]);
 
   const handleToggleSuspend = async (user) => {
     if (!user.suspended) {
@@ -76,7 +97,7 @@ export default function AdminUserManagement() {
               <button
                 key={filter}
                 type="button"
-                onClick={() => setRoleFilter(filter)}
+                onClick={() => handleFilterChange(filter)}
                 className={[
                   "rounded-full px-4 py-2 text-sm font-medium transition",
                   roleFilter === filter
@@ -94,7 +115,9 @@ export default function AdminUserManagement() {
           <p className="mt-6 text-sm text-slate-500">Loading...</p>
         ) : (
           <div className="mt-6 overflow-x-auto rounded-2xl border border-slate-200/80 bg-white shadow-sm">
-            <table className="w-full min-w-[760px] text-left text-sm">
+            {/* Wide enough that the two action buttons sit on one line instead of the
+                Actions column squeezing them into a stack; the wrapper scrolls below that. */}
+            <table className="w-full min-w-[900px] text-left text-sm">
               <thead className="border-b border-slate-200 text-xs font-semibold uppercase tracking-wide text-slate-500">
                 <tr>
                   <th className="px-5 py-3">Name</th>
@@ -107,7 +130,7 @@ export default function AdminUserManagement() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {filteredUsers.map((user) => (
+                {users.map((user) => (
                   <tr key={user.id}>
                     <td className="px-5 py-3 font-medium text-slate-900">{user.fullName}</td>
                     <td className="px-5 py-3 text-slate-600">{user.email}</td>
@@ -131,28 +154,40 @@ export default function AdminUserManagement() {
                       </span>
                     </td>
                     <td className="px-5 py-3 text-slate-500">{formatDate(user.createdAt)}</td>
-                    <td className="px-5 py-3">
+                    <td className="w-px whitespace-nowrap px-5 py-3">
+                      {/* Administrator accounts are not actionable: the API hides their detail
+                          and refuses to suspend them, so offering either button here would only
+                          produce an error. */}
                       {user.role === "ADMIN" ? (
-                        <span className="text-xs text-slate-400">—</span>
+                        <span className="text-xs text-slate-400">&mdash;</span>
                       ) : (
-                        <button
-                          type="button"
-                          disabled={actioningId === user.id}
-                          onClick={() => handleToggleSuspend(user)}
-                          className={[
-                            "rounded-lg px-3 py-1.5 text-xs font-semibold transition disabled:cursor-not-allowed disabled:opacity-60",
-                            user.suspended
-                              ? "border border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
-                              : "bg-red-600 text-white hover:bg-red-700",
-                          ].join(" ")}
-                        >
-                          {user.suspended ? "Unsuspend" : "Suspend"}
-                        </button>
+                        <div className="flex flex-nowrap items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => setDetailUserId(user.id)}
+                            className="whitespace-nowrap rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:bg-slate-50"
+                          >
+                            View Details
+                          </button>
+                          <button
+                            type="button"
+                            disabled={actioningId === user.id}
+                            onClick={() => handleToggleSuspend(user)}
+                            className={[
+                              "whitespace-nowrap rounded-lg px-3 py-1.5 text-xs font-semibold transition disabled:cursor-not-allowed disabled:opacity-60",
+                              user.suspended
+                                ? "border border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
+                                : "bg-red-600 text-white hover:bg-red-700",
+                            ].join(" ")}
+                          >
+                            {user.suspended ? "Unsuspend" : "Suspend"}
+                          </button>
+                        </div>
                       )}
                     </td>
                   </tr>
                 ))}
-                {filteredUsers.length === 0 && (
+                {users.length === 0 && (
                   <tr>
                     <td colSpan={7} className="px-5 py-8 text-center text-slate-500">
                       No users match this filter.
@@ -164,6 +199,10 @@ export default function AdminUserManagement() {
           </div>
         )}
       </main>
+
+      {detailUserId && (
+        <AdminUserDetailModal userId={detailUserId} onClose={() => setDetailUserId(null)} />
+      )}
     </div>
   );
 }

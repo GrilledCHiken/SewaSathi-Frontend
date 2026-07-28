@@ -1,6 +1,8 @@
 package com.sewasathi.controller;
 
+import com.sewasathi.dto.response.AdminAnalyticsResponse;
 import com.sewasathi.dto.response.AdminOverviewResponse;
+import com.sewasathi.dto.response.AdminUserDetailResponse;
 import com.sewasathi.dto.response.AdminUserResponse;
 import com.sewasathi.dto.response.ErrorResponse;
 import com.sewasathi.dto.response.PendingWorkerResponse;
@@ -43,6 +45,18 @@ public class AdminController {
         return adminService.getOverview();
     }
 
+    /**
+     * The live figures behind the analytics dashboard. The range is optional; omitting it
+     * falls back to the last year, the same default the report download uses.
+     */
+    @GetMapping("/analytics")
+    public AdminAnalyticsResponse analytics(
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to
+    ) {
+        return adminService.getAnalytics(from, to);
+    }
+
     @GetMapping("/workers/pending")
     public List<PendingWorkerResponse> pendingWorkers() {
         return adminService.listPendingWorkers();
@@ -64,6 +78,12 @@ public class AdminController {
             @RequestParam(required = false) ApprovalStatus status
     ) {
         return adminService.listUsers(role, status);
+    }
+
+    /** One account in full, with worker profile and verification documents when applicable. */
+    @GetMapping("/users/{id}")
+    public AdminUserDetailResponse user(@PathVariable Long id) {
+        return adminService.getUserDetail(id);
     }
 
     @PatchMapping("/users/{id}/suspend")

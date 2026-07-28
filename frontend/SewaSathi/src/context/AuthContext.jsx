@@ -89,6 +89,16 @@ export function AuthProvider({ children }) {
     }
   }, []);
 
+  /**
+   * Folds a fresh /users/me-shaped payload into the session.
+   *
+   * Profile edits answer with the updated account, so the header avatar and name can be
+   * corrected from the response the page already has rather than by refetching.
+   */
+  const applyUserUpdate = useCallback((user) => {
+    setSession(toSessionUser(user));
+  }, []);
+
   /** Revokes every session for this account, not just the one on this device. */
   const logoutEverywhere = useCallback(async () => {
     try {
@@ -111,6 +121,7 @@ export function AuthProvider({ children }) {
       logoutEverywhere,
       registerCustomer,
       registerWorker,
+      applyUserUpdate,
     }),
     [
       session,
@@ -120,6 +131,7 @@ export function AuthProvider({ children }) {
       logoutEverywhere,
       registerCustomer,
       registerWorker,
+      applyUserUpdate,
     ],
   );
 

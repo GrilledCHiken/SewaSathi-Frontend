@@ -5,6 +5,12 @@ export async function getOverview() {
   return data;
 }
 
+/** Live analytics figures for a date range; omitting the range lets the server default it. */
+export async function getAnalytics({ from, to } = {}) {
+  const { data } = await httpClient.get("/admin/analytics", { params: { from, to } });
+  return data;
+}
+
 export async function listPendingWorkers() {
   const { data } = await httpClient.get("/admin/workers/pending");
   return data;
@@ -22,6 +28,12 @@ export async function rejectWorker(id) {
 
 export async function listUsers(filters = {}) {
   const { data } = await httpClient.get("/admin/users", { params: filters });
+  return data;
+}
+
+/** One account in full, including worker profile and documents when the user is a worker. */
+export async function getUser(id) {
+  const { data } = await httpClient.get(`/admin/users/${id}`);
   return data;
 }
 

@@ -1,41 +1,8 @@
 import { useEffect, useState } from "react";
 import { toast } from "react-toastify";
 import AdminHeader from "../../components/Admin/AdminHeader";
+import { DetailField, DocumentLink } from "../../components/Admin/detailUi";
 import { approveWorker, listPendingWorkers, rejectWorker } from "../../api/adminApi";
-import { downloadFile } from "../../api/fileApi";
-
-/**
- * Opens a worker's uploaded document. Identity documents are no longer publicly readable,
- * so the bytes come back through the authenticated /api/files endpoint and are handed to
- * the browser as a download rather than a plain link.
- */
-function DocumentLink({ url, label }) {
-  const [busy, setBusy] = useState(false);
-
-  if (!url) return null;
-
-  const open = async () => {
-    setBusy(true);
-    try {
-      await downloadFile(url, label);
-    } catch {
-      toast.error("Could not open that document.");
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  return (
-    <button
-      type="button"
-      onClick={open}
-      disabled={busy}
-      className="text-xs font-semibold text-brand underline underline-offset-2 hover:text-brand-dark disabled:opacity-60"
-    >
-      {busy ? "Opening…" : label}
-    </button>
-  );
-}
 
 function formatDate(iso) {
   if (!iso) return "";
@@ -50,6 +17,8 @@ export default function AdminVerificationQueue() {
   const [workers, setWorkers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [actioningId, setActioningId] = useState(null);
+  // A set rather than a single id so several cards can be opened and compared side by side.
+  const [expandedIds, setExpandedIds] = useState(() => new Set());
 
   useEffect(() => {
     listPendingWorkers()
@@ -57,6 +26,15 @@ export default function AdminVerificationQueue() {
       .catch(() => toast.error("Could not load the verification queue."))
       .finally(() => setLoading(false));
   }, []);
+
+  const toggleDetails = (id) => {
+    setExpandedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
 
   const handleAction = async (id, action) => {
     setActioningId(id);
@@ -69,6 +47,12 @@ export default function AdminVerificationQueue() {
         toast.success("Worker rejected.");
       }
       setWorkers((prev) => prev.filter((w) => w.id !== id));
+      setExpandedIds((prev) => {
+        if (!prev.has(id)) return prev;
+        const next = new Set(prev);
+        next.delete(id);
+        return next;
+      });
     } catch {
       toast.error("That action failed. Please try again.");
     } finally {
@@ -109,62 +93,21 @@ export default function AdminVerificationQueue() {
                         Pending
                       </span>
                     </div>
-                    <p className="mt-1 text-sm text-slate-500">
-                      {worker.email} · {worker.phone}
-                    </p>
-                    <p className="mt-0.5 text-xs text-slate-400">
+                    <p className="mt-1 text-xs text-slate-400">
                       Verification submitted {formatDate(worker.verificationSubmittedAt)}
                     </p>
-                    {worker.address && (
-                      <p className="mt-1 text-sm text-slate-500">{worker.address}</p>
-                    )}
-
-                    <div className="mt-3 flex flex-wrap gap-1.5">
-                      {worker.skills
-                        ?.split(",")
-                        .map((s) => s.trim())
-                        .filter(Boolean)
-                        .map((skill) => (
-                          <span
-                            key={skill}
-                            className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-600"
-                          >
-                            {skill}
-                          </span>
-                        ))}
-                      {worker.location && (
-                        <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-600">
-                          {worker.location}
-                        </span>
-                      )}
-                      {worker.yearsOfExperience && (
-                        <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-600">
-                          {worker.yearsOfExperience}
-                        </span>
-                      )}
-                      {worker.hourlyRate != null && (
-                        <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-600">
-                          NPR {worker.hourlyRate}/hr
-                        </span>
-                      )}
-                    </div>
-
-                    {worker.bio && (
-                      <p className="mt-3 text-sm text-slate-600">{worker.bio}</p>
-                    )}
-
-                    {/*
-                      These are identity documents behind an authenticated endpoint, so they
-                      are fetched with the admin's token rather than linked to directly.
-                    */}
-                    <div className="mt-3 flex flex-wrap gap-3">
-                      <DocumentLink url={worker.policeClearanceUrl} label="View Police Clearance Report" />
-                      <DocumentLink url={worker.citizenshipDocUrl} label="View Citizenship / ID" />
-                      <DocumentLink url={worker.profilePhotoUrl} label="View Profile Photo" />
-                    </div>
                   </div>
 
-                  <div className="flex shrink-0 gap-2">
+                  <div className="flex shrink-0 flex-wrap gap-2">
+                    <button
+                      type="button"
+                      onClick={() => toggleDetails(worker.id)}
+                      aria-expanded={expandedIds.has(worker.id)}
+                      aria-controls={`worker-details-${worker.id}`}
+                      className="rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+                    >
+                      {expandedIds.has(worker.id) ? "Hide Details" : "View Details"}
+                    </button>
                     <button
                       type="button"
                       disabled={actioningId === worker.id}
@@ -183,6 +126,72 @@ export default function AdminVerificationQueue() {
                     </button>
                   </div>
                 </div>
+
+                {expandedIds.has(worker.id) && (
+                  <div
+                    id={`worker-details-${worker.id}`}
+                    className="mt-4 border-t border-slate-200 pt-4"
+                  >
+                    <dl className="grid gap-x-6 gap-y-3 sm:grid-cols-2">
+                      <DetailField label="Email" value={worker.email} />
+                      <DetailField label="Phone" value={worker.phone} />
+                      <DetailField label="Address" value={worker.address} />
+                      <DetailField label="City" value={worker.location} />
+                      <DetailField label="Experience" value={worker.yearsOfExperience} />
+                      <DetailField
+                        label="Hourly rate"
+                        value={worker.hourlyRate != null ? `NPR ${worker.hourlyRate}/hr` : null}
+                      />
+                      <DetailField label="Account created" value={formatDate(worker.createdAt)} />
+                    </dl>
+
+                    {worker.skills && (
+                      <div className="mt-4">
+                        <p className="text-xs font-medium uppercase tracking-wide text-slate-400">
+                          Skills
+                        </p>
+                        <div className="mt-1.5 flex flex-wrap gap-1.5">
+                          {worker.skills
+                            .split(",")
+                            .map((s) => s.trim())
+                            .filter(Boolean)
+                            .map((skill) => (
+                              <span
+                                key={skill}
+                                className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-600"
+                              >
+                                {skill}
+                              </span>
+                            ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {worker.bio && (
+                      <div className="mt-4">
+                        <p className="text-xs font-medium uppercase tracking-wide text-slate-400">
+                          Bio
+                        </p>
+                        <p className="mt-0.5 text-sm text-slate-600">{worker.bio}</p>
+                      </div>
+                    )}
+
+                    {/*
+                      These are identity documents behind an authenticated endpoint, so they
+                      are fetched with the admin's token rather than linked to directly.
+                    */}
+                    <div className="mt-4">
+                      <p className="text-xs font-medium uppercase tracking-wide text-slate-400">
+                        Documents
+                      </p>
+                      <div className="mt-1.5 flex flex-wrap gap-3">
+                        <DocumentLink url={worker.policeClearanceUrl} name="Police Clearance Report" />
+                        <DocumentLink url={worker.citizenshipDocUrl} name="Citizenship / ID" />
+                        <DocumentLink url={worker.profilePhotoUrl} name="Profile Photo" />
+                      </div>
+                    </div>
+                  </div>
+                )}
               </li>
             ))}
           </ul>

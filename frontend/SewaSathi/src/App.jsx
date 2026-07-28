@@ -33,6 +33,8 @@ const EsewaCallback = lazy(() => import("./pages/EsewaCallback"));
 const KhaltiCallback = lazy(() => import("./pages/KhaltiCallback"));
 const CustomerReview = lazy(() => import("./pages/CustomerReview"));
 const AccountSecurity = lazy(() => import("./pages/AccountSecurity"));
+// One screen, mounted under both dashboards: it reads the role off the session.
+const MyProfile = lazy(() => import("./pages/MyProfile"));
 
 const AdminLayout = lazy(() => import("./components/Admin/AdminLayout"));
 const AdminOverview = lazy(() => import("./pages/Admin/AdminOverview"));
@@ -180,6 +182,7 @@ function App() {
           {/* Khalti has a single return URL, whatever the outcome. */}
           <Route path="payments/khalti/callback" element={<KhaltiCallback />} />
           <Route path="reviews" element={<CustomerReview />} />
+          <Route path="profile" element={<MyProfile />} />
           <Route path="security" element={<AccountSecurity />} />
         </Route>
         <Route
@@ -194,6 +197,7 @@ function App() {
           <Route path="verifications" element={<AdminVerificationQueue />} />
           <Route path="users" element={<AdminUserManagement />} />
           <Route path="analytics" element={<AdminAnalytics />} />
+          <Route path="profile" element={<MyProfile />} />
         </Route>
         <Route
           path="/worker"
