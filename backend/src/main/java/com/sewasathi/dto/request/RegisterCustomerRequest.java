@@ -11,24 +11,25 @@ import lombok.Setter;
 @Setter
 public class RegisterCustomerRequest {
 
-    @NotBlank
-    @Size(max = 150, message = "Full name cannot be longer than 150 characters")
+    // Messages are {key} references into messages.properties rather than literal English,
+    // so a validation failure reaches the user in their own language (requirement #11).
+    @NotBlank(message = "{validation.fullName.required}")
+    @Size(max = 150, message = "{validation.fullName.tooLong}")
     private String fullName;
 
-    @NotBlank
-    @Email
-    @Size(max = 255, message = "Email cannot be longer than 255 characters")
+    @NotBlank(message = "{validation.email.required}")
+    @Email(message = "{validation.email.invalid}")
+    @Size(max = 255, message = "{validation.email.tooLong}")
     private String email;
 
-    @NotBlank
-    @Pattern(regexp = "^9[78]\\d{8}$",
-            message = "Enter a valid 10-digit mobile number starting with 97 or 98")
+    @NotBlank(message = "{validation.phone.required}")
+    @Pattern(regexp = "^9[78]\\d{8}$", message = "{validation.phone.invalid}")
     private String phone;
 
     // max = 72 is the BCrypt input limit - anything beyond it is silently truncated.
-    @NotBlank
-    @Size(min = 8, max = 72, message = "Password must be 8-72 characters")
+    @NotBlank(message = "{validation.password.required}")
+    @Size(min = 8, max = 72, message = "{validation.password.length}")
     @Pattern(regexp = "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[^A-Za-z0-9]).+$",
-            message = "Password must include an uppercase letter, a lowercase letter, a number, and a special character")
+            message = "{validation.password.weak}")
     private String password;
 }

@@ -1,7 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import * as authApi from "../api/authApi";
 import { onUnauthorized } from "../api/httpClient";
-import { clearToken, getToken, setToken } from "../api/tokenStorage";
+import { clearToken, getRefreshToken, getToken, setTokens } from "../api/tokenStorage";
 
 function computeInitials(fullName, email) {
   const source = fullName?.trim() || email?.split("@")[0] || "";
@@ -50,38 +50,19 @@ export function AuthProvider({ children }) {
       .finally(() => setInitializing(false));
   }, []);
 
-  // Signing in no longer always yields a token. When two-factor authentication is on,
-  // or the sign-in comes from an unrecognised device, the API answers with a challenge
-  // that has to be completed on the /verify-otp screen first. Callers branch on `status`
-  // rather than assuming a session was established.
   const login = useCallback(async ({ email, password }) => {
     const data = await authApi.login({ email, password });
 
-    if (data.challengeRequired) {
-      return {
-        status: "challenge",
-        challengeToken: data.challengeToken,
-        challengeReason: data.challengeReason,
-      };
-    }
-
-    setToken(data.token);
+    // Both halves: the access token expires in minutes, and the refresh token beside it
+    // is what keeps the session alive.
+    setTokens(data);
     const sessionUser = toSessionUser(data.user);
     setSession(sessionUser);
     return { status: "authenticated", user: sessionUser };
   }, []);
 
-  /** Completes a challenged sign-in with the code emailed to the user. */
-  const verifyOtp = useCallback(async (challengeToken, code) => {
-    const { token, user } = await authApi.verifyOtp(challengeToken, code);
-    setToken(token);
-    const sessionUser = toSessionUser(user);
-    setSession(sessionUser);
-    return sessionUser;
-  }, []);
-
-  // Registration creates the account only. The API deliberately returns no token: the
-  // email address has to be confirmed before the account can sign in at all.
+  // Registration creates the account and returns no token. The account is usable right
+  // away; the signup pages send the user to /login to enter their password once.
   const registerCustomer = useCallback(async (payload) => {
     const { user } = await authApi.registerCustomer(payload);
     return toSessionUser(user);
@@ -92,9 +73,40 @@ export function AuthProvider({ children }) {
     return toSessionUser(user);
   }, []);
 
-  const logout = useCallback(() => {
+  const logout = useCallback(async () => {
+    const refreshToken = getRefreshToken();
+    // Clear locally first, and unconditionally: if the network call fails the user must
+    // still end up signed out on this device rather than stuck in a half-session.
     clearToken();
     setSession(null);
+
+    if (refreshToken) {
+      try {
+        await authApi.logout(refreshToken);
+      } catch {
+        // The token may already be revoked or expired, which is the desired end state.
+      }
+    }
+  }, []);
+
+  /**
+   * Folds a fresh /users/me-shaped payload into the session.
+   *
+   * Profile edits answer with the updated account, so the header avatar and name can be
+   * corrected from the response the page already has rather than by refetching.
+   */
+  const applyUserUpdate = useCallback((user) => {
+    setSession(toSessionUser(user));
+  }, []);
+
+  /** Revokes every session for this account, not just the one on this device. */
+  const logoutEverywhere = useCallback(async () => {
+    try {
+      await authApi.logoutEverywhere();
+    } finally {
+      clearToken();
+      setSession(null);
+    }
   }, []);
 
   const value = useMemo(
@@ -105,12 +117,22 @@ export function AuthProvider({ children }) {
       isCustomerAuthenticated: Boolean(session) && session.role === "CUSTOMER",
       initializing,
       login,
-      verifyOtp,
       logoutCustomer: logout,
+      logoutEverywhere,
       registerCustomer,
       registerWorker,
+      applyUserUpdate,
     }),
-    [session, initializing, login, verifyOtp, logout, registerCustomer, registerWorker],
+    [
+      session,
+      initializing,
+      login,
+      logout,
+      logoutEverywhere,
+      registerCustomer,
+      registerWorker,
+      applyUserUpdate,
+    ],
   );
 
   return (

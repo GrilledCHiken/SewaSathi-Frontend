@@ -3,7 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 import { useAuth } from "../../context/AuthContext";
 import PasswordChecklist from "../../components/PasswordChecklist";
-import { sanitizePhone, validateSignupForm } from "../../utils/validation";
+import { parseSignupError, sanitizePhone, validateSignupForm } from "../../utils/validation";
 
 function LogoIcon() {
   return (
@@ -259,7 +259,13 @@ function WorkerSignup() {
         state: { registered: true, email: form.email.trim(), role: "WORKER" },
       });
     } catch (err) {
-      toast.error(err.response?.data?.message || "Could not create account. Please try again.");
+      // Same as the customer form: a duplicate address is only detectable server-side, so
+      // that message has to reach the email field.
+      const { field, message } = parseSignupError(err);
+      if (field) {
+        setErrors((prev) => ({ ...prev, [field]: message }));
+      }
+      toast.error(message || "Could not create account. Please try again.");
     } finally {
       setLoading(false);
     }

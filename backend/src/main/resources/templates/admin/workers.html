@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{admin/layout :: page(#{admin.workers.title}, ~{::main})}">
+<body>
+<main class="page">
+    <h1 th:text="#{admin.workers.title}">Worker verification</h1>
+    <p class="lede" th:text="#{admin.workers.lede}">Approve or reject workers who have submitted documents.</p>
+
+    <p class="empty" th:if="${#lists.isEmpty(pendingWorkers)}"
+       th:text="#{admin.workers.empty}">Nothing waiting for review.</p>
+
+    <section class="cards" th:unless="${#lists.isEmpty(pendingWorkers)}">
+        <article class="card" th:each="worker : ${pendingWorkers}" th:id="'worker-' + ${worker.id}">
+            <header class="card-head">
+                <h2 th:text="${worker.fullName}">Ram Thapa</h2>
+                <span class="muted" th:text="${worker.location}">Kathmandu</span>
+            </header>
+
+            <dl class="card-facts">
+                <div>
+                    <dt th:text="#{admin.field.email}">Email</dt>
+                    <dd th:text="${worker.email}">ram@example.com</dd>
+                </div>
+                <div>
+                    <dt th:text="#{admin.field.phone}">Phone</dt>
+                    <dd th:text="${worker.phone}">9800000000</dd>
+                </div>
+                <div>
+                    <dt th:text="#{admin.field.skills}">Skills</dt>
+                    <dd th:text="${worker.skills}">Plumbing</dd>
+                </div>
+                <div>
+                    <dt th:text="#{admin.field.rate}">Hourly rate</dt>
+                    <dd th:text="${worker.hourlyRate}">500</dd>
+                </div>
+                <div>
+                    <dt th:text="#{admin.field.experience}">Experience</dt>
+                    <dd th:text="${worker.yearsOfExperience}">3 years</dd>
+                </div>
+                <div>
+                    <dt th:text="#{admin.field.submitted}">Submitted</dt>
+                    <dd th:text="${#temporals.format(worker.verificationSubmittedAt, 'dd MMM yyyy, HH:mm')}">
+                        01 Jan 2026
+                    </dd>
+                </div>
+            </dl>
+
+            <p class="card-bio" th:if="${worker.bio}" th:text="${worker.bio}">Bio</p>
+
+            <footer class="card-actions">
+                <button type="button" class="btn btn-primary js-worker-action"
+                        th:data-worker-id="${worker.id}" data-action="approve"
+                        th:text="#{admin.action.approve}">Approve
+                </button>
+                <button type="button" class="btn btn-danger js-worker-action"
+                        th:data-worker-id="${worker.id}" data-action="reject"
+                        th:text="#{admin.action.reject}">Reject
+                </button>
+            </footer>
+        </article>
+    </section>
+</main>
+</body>
+</html>

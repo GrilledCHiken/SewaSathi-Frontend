@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Client } from "@stomp/stompjs";
 import SockJS from "sockjs-client";
 import { getToken } from "../api/tokenStorage";
+import useDesktopNotifications from "./useDesktopNotifications";
 import {
   listNotifications,
   markAllNotificationsRead,
@@ -22,6 +23,16 @@ export default function useNotifications(enabled = true) {
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(enabled);
   const clientRef = useRef(null);
+  /** Ids already mirrored to the desktop, so a reconnect does not re-announce them. */
+  const announcedIds = useRef(new Set());
+
+  const { notify } = useDesktopNotifications();
+  // Held in a ref so the socket effect does not tear down and reconnect every time the
+  // notify callback identity changes.
+  const notifyRef = useRef(notify);
+  useEffect(() => {
+    notifyRef.current = notify;
+  }, [notify]);
 
   const refresh = useCallback(async () => {
     try {
@@ -59,9 +70,24 @@ export default function useNotifications(enabled = true) {
       onConnect: () => {
         client.subscribe("/user/queue/notifications", (frame) => {
           const incoming = JSON.parse(frame.body);
+
+          // Deduplicated against a ref rather than inside the setState updater: React may
+          // run an updater more than once, and firing a desktop notification from there
+          // would show the same alert twice.
+          if (announcedIds.current.has(incoming.id)) return;
+          announcedIds.current.add(incoming.id);
+
+          // Mirror to the desktop when the user has opted in and the tab is not in front
+          // of them — a new-device sign-in code is worth surfacing even when Sewa Sathi
+          // is not the tab they are looking at.
+          notifyRef.current?.({
+            title: incoming.title,
+            body: incoming.body,
+            link: incoming.link,
+          });
+
           setNotifications((prev) =>
-            // Guard against a duplicate arriving from both the socket and a refresh
-            // that raced it.
+            // The socket and a racing refresh can both deliver the same item.
             prev.some((n) => n.id === incoming.id) ? prev : [incoming, ...prev].slice(0, 20),
           );
         });

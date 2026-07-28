@@ -60,7 +60,7 @@ class FileAccessServiceTest {
 
     private static User user(Long id, String email, Role role) {
         return User.builder().id(id).email(email).fullName("User " + id).phone("9800000000")
-                .role(role).status(ApprovalStatus.APPROVED).emailVerified(true).build();
+                .role(role).status(ApprovalStatus.APPROVED).build();
     }
 
     private void knownUser(User u) {
@@ -164,6 +164,21 @@ class FileAccessServiceTest {
                 .thenReturn(Optional.of(WorkerProfile.builder().id(1L).user(worker).profilePhotoUrl(URL).build()));
 
         // Shown on the worker browse cards, so locking it down would break that listing.
+        assertThatCode(() -> fileAccessService.assertCanRead(FILE, stranger.getEmail()))
+                .doesNotThrowAnyException();
+    }
+
+    @Test
+    void accountAvatar_isReadableByAnySignedInUser() {
+        knownUser(stranger);
+        when(messageRepository.findByAttachmentUrl(URL)).thenReturn(Optional.empty());
+        when(workerProfileRepository.findByPoliceClearanceUrlOrCitizenshipDocUrl(URL, URL))
+                .thenReturn(Optional.empty());
+        when(workerProfileRepository.findByProfilePhotoUrl(URL)).thenReturn(Optional.empty());
+        when(userRepository.findByAvatarUrl(URL)).thenReturn(Optional.of(customer));
+
+        // A customer's avatar is referenced only from users.avatar_url, with no worker
+        // profile behind it. Without this branch every customer photo would 404.
         assertThatCode(() -> fileAccessService.assertCanRead(FILE, stranger.getEmail()))
                 .doesNotThrowAnyException();
     }

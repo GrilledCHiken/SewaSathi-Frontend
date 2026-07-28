@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { toast } from 'react-toastify'
 import { useAuth } from '../../context/AuthContext'
 import PasswordChecklist from '../../components/PasswordChecklist'
-import { sanitizePhone, validateSignupForm } from '../../utils/validation'
+import { parseSignupError, sanitizePhone, validateSignupForm } from '../../utils/validation'
 
 function LogoIcon() {
   return (
@@ -154,7 +154,13 @@ function UserSignup() {
         state: { registered: true, email: form.email.trim(), role: 'CUSTOMER' },
       })
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Could not create account. Please try again.')
+      // An address already registered is something only the server can detect, so that
+      // message has to reach the email field the same way a local failure would.
+      const { field, message } = parseSignupError(err)
+      if (field) {
+        setErrors((prev) => ({ ...prev, [field]: message }))
+      }
+      toast.error(message || 'Could not create account. Please try again.')
     } finally {
       setLoading(false)
     }

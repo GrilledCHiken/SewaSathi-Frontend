@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<!--/*
+  Shared shell for the error pages (requirement #8), separate from admin/layout.html on
+  purpose: an error page must render for anyone, including signed-out visitors, so it
+  cannot carry a nav bar or a sign-out form that assume a session.
+*/-->
+<html xmlns:th="http://www.thymeleaf.org"
+      th:fragment="page(code, heading, message)"
+      th:lang="${#locale.language}">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title th:text="${heading} + ' · ' + #{admin.brand}">Error · Sewa Sathi</title>
+    <link rel="icon" th:href="@{/admin/assets/favicon.svg}" type="image/svg+xml">
+    <link rel="stylesheet" th:href="@{/admin/assets/app.css}">
+</head>
+<body class="centered">
+<main class="login-card">
+    <div class="brand-mark brand-mark-large">SS</div>
+    <p class="error-code" th:text="${code}">404</p>
+    <h1 th:text="${heading}">Page not found</h1>
+    <p class="lede" th:text="${message}">Something went wrong.</p>
+
+    <!--/*
+      The correlation id from CorrelationIdFilter, when the error carried one. It is what
+      ties this page to the matching line in the server log.
+    */-->
+    <p class="muted small" th:if="${correlationId}">
+        <span th:text="#{error.reference}">Reference</span>:
+        <code th:text="${correlationId}">abc123</code>
+    </p>
+
+    <a class="btn btn-primary btn-block" th:href="@{/admin/dashboard}"
+       th:text="#{error.backHome}">Back to the dashboard</a>
+</main>
+</body>
+</html>

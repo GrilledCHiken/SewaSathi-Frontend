@@ -120,10 +120,42 @@ Worth knowing before changing either flow:
   fails the payment rather than trusting the query string. The `pidx` is stored against the
   payment at initiation, which is what ties the return trip back to the right customer.
 
+## Authentication
+
+Email + password, and nothing else. `POST /api/auth/register/{customer,worker}` creates an
+active account and returns it **without** a token; the SPA then sends the user to `/login` to
+sign in once. `POST /api/auth/login` returns a short-lived JWT plus a rotating refresh token
+(see `RefreshTokenService`). Five consecutive wrong passwords lock the account for 15 minutes.
+
+Workers sign in immediately but stay `PENDING` until an admin approves them, which is what
+gates accepting tasks.
+
+There is deliberately **no** email verification, no two-factor challenge, no new-device OTP,
+and no social sign-in. Nothing has to be configured to run the app locally beyond the database
+and JWT secret.
+
+### No outbound email
+
+The application sends no mail at all — there is no `EmailService`, no `spring.mail.*`
+configuration, and no `spring-boot-starter-mail` dependency. User-facing notices go to the
+in-app feed instead (`NotificationService`, delivered over WebSocket and surfaced by
+`NotificationBell.jsx`).
+
+**Consequence: there is no self-service password reset.** A user who forgets their password
+cannot recover it — a reset link has no delivery channel — and there is no admin reset path
+either, so recovering an account means updating `users.password_hash` directly with a BCrypt
+hash of the new password.
+
+### Removing the old schema
+
+2FA, verification, OAuth and password-reset left four tables and four `users` columns behind
+that `ddl-auto=update` will never drop.
+[`src/main/resources/db/remove-auth-extras.sql`](src/main/resources/db/remove-auth-extras.sql)
+clears them. This is housekeeping rather than a prerequisite — registration was verified
+working against an un-migrated database — but leaving unused `NOT NULL` columns in place is a
+trap for anyone later writing an `INSERT` by hand.
+
 ## Notes
 
-- Outgoing email (password reset, email verification) is logged to the console in dev — no SMTP
-  provider is configured. Swap `ConsoleEmailService` for a real `EmailService` implementation to
-  send actual emails.
 - Uploaded chat attachments are stored on local disk under `uploads/` (configurable via
   `app.upload-dir`) and served statically from `/uploads/**`.

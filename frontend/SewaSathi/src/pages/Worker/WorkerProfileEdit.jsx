@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { toast } from "react-toastify";
 import WorkerHeader from "../../components/Worker/WorkerHeader";
+import AccountSettings from "../../components/profile/AccountSettings";
 import { getMyWorkerProfile, updateMyWorkerProfile } from "../../api/workerProfileApi";
 import { SKILL_OPTIONS, LOCATION_OPTIONS } from "../../constants/workerOptions";
 
@@ -92,6 +93,12 @@ export default function WorkerProfileEdit() {
               hired more often.
             </p>
           </div>
+
+          {/* Photo, name, number, password — identical for every role, so shared with the
+              customer and admin profile screens rather than duplicated here. */}
+          <AccountSettings accent="emerald" />
+
+          <h3 className="mb-4 mt-8 text-lg font-bold text-slate-900">Work details</h3>
 
           {loading ? (
             <p className="text-sm text-slate-500">Loading your profile...</p>

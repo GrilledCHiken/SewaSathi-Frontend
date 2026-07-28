@@ -1,8 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom'
 import { toast } from 'react-toastify'
-import { resendVerification } from '../api/authApi'
-import SocialSignIn from '../components/SocialSignIn'
 import { useAuth } from '../context/AuthContext'
 
 function LogoIcon({ className = '' }) {
@@ -22,15 +20,6 @@ function MailIcon() {
   return (
     <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.75} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-    </svg>
-  )
-}
-
-function MailVerifiedIcon() {
-  return (
-    <svg className="h-[18px] w-[18px]" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <circle cx="12" cy="12" r="10" fill="#22c55e" />
-      <path d="M8 12.5l2.5 2.5L16 9" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   )
 }
@@ -99,10 +88,6 @@ function Login() {
   const [email, setEmail] = useState(() => location.state?.email ?? '')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
-  // Set when sign-in was refused purely because the address is unconfirmed, which is
-  // recoverable in place rather than a dead end.
-  const [unverifiedEmail, setUnverifiedEmail] = useState(null)
-  const [resending, setResending] = useState(false)
   const { isCustomerAuthenticated, user, login } = useAuth()
   const navigate = useNavigate()
 
@@ -111,15 +96,6 @@ function Login() {
       window.history.replaceState({}, '')
     }
   }, [signupNotice])
-
-  // A failed social sign-in redirects back here with the reason in the query string.
-  useEffect(() => {
-    const oauthError = new URLSearchParams(location.search).get('error')
-    if (oauthError) {
-      toast.error(oauthError)
-      window.history.replaceState({}, '', '/login')
-    }
-  }, [location.search])
 
   const from = location.state?.from?.pathname || '/dashboard'
 
@@ -138,24 +114,8 @@ function Login() {
   const handleSubmit = async (e) => {
     e.preventDefault()
     setLoading(true)
-    setUnverifiedEmail(null)
     try {
       const result = await login({ email: email.trim(), password })
-
-      // Two-factor is on, or this device has not been seen before: the password was
-      // right but a code has been emailed and must be entered before a session exists.
-      if (result.status === 'challenge') {
-        navigate('/verify-otp', {
-          replace: true,
-          state: {
-            challengeToken: result.challengeToken,
-            challengeReason: result.challengeReason,
-            email: email.trim(),
-            from,
-          },
-        })
-        return
-      }
 
       const sessionUser = result.user
       toast.success('Welcome back!')
@@ -167,29 +127,11 @@ function Login() {
         navigate('/worker', { replace: true })
       }
     } catch (err) {
-      // 403 here means the password was correct but the address was never confirmed.
-      // Surfacing a resend action beats repeating "invalid email or password", which
-      // would send the user off hunting for a problem with their credentials.
-      if (err.response?.status === 403) {
-        setUnverifiedEmail(email.trim())
-        toast.error(err.response?.data?.message || 'Please verify your email address first.')
-      } else {
-        toast.error(err.response?.data?.message || 'Invalid email or password')
-      }
+      // 403 is a suspended account, which carries its own message; anything else is
+      // reported as a credentials failure so a wrong password reveals nothing more.
+      toast.error(err.response?.data?.message || 'Invalid email or password')
     } finally {
       setLoading(false)
-    }
-  }
-
-  const handleResendVerification = async () => {
-    setResending(true)
-    try {
-      await resendVerification(unverifiedEmail)
-      toast.success('Verification email sent. Check your inbox.')
-    } catch {
-      toast.error('Could not send the email. Please try again shortly.')
-    } finally {
-      setResending(false)
     }
   }
 
@@ -269,28 +211,10 @@ function Login() {
             <div className="mt-6 rounded-xl bg-emerald-50 px-4 py-4 text-sm text-emerald-800">
               <p className="font-semibold">Account created successfully!</p>
               <p className="mt-1">
-                We&apos;ve emailed you a link to confirm your address. Click it, then sign in below.
+                Sign in below to get started.
                 {signupNotice.role === 'WORKER' &&
-                  ' Your worker application will be reviewed after that.'}
+                  ' Your worker application will be reviewed by an administrator.'}
               </p>
-            </div>
-          )}
-
-          {unverifiedEmail && (
-            <div className="mt-6 rounded-xl bg-amber-50 px-4 py-4 text-sm text-amber-900">
-              <p className="font-semibold">Confirm your email to continue</p>
-              <p className="mt-1">
-                We sent a verification link to <strong>{unverifiedEmail}</strong>. Click it to
-                activate your account, then sign in.
-              </p>
-              <button
-                type="button"
-                onClick={handleResendVerification}
-                disabled={resending}
-                className="mt-3 rounded-lg bg-amber-600 px-3.5 py-2 text-xs font-semibold text-white transition hover:bg-amber-700 disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                {resending ? 'Sending…' : 'Resend verification email'}
-              </button>
             </div>
           )}
 
@@ -311,11 +235,8 @@ function Login() {
                   placeholder="you@example.com"
                   autoComplete="email"
                   required
-                  className="w-full rounded-xl border border-slate-200 bg-white py-3.5 pl-11 pr-11 text-slate-800 shadow-sm transition placeholder:text-slate-400 focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/20"
+                  className="w-full rounded-xl border border-slate-200 bg-white py-3.5 pl-11 pr-4 text-slate-800 shadow-sm transition placeholder:text-slate-400 focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/20"
                 />
-                <span className="pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2">
-                  <MailVerifiedIcon />
-                </span>
               </div>
             </div>
 
@@ -324,12 +245,6 @@ function Login() {
                 <label htmlFor="password" className="text-sm font-semibold text-slate-800">
                   Password
                 </label>
-                <Link
-                  to="/forgot-password"
-                  className="text-sm font-medium text-brand transition hover:text-brand-dark"
-                >
-                  Forgot password?
-                </Link>
               </div>
               <div className="group relative mt-2">
                 <span className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 transition group-focus-within:text-brand">
@@ -365,12 +280,6 @@ function Login() {
               {!loading && <ArrowRightIcon />}
             </button>
           </form>
-
-          {/*
-            Replaces a "Phone Number" button that was never wired to anything. Renders
-            nothing at all unless the backend reports configured OAuth providers.
-          */}
-          <SocialSignIn />
         </div>
 
         <p className="mt-8 text-sm text-slate-600">

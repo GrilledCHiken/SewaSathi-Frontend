@@ -1,6 +1,14 @@
 import { useEffect, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import Avatar from "./Avatar";
+
+/** Where "My Profile" goes, per role. Each dashboard hosts its own profile route. */
+const PROFILE_PATH_BY_ROLE = {
+  CUSTOMER: "/dashboard/profile",
+  WORKER: "/worker/profile",
+  ADMIN: "/admin/profile",
+};
 
 function ChevronIcon({ open }) {
   return (
@@ -17,6 +25,24 @@ function ChevronIcon({ open }) {
   );
 }
 
+function ProfileIcon() {
+  return (
+    <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <circle cx="12" cy="8" r="4" />
+      <path d="M4 21v-1a6 6 0 0 1 6-6h4a6 6 0 0 1 6 6v1" />
+    </svg>
+  );
+}
+
+function ShieldIcon() {
+  return (
+    <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M12 3l7 3v6c0 4.2-2.9 7.9-7 9-4.1-1.1-7-4.8-7-9V6l7-3z" />
+      <path d="M9.5 12.5l1.8 1.8 3.4-3.6" />
+    </svg>
+  );
+}
+
 function SignOutIcon() {
   return (
     <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -27,10 +53,13 @@ function SignOutIcon() {
   );
 }
 
+const ITEM_CLASS =
+  "flex w-full items-center gap-2.5 px-3.5 py-2.5 text-sm font-medium text-slate-700 transition hover:bg-slate-100";
+
 function UserMenu({ initials, displayName, avatarClassName = "bg-brand" }) {
   const [open, setOpen] = useState(false);
   const menuRef = useRef(null);
-  const { logoutCustomer } = useAuth();
+  const { user, logoutCustomer } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -50,6 +79,8 @@ function UserMenu({ initials, displayName, avatarClassName = "bg-brand" }) {
     navigate("/login", { replace: true });
   };
 
+  const profilePath = PROFILE_PATH_BY_ROLE[user?.role] ?? "/dashboard/profile";
+
   return (
     <div className="relative" ref={menuRef}>
       <button
@@ -59,9 +90,12 @@ function UserMenu({ initials, displayName, avatarClassName = "bg-brand" }) {
         aria-expanded={open}
         className="flex items-center gap-2.5 rounded-full border border-slate-200 bg-white py-1 pl-1 pr-2.5 transition hover:bg-slate-50"
       >
-        <span className={`flex h-9 w-9 items-center justify-center rounded-full text-sm font-bold text-white ${avatarClassName}`}>
-          {initials}
-        </span>
+        <Avatar
+          storedUrl={user?.avatarUrl}
+          initials={initials}
+          className="h-9 w-9 text-sm"
+          fallbackClassName={avatarClassName}
+        />
         <span className="hidden max-w-[140px] truncate text-sm font-medium text-slate-700 sm:inline">
           {displayName}
         </span>
@@ -69,12 +103,29 @@ function UserMenu({ initials, displayName, avatarClassName = "bg-brand" }) {
       </button>
 
       {open && (
-        <div className="absolute right-0 top-full z-40 mt-2 w-44 overflow-hidden rounded-xl border border-slate-200 bg-white py-1.5 shadow-lg">
-          <button
-            type="button"
-            onClick={handleSignOut}
-            className="flex w-full items-center gap-2.5 px-3.5 py-2.5 text-sm font-medium text-slate-700 transition hover:bg-slate-100"
-          >
+        <div className="absolute right-0 top-full z-40 mt-2 w-56 overflow-hidden rounded-xl border border-slate-200 bg-white py-1.5 shadow-lg">
+          <div className="border-b border-slate-100 px-3.5 pb-2.5 pt-1">
+            <p className="truncate text-sm font-semibold text-slate-900">
+              {user?.name || "Account"}
+            </p>
+            <p className="truncate text-xs text-slate-500">{user?.email}</p>
+          </div>
+
+          <Link to={profilePath} onClick={() => setOpen(false)} className={`${ITEM_CLASS} mt-1`}>
+            <ProfileIcon />
+            My Profile
+          </Link>
+
+          {/* Security lives under the customer dashboard only; workers and admins have
+              no route for it, so linking them there would 404 into an empty outlet. */}
+          {user?.role === "CUSTOMER" && (
+            <Link to="/dashboard/security" onClick={() => setOpen(false)} className={ITEM_CLASS}>
+              <ShieldIcon />
+              Security
+            </Link>
+          )}
+
+          <button type="button" onClick={handleSignOut} className={`${ITEM_CLASS} border-t border-slate-100`}>
             <SignOutIcon />
             Sign Out
           </button>

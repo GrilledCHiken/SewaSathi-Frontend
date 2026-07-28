@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{admin/layout :: page(#{admin.users.title}, ~{::main})}">
+<body>
+<main class="page">
+    <h1 th:text="#{admin.users.title}">User management</h1>
+    <p class="lede" th:text="#{admin.users.lede}">Filter accounts and suspend or restore access.</p>
+
+    <form class="filters" method="get" th:action="@{/admin/users}">
+        <div class="field">
+            <label for="role" th:text="#{admin.filter.role}">Role</label>
+            <select id="role" name="role">
+                <option value="" th:text="#{admin.filter.any}">Any</option>
+                <option th:each="r : ${roles}" th:value="${r}" th:text="${r}"
+                        th:selected="${r == selectedRole}">CUSTOMER
+                </option>
+            </select>
+        </div>
+        <div class="field">
+            <label for="status" th:text="#{admin.filter.status}">Status</label>
+            <select id="status" name="status">
+                <option value="" th:text="#{admin.filter.any}">Any</option>
+                <option th:each="s : ${statuses}" th:value="${s}" th:text="${s}"
+                        th:selected="${s == selectedStatus}">PENDING
+                </option>
+            </select>
+        </div>
+        <button type="submit" class="btn btn-primary" th:text="#{admin.filter.apply}">Apply</button>
+        <a class="btn btn-ghost" th:href="@{/admin/users}" th:text="#{admin.filter.clear}">Clear</a>
+    </form>
+
+    <p class="empty" th:if="${#lists.isEmpty(users)}" th:text="#{admin.users.empty}">
+        No accounts match those filters.
+    </p>
+
+    <div class="table-scroll" th:unless="${#lists.isEmpty(users)}">
+        <table>
+            <thead>
+            <tr>
+                <th th:text="#{admin.field.name}">Name</th>
+                <th th:text="#{admin.field.email}">Email</th>
+                <th th:text="#{admin.field.role}">Role</th>
+                <th th:text="#{admin.field.status}">Status</th>
+                <th th:text="#{admin.field.joined}">Joined</th>
+                <th th:text="#{admin.field.actions}">Actions</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr th:each="user : ${users}" th:id="'user-' + ${user.id}">
+                <td th:text="${user.fullName}">Sita Rai</td>
+                <td th:text="${user.email}">sita@example.com</td>
+                <td><span class="tag" th:text="${user.role}">CUSTOMER</span></td>
+                <td>
+                    <span class="tag tag-danger" th:if="${user.suspended}"
+                          th:text="#{admin.status.suspended}">Suspended</span>
+                    <span class="tag" th:unless="${user.suspended}" th:text="${user.status}">APPROVED</span>
+                </td>
+                <td th:text="${#temporals.format(user.createdAt, 'dd MMM yyyy')}">01 Jan 2026</td>
+                <td>
+                    <!--/*
+                      Admin accounts have no button: AdminService refuses to suspend them, so
+                      offering the action would only produce an error the user cannot act on.
+                    */-->
+                    <span class="muted" th:if="${user.role.name() == 'ADMIN'}" th:text="#{admin.users.protected}">
+                        Protected
+                    </span>
+                    <button th:unless="${user.role.name() == 'ADMIN'}"
+                            type="button" class="btn btn-small js-user-action"
+                            th:data-user-id="${user.id}"
+                            th:data-action="${user.suspended} ? 'unsuspend' : 'suspend'"
+                            th:classappend="${user.suspended} ? 'btn-primary' : 'btn-danger'"
+                            th:text="${user.suspended} ? #{admin.action.unsuspend} : #{admin.action.suspend}">
+                        Suspend
+                    </button>
+                </td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+</main>
+</body>
+</html>

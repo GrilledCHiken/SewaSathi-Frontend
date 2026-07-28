@@ -6,15 +6,13 @@ import lombok.Builder;
 import lombok.Getter;
 
 /**
- * The result of an authentication attempt, which is no longer always "here is your token".
- * Three outcomes share this shape:
+ * The result of an authentication attempt. Two outcomes share this shape:
  *
  * <ul>
- *   <li><b>Authenticated</b> - {@code token} and {@code user} are set.</li>
- *   <li><b>Registered, pending verification</b> - no token; the account cannot sign in until
- *       the emailed link is followed.</li>
- *   <li><b>Challenge required</b> - no token; the client must post the emailed code back
- *       with {@code challengeToken} to finish signing in.</li>
+ *   <li><b>Authenticated</b> - {@code token}, {@code refreshToken} and {@code user} are set.</li>
+ *   <li><b>Registered</b> - {@code user} only. The account is active and can sign in straight
+ *       away; the client simply sends it to the sign-in page rather than being handed a token
+ *       it never asked for.</li>
  * </ul>
  *
  * Absent fields are omitted from the JSON rather than sent as nulls, so the client can test
@@ -26,34 +24,28 @@ import lombok.Getter;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class AuthResponse {
 
+    /** Short-lived bearer token for API calls. */
     private String token;
+
+    /**
+     * Long-lived credential used to obtain a new {@code token} once it expires
+     * (requirement #2). Absent from every response that does not authenticate the caller.
+     */
+    private String refreshToken;
+
     private UserResponse user;
 
-    /** Set when the account exists but its email address has not been confirmed. */
-    private Boolean requiresVerification;
-
-    /** Set when a one-time code must be submitted before a token is issued. */
-    private Boolean challengeRequired;
-
-    /** Opaque handle identifying the pending challenge; paired with the emailed code. */
-    private String challengeToken;
-
-    /** Why the challenge was raised, so the client can word the prompt appropriately. */
-    private String challengeReason;
-
-    public static AuthResponse authenticated(String token, UserResponse user) {
-        return AuthResponse.builder().token(token).user(user).build();
+    public static AuthResponse authenticated(String token, String refreshToken, UserResponse user) {
+        return AuthResponse.builder().token(token).refreshToken(refreshToken).user(user).build();
     }
 
-    public static AuthResponse pendingVerification(UserResponse user) {
-        return AuthResponse.builder().user(user).requiresVerification(true).build();
+    /** A renewed pair from {@code /api/auth/refresh}; the user object is unchanged. */
+    public static AuthResponse refreshed(String token, String refreshToken, UserResponse user) {
+        return authenticated(token, refreshToken, user);
     }
 
-    public static AuthResponse challenge(String challengeToken, String reason) {
-        return AuthResponse.builder()
-                .challengeRequired(true)
-                .challengeToken(challengeToken)
-                .challengeReason(reason)
-                .build();
+    /** A newly created account. No token: the client redirects to the sign-in page. */
+    public static AuthResponse registered(UserResponse user) {
+        return AuthResponse.builder().user(user).build();
     }
 }

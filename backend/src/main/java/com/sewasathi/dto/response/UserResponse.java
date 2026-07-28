@@ -16,8 +16,7 @@ public class UserResponse {
     private Role role;
     private ApprovalStatus status;
     private boolean suspended;
-    private boolean emailVerified;
-    private boolean twoFactorEnabled;
+    private String avatarUrl;
 
     public static UserResponse from(User user) {
         return new UserResponse(
@@ -28,8 +27,7 @@ public class UserResponse {
                 user.getRole(),
                 user.getStatus(),
                 user.isSuspended(),
-                user.isEmailVerified(),
-                user.isTwoFactorEnabled()
+                user.getAvatarUrl()
         );
     }
 }

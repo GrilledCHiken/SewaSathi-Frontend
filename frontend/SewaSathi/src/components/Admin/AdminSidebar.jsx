@@ -57,6 +57,7 @@ const NAV_ITEMS = [
       </svg>
     ),
   },
+  // My Profile is reached from the account menu in the header, not here.
 ];
 
 function navLinkClass({ isActive }) {

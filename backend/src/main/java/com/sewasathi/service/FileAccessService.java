@@ -27,9 +27,10 @@ import org.springframework.transaction.annotation.Transactional;
  * <ul>
  *   <li><b>Chat attachments</b> - the two participants of the conversation, and admins.</li>
  *   <li><b>Identity documents</b> - the owning worker and admins only.</li>
- *   <li><b>Profile photos</b> - any signed-in user, because they are shown on the public
- *       worker browse cards. Locking these down would break that listing, and a profile
- *       picture is not sensitive in the way an ID document is.</li>
+ *   <li><b>Profile photos and account avatars</b> - any signed-in user, because they are
+ *       shown on the worker browse cards and next to their author in chat. Locking these
+ *       down would break those views, and a profile picture is not sensitive in the way an
+ *       ID document is.</li>
  * </ul>
  *
  * <p>Denials are reported as "not found" rather than "forbidden": confirming that a given
@@ -76,7 +77,8 @@ public class FileAccessService {
             throw notFound(filename);
         }
 
-        if (workerProfileRepository.findByProfilePhotoUrl(url).isPresent()) {
+        if (workerProfileRepository.findByProfilePhotoUrl(url).isPresent()
+                || userRepository.findByAvatarUrl(url).isPresent()) {
             return;
         }
 

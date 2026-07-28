@@ -38,6 +38,37 @@ export const sanitizePhone = (value = '') => {
   return digits.slice(0, 10)
 }
 
+// Fields the signup forms render an inline error slot for. A server message is only
+// attached to the field when it names one of these, so an unrelated error can never
+// leave a message pinned under an input the user cannot act on.
+const SERVER_ERROR_FIELDS = ['fullName', 'email', 'phone', 'password']
+
+/**
+ * Turns a failed signup response into { field, message } so the error lands under the
+ * input that caused it rather than only in a toast.
+ *
+ * The backend's bean-validation handler formats its 400 body as "email: <message>" -
+ * useful, but the raw field name should not be shown to a user. A 409 has no prefix and
+ * is always about the email address, since that is the only unique column.
+ */
+export const parseSignupError = (err) => {
+  const raw = err?.response?.data?.message
+  if (!raw) {
+    return { field: null, message: null }
+  }
+
+  if (err.response?.status === 409) {
+    return { field: 'email', message: raw }
+  }
+
+  const match = /^(\w+):\s*(.+)$/s.exec(raw)
+  if (match && SERVER_ERROR_FIELDS.includes(match[1])) {
+    return { field: match[1], message: match[2] }
+  }
+
+  return { field: null, message: raw }
+}
+
 export const validateSignupForm = (form, { agreed } = {}) => {
   const errors = {}
 

@@ -42,6 +42,15 @@ public class User {
     @Column(nullable = false, length = 20)
     private String phone;
 
+    /**
+     * Profile picture, stored as the {@code /uploads/<uuid>.<ext>} URL returned by
+     * {@link com.sewasathi.service.FileStorageService}. Lives on the account rather than on
+     * {@code worker_profiles} so customers and admins get one too; a worker's copy is mirrored
+     * onto their profile so the browse listing keeps a single field to read.
+     */
+    @Column(name = "avatar_url", length = 500)
+    private String avatarUrl;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     private Role role;
@@ -52,25 +61,6 @@ public class User {
 
     @Column(nullable = false, columnDefinition = "TINYINT(1) DEFAULT 0")
     private boolean suspended;
-
-    @Column(name = "email_verified", nullable = false, columnDefinition = "TINYINT(1) DEFAULT 1")
-    @Builder.Default
-    private boolean emailVerified = true;
-
-    /** Which identity provider owns this account's credentials. */
-    @Enumerated(EnumType.STRING)
-    @Column(name = "auth_provider", nullable = false, length = 20)
-    @Builder.Default
-    private AuthProvider authProvider = AuthProvider.LOCAL;
-
-    /** The provider's own immutable id for this user; null for local accounts. */
-    @Column(name = "provider_id", length = 128)
-    private String providerId;
-
-    /** Opt-in: when set, every sign-in is challenged with an emailed one-time code. */
-    @Column(name = "two_factor_enabled", nullable = false, columnDefinition = "TINYINT(1) DEFAULT 0")
-    @Builder.Default
-    private boolean twoFactorEnabled = false;
 
     @Column(name = "failed_login_attempts", nullable = false, columnDefinition = "INT DEFAULT 0")
     @Builder.Default

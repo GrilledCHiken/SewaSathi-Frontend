@@ -10,19 +10,19 @@ import lombok.Setter;
 @Setter
 public class ContactMessageRequest {
 
-    @NotBlank
-    @Size(max = 150)
+    @NotBlank(message = "{validation.fullName.required}")
+    @Size(max = 150, message = "{validation.fullName.tooLong}")
     private String name;
 
-    @NotBlank
-    @Email
+    @NotBlank(message = "{validation.email.required}")
+    @Email(message = "{validation.email.invalid}")
     private String email;
 
-    @NotBlank
-    @Size(max = 100)
+    @NotBlank(message = "{validation.subject.required}")
+    @Size(max = 100, message = "{validation.subject.tooLong}")
     private String subject;
 
-    @NotBlank
-    @Size(max = 2000)
+    @NotBlank(message = "{validation.message.required}")
+    @Size(max = 2000, message = "{validation.message.tooLong}")
     private String message;
 }

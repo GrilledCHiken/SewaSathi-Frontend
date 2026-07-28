@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{admin/layout :: page(#{admin.reports.title}, ~{::main})}">
+<body>
+<main class="page">
+    <h1 th:text="#{admin.reports.title}">Reports</h1>
+    <p class="lede" th:text="#{admin.reports.lede}">Generate data-driven reports as PDF or Excel.</p>
+
+    <section class="cards">
+        <!--/*
+          One card per ReportType. Each is a plain GET form, so the browser handles the
+          download itself - no JavaScript, and the URL is shareable and bookmarkable.
+        */-->
+        <article class="card" th:each="report : ${reportTypes}">
+            <header class="card-head">
+                <h2 th:text="${report.title}">Revenue by month and gateway</h2>
+            </header>
+
+            <form method="get" th:action="@{'/admin/reports/' + ${report.slug}}" class="stack">
+                <!--/* The worker snapshot reads running totals, so a date window would misrepresent it. */-->
+                <div class="filters" th:if="${report.dateRanged}">
+                    <div class="field">
+                        <label th:for="'from-' + ${report.slug}" th:text="#{admin.reports.from}">From</label>
+                        <input type="date" name="from" th:id="'from-' + ${report.slug}"
+                               th:value="${defaultFrom}">
+                    </div>
+                    <div class="field">
+                        <label th:for="'to-' + ${report.slug}" th:text="#{admin.reports.to}">To</label>
+                        <input type="date" name="to" th:id="'to-' + ${report.slug}"
+                               th:value="${defaultTo}">
+                    </div>
+                </div>
+
+                <p class="muted small" th:unless="${report.dateRanged}"
+                   th:text="#{admin.reports.snapshot}">
+                    A snapshot of current totals, not a date range.
+                </p>
+
+                <div class="card-actions">
+                    <button type="submit" name="format" value="pdf" class="btn btn-primary"
+                            th:text="#{admin.reports.downloadPdf}">Download PDF
+                    </button>
+                    <button type="submit" name="format" value="xlsx" class="btn"
+                            th:text="#{admin.reports.downloadExcel}">Download Excel
+                    </button>
+                </div>
+            </form>
+        </article>
+    </section>
+</main>
+</body>
+</html>
