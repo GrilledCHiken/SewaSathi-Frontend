@@ -117,7 +117,7 @@ export default function NewsletterPopup() {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-end justify-center bg-slate-900/40 p-4 sm:items-center"
+      className="fixed inset-0 z-50 flex items-end justify-center bg-navy/50 backdrop-blur-sm p-4 sm:items-center"
       // Clicking the backdrop dismisses; clicks inside the card must not bubble out to it.
       onClick={(event) => {
         if (event.target === event.currentTarget) dismiss();
@@ -128,10 +128,10 @@ export default function NewsletterPopup() {
         role="dialog"
         aria-modal="true"
         aria-labelledby="newsletter-popup-title"
-        className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl ring-1 ring-slate-200"
+        className="w-full max-w-md rounded-card bg-surface p-6 shadow-xl ring-1 ring-slate-200"
       >
         <div className="flex items-start justify-between gap-4">
-          <h2 id="newsletter-popup-title" className="text-lg font-bold text-slate-900">
+          <h2 id="newsletter-popup-title" className="text-lg font-bold text-ink">
             Get local service tips
           </h2>
           <button
@@ -139,7 +139,7 @@ export default function NewsletterPopup() {
             type="button"
             onClick={dismiss}
             aria-label="Close"
-            className="-m-1 rounded-lg p-1 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700"
+            className="-m-1 rounded-lg p-1 text-ink-faint transition hover:bg-surface-sunken hover:text-ink-body"
           >
             <svg
               className="h-5 w-5"
@@ -155,7 +155,7 @@ export default function NewsletterPopup() {
           </button>
         </div>
 
-        <p className="mt-2 text-sm text-slate-600">
+        <p className="mt-2 text-sm text-ink-muted">
           Occasional emails about trusted workers, seasonal home care, and offers in your
           city. No spam, and you can unsubscribe any time.
         </p>
@@ -171,7 +171,7 @@ export default function NewsletterPopup() {
             value={email}
             onChange={(event) => setEmail(event.target.value)}
             placeholder="you@example.com"
-            className="flex-1 rounded-xl border border-slate-300 px-4 py-2.5 text-sm"
+            className="flex-1 rounded-xl border border-line-strong px-4 py-2.5 text-sm"
           />
           <button
             type="submit"
@@ -185,7 +185,7 @@ export default function NewsletterPopup() {
         <button
           type="button"
           onClick={dismiss}
-          className="mt-3 w-full text-center text-xs font-medium text-slate-500 hover:text-slate-700"
+          className="mt-3 w-full text-center text-xs font-medium text-ink-muted hover:text-ink-body"
         >
           No thanks
         </button>

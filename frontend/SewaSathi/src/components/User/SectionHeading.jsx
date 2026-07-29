@@ -26,7 +26,7 @@ function SectionHeading({
       )}
       <h2
         className={`${eyebrow ? "mt-3" : ""} text-3xl font-bold tracking-tight sm:text-4xl ${
-          tone === "dark" ? "text-white" : "text-slate-900"
+          tone === "dark" ? "text-white" : "text-ink"
         }`}
       >
         {title}
@@ -34,7 +34,7 @@ function SectionHeading({
       {description && (
         <p
           className={`mt-4 text-lg leading-relaxed ${
-            tone === "dark" ? "text-slate-400" : "text-slate-600"
+            tone === "dark" ? "text-ink-faint" : "text-ink-muted"
           }`}
         >
           {description}

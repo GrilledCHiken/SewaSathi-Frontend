@@ -16,6 +16,9 @@ import {
 } from "../../utils/validation";
 import Avatar from "../Avatar";
 import PasswordChecklist from "../PasswordChecklist";
+import Badge from "../ui/Badge";
+import Button from "../ui/Button";
+import { INPUT_BASE } from "../ui/Field";
 
 /** Matches what the backend accepts for an avatar, so a rejection happens before the upload. */
 const ACCEPTED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/gif", "image/webp"];
@@ -24,29 +27,29 @@ const MAX_PHOTO_BYTES = 5 * 1024 * 1024;
 const ACCENTS = {
   brand: {
     avatar: "bg-brand",
-    button: "bg-brand hover:bg-brand-dark",
-    ring: "focus:border-brand focus:ring-brand/20",
+    button: "primary",
     checklist: "brand",
   },
   emerald: {
     avatar: "bg-emerald-600",
-    button: "bg-emerald-600 hover:bg-emerald-700",
-    ring: "focus:border-emerald-600 focus:ring-emerald-600/20",
+    button: "emerald",
     checklist: "emerald",
   },
 };
 
-const STATUS_STYLES = {
-  APPROVED: "bg-emerald-50 text-emerald-700",
-  PENDING: "bg-amber-50 text-amber-700",
-  REJECTED: "bg-rose-50 text-rose-700",
+const STATUS_TONES = {
+  APPROVED: "success",
+  PENDING: "warning",
+  REJECTED: "danger",
 };
 
 function Card({ title, description, children }) {
   return (
-    <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
-      <h2 className="text-base font-semibold text-slate-900">{title}</h2>
-      {description && <p className="mt-1 text-sm leading-relaxed text-slate-600">{description}</p>}
+    <section className="rounded-card border border-line bg-surface p-5 shadow-e1 sm:p-6">
+      <h2 className="text-base font-bold text-ink">{title}</h2>
+      {description && (
+        <p className="mt-1 text-sm leading-relaxed text-ink-muted">{description}</p>
+      )}
       <div className="mt-5">{children}</div>
     </section>
   );
@@ -54,7 +57,7 @@ function Card({ title, description, children }) {
 
 function FieldError({ message }) {
   if (!message) return null;
-  return <p className="mt-1.5 text-xs font-medium text-rose-600">{message}</p>;
+  return <p className="mt-1.5 text-xs font-medium text-danger">{message}</p>;
 }
 
 /**
@@ -69,7 +72,8 @@ export default function AccountSettings({ accent = "brand" }) {
   const { user, applyUserUpdate, logoutCustomer } = useAuth();
   const navigate = useNavigate();
   const theme = ACCENTS[accent] ?? ACCENTS.brand;
-  const inputClassName = `w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-slate-900 placeholder:text-slate-400 transition focus:outline-none focus:ring-2 ${theme.ring}`;
+  // Shared with every other form in the app; see ui/Field.jsx.
+  const inputClassName = `${INPUT_BASE} px-4 py-3`;
 
   const fileInputRef = useRef(null);
   const [photoBusy, setPhotoBusy] = useState(false);
@@ -189,7 +193,7 @@ export default function AccountSettings({ accent = "brand" }) {
   };
 
   const initials = user?.initials || "";
-  const statusStyle = STATUS_STYLES[user?.status] ?? "bg-slate-100 text-slate-600";
+  const statusTone = STATUS_TONES[user?.status] ?? "neutral";
 
   return (
     <div className="space-y-4">
@@ -214,23 +218,21 @@ export default function AccountSettings({ accent = "brand" }) {
               onChange={handlePhotoPicked}
               className="hidden"
             />
-            <button
-              type="button"
+            <Button
+              variant={theme.button}
               onClick={() => fileInputRef.current?.click()}
-              disabled={photoBusy}
-              className={`rounded-full px-5 py-2.5 text-sm font-semibold text-white transition disabled:cursor-not-allowed disabled:opacity-60 ${theme.button}`}
+              loading={photoBusy}
             >
               {photoBusy ? "Working…" : user?.avatarUrl ? "Change photo" : "Upload photo"}
-            </button>
+            </Button>
             {user?.avatarUrl && (
-              <button
-                type="button"
+              <Button
+                variant="secondary"
                 onClick={handlePhotoRemove}
                 disabled={photoBusy}
-                className="rounded-full border border-slate-300 bg-white px-5 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:opacity-60"
               >
                 Remove
-              </button>
+              </Button>
             )}
           </div>
         </div>
@@ -240,7 +242,7 @@ export default function AccountSettings({ accent = "brand" }) {
         <form onSubmit={handleDetailsSubmit}>
           <div className="grid gap-5 sm:grid-cols-2">
             <div>
-              <label htmlFor="profileFullName" className="mb-1.5 block text-sm font-semibold text-slate-800">
+              <label htmlFor="profileFullName" className="mb-1.5 block text-sm font-semibold text-ink">
                 Full name
               </label>
               <input
@@ -256,7 +258,7 @@ export default function AccountSettings({ accent = "brand" }) {
             </div>
 
             <div>
-              <label htmlFor="profilePhone" className="mb-1.5 block text-sm font-semibold text-slate-800">
+              <label htmlFor="profilePhone" className="mb-1.5 block text-sm font-semibold text-ink">
                 Mobile number
               </label>
               <input
@@ -273,7 +275,7 @@ export default function AccountSettings({ accent = "brand" }) {
             </div>
 
             <div className="sm:col-span-2">
-              <label htmlFor="profileEmail" className="mb-1.5 block text-sm font-semibold text-slate-800">
+              <label htmlFor="profileEmail" className="mb-1.5 block text-sm font-semibold text-ink">
                 Email
               </label>
               <input
@@ -282,32 +284,33 @@ export default function AccountSettings({ accent = "brand" }) {
                 value={user?.email || ""}
                 readOnly
                 disabled
-                className="w-full cursor-not-allowed rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-slate-500"
+                className={`${inputClassName} cursor-not-allowed`}
               />
-              <p className="mt-1.5 text-xs text-slate-500">
+              <p className="mt-1.5 text-xs text-ink-muted">
                 Your email is how you sign in, so it cannot be changed here. Contact support if
                 you need it updated.
               </p>
             </div>
           </div>
 
-          <div className="mt-5 flex flex-wrap items-center gap-2 border-t border-slate-100 pt-5">
-            <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">
+          <div className="mt-5 flex flex-wrap items-center gap-2 border-t border-line-soft pt-5">
+            <Badge tone="neutral" size="md">
               {user?.role === "CUSTOMER" ? "Customer" : user?.role === "WORKER" ? "Worker" : "Admin"}
-            </span>
+            </Badge>
             {user?.status && (
-              <span className={`rounded-full px-3 py-1 text-xs font-semibold ${statusStyle}`}>
+              <Badge tone={statusTone} size="md">
                 {user.status.charAt(0) + user.status.slice(1).toLowerCase()}
-              </span>
+              </Badge>
             )}
 
-            <button
+            <Button
               type="submit"
-              disabled={savingDetails}
-              className={`ml-auto rounded-full px-8 py-2.5 text-sm font-semibold text-white transition disabled:cursor-not-allowed disabled:opacity-60 ${theme.button}`}
+              variant={theme.button}
+              className="ml-auto"
+              loading={savingDetails}
             >
               {savingDetails ? "Saving…" : "Save changes"}
-            </button>
+            </Button>
           </div>
         </form>
       </Card>
@@ -319,7 +322,7 @@ export default function AccountSettings({ accent = "brand" }) {
         <form onSubmit={handlePasswordSubmit}>
           <div className="grid gap-5 sm:grid-cols-2">
             <div className="sm:col-span-2">
-              <label htmlFor="currentPassword" className="mb-1.5 block text-sm font-semibold text-slate-800">
+              <label htmlFor="currentPassword" className="mb-1.5 block text-sm font-semibold text-ink">
                 Current password
               </label>
               <input
@@ -334,7 +337,7 @@ export default function AccountSettings({ accent = "brand" }) {
             </div>
 
             <div>
-              <label htmlFor="newPassword" className="mb-1.5 block text-sm font-semibold text-slate-800">
+              <label htmlFor="newPassword" className="mb-1.5 block text-sm font-semibold text-ink">
                 New password
               </label>
               <input
@@ -349,7 +352,7 @@ export default function AccountSettings({ accent = "brand" }) {
             </div>
 
             <div>
-              <label htmlFor="confirmNewPassword" className="mb-1.5 block text-sm font-semibold text-slate-800">
+              <label htmlFor="confirmNewPassword" className="mb-1.5 block text-sm font-semibold text-ink">
                 Confirm new password
               </label>
               <input
@@ -370,14 +373,10 @@ export default function AccountSettings({ accent = "brand" }) {
             show={passwords.newPassword.length > 0}
           />
 
-          <div className="mt-6 flex justify-end border-t border-slate-100 pt-5">
-            <button
-              type="submit"
-              disabled={savingPassword}
-              className={`rounded-full px-8 py-2.5 text-sm font-semibold text-white transition disabled:cursor-not-allowed disabled:opacity-60 ${theme.button}`}
-            >
+          <div className="mt-6 flex justify-end border-t border-line-soft pt-5">
+            <Button type="submit" variant={theme.button} loading={savingPassword}>
               {savingPassword ? "Changing…" : "Change password"}
-            </button>
+            </Button>
           </div>
         </form>
       </Card>

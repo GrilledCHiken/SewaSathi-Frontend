@@ -87,7 +87,7 @@ export default function AdminUserDetailModal({ userId, onClose }) {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-navy/60 backdrop-blur-sm p-4"
       onClick={(event) => {
         if (event.target === event.currentTarget) onClose();
       }}
@@ -96,9 +96,9 @@ export default function AdminUserDetailModal({ userId, onClose }) {
         role="dialog"
         aria-modal="true"
         aria-label={user ? `${user.fullName} account details` : "Account details"}
-        className="flex max-h-[90vh] w-full max-w-2xl flex-col overflow-hidden rounded-2xl bg-white shadow-xl ring-1 ring-slate-200"
+        className="flex max-h-[90vh] w-full max-w-2xl flex-col overflow-hidden rounded-card bg-surface shadow-xl ring-1 ring-slate-200"
       >
-        <div className="flex items-start justify-between gap-4 border-b border-slate-200 px-5 py-4">
+        <div className="flex items-start justify-between gap-4 border-b border-line px-5 py-4">
           {user ? (
             <div className="flex min-w-0 items-center gap-3">
               <Avatar
@@ -107,14 +107,14 @@ export default function AdminUserDetailModal({ userId, onClose }) {
                 className="h-12 w-12 text-base"
               />
               <div className="min-w-0">
-                <h2 className="truncate text-base font-bold text-slate-900">{user.fullName}</h2>
+                <h2 className="truncate text-base font-bold text-ink">{user.fullName}</h2>
                 <div className="mt-1 flex flex-wrap items-center gap-2">
-                  <span className="inline-flex rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-semibold text-slate-600">
+                  <span className="inline-flex rounded-full bg-surface-sunken px-2.5 py-0.5 text-xs font-semibold text-ink-muted">
                     {user.role}
                   </span>
                   <span
                     className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-semibold ${
-                      STATUS_STYLES[user.status] || "bg-slate-100 text-slate-600"
+                      STATUS_STYLES[user.status] || "bg-surface-sunken text-ink-muted"
                     }`}
                   >
                     {user.status}
@@ -123,7 +123,7 @@ export default function AdminUserDetailModal({ userId, onClose }) {
               </div>
             </div>
           ) : (
-            <h2 className="text-base font-bold text-slate-900">Account details</h2>
+            <h2 className="text-base font-bold text-ink">Account details</h2>
           )}
 
           <button
@@ -131,7 +131,7 @@ export default function AdminUserDetailModal({ userId, onClose }) {
             type="button"
             onClick={onClose}
             aria-label="Close"
-            className="-m-1 shrink-0 rounded-lg p-1 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700"
+            className="-m-1 shrink-0 rounded-lg p-1 text-ink-faint transition hover:bg-surface-sunken hover:text-ink-body"
           >
             <svg
               className="h-5 w-5"
@@ -148,13 +148,13 @@ export default function AdminUserDetailModal({ userId, onClose }) {
         </div>
 
         <div className="flex-1 overflow-y-auto px-5 py-5">
-          {failed && <p className="text-sm text-slate-500">Could not load that account.</p>}
+          {failed && <p className="text-sm text-ink-muted">Could not load that account.</p>}
 
           {!failed && !user && (
             <div className="space-y-3" aria-hidden="true">
-              <div className="h-4 w-1/3 animate-pulse rounded bg-slate-200" />
-              <div className="h-4 w-1/2 animate-pulse rounded bg-slate-200" />
-              <div className="h-4 w-2/5 animate-pulse rounded bg-slate-200" />
+              <div className="h-4 w-1/3 animate-pulse rounded bg-line" />
+              <div className="h-4 w-1/2 animate-pulse rounded bg-line" />
+              <div className="h-4 w-2/5 animate-pulse rounded bg-line" />
             </div>
           )}
 
@@ -169,7 +169,7 @@ export default function AdminUserDetailModal({ userId, onClose }) {
 
               {profile && (
                 <>
-                  <dl className="mt-5 grid gap-x-6 gap-y-3 border-t border-slate-100 pt-5 sm:grid-cols-2">
+                  <dl className="mt-5 grid gap-x-6 gap-y-3 border-t border-line-soft pt-5 sm:grid-cols-2">
                     <DetailField label="City" value={profile.location} />
                     <DetailField label="Address" value={profile.address} />
                     <DetailField label="Experience" value={profile.yearsOfExperience} />
@@ -194,14 +194,14 @@ export default function AdminUserDetailModal({ userId, onClose }) {
 
                   {splitSkills(profile.skills).length > 0 && (
                     <div className="mt-5">
-                      <p className="text-xs font-medium uppercase tracking-wide text-slate-400">
+                      <p className="text-xs font-medium uppercase tracking-wide text-ink-faint">
                         Skills
                       </p>
                       <div className="mt-2 flex flex-wrap gap-2">
                         {splitSkills(profile.skills).map((skill) => (
                           <span
                             key={skill}
-                            className="rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-700"
+                            className="rounded-full bg-surface-sunken px-3 py-1 text-xs font-medium text-ink-body"
                           >
                             {skill}
                           </span>
@@ -212,10 +212,10 @@ export default function AdminUserDetailModal({ userId, onClose }) {
 
                   {profile.bio && (
                     <div className="mt-5">
-                      <p className="text-xs font-medium uppercase tracking-wide text-slate-400">
+                      <p className="text-xs font-medium uppercase tracking-wide text-ink-faint">
                         Bio
                       </p>
-                      <p className="mt-1 text-sm text-slate-700">{profile.bio}</p>
+                      <p className="mt-1 text-sm text-ink-body">{profile.bio}</p>
                     </div>
                   )}
 
@@ -223,7 +223,7 @@ export default function AdminUserDetailModal({ userId, onClose }) {
                     profile.citizenshipDocUrl ||
                     profile.profilePhotoUrl) && (
                     <div className="mt-5">
-                      <p className="text-xs font-medium uppercase tracking-wide text-slate-400">
+                      <p className="text-xs font-medium uppercase tracking-wide text-ink-faint">
                         Documents
                       </p>
                       <div className="mt-2 flex flex-wrap gap-4">

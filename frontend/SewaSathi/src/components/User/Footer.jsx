@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { toast } from 'react-toastify'
 import { subscribeToNewsletter } from '../../api/newsletterApi'
+import Brandmark from '../ui/Brandmark'
 
 const SERVICES_LINKS = [
   { label: 'Furniture Assembly', href: '/services', real: true },
@@ -28,25 +29,6 @@ const SUPPORT_LINKS = [
   { label: 'Privacy Policy', href: '/privacy', real: true },
 ]
 
-function LogoIcon() {
-  return (
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <path
-        d="M12 21s-6.5-4.35-9-8.2C1.5 9.5 3.5 5 7.5 5c2.1 0 3.5 1.2 4.5 2.5C13 6.2 14.4 5 16.5 5 20.5 5 22.5 9.5 21 12.8 18.5 16.65 12 21 12 21z"
-        stroke="white"
-        strokeWidth="1.6"
-        strokeLinejoin="round"
-      />
-      <path
-        d="M9 11.5c0-1.1.9-2 2-2s2 .9 2 2-.9 2-2 2"
-        stroke="white"
-        strokeWidth="1.4"
-        strokeLinecap="round"
-      />
-    </svg>
-  )
-}
-
 function VerifiedIcon() {
   return (
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
@@ -66,7 +48,7 @@ function FooterColumn({ title, links }) {
   return (
     <div>
       <h3 className="text-sm font-semibold text-slate-100">{title}</h3>
-      <ul className="mt-4 space-y-2 text-sm text-slate-400">
+      <ul className="mt-4 space-y-2 text-sm text-ink-faint">
         {links.map((link) =>
           link.real ? (
             <li key={link.label}>
@@ -107,26 +89,19 @@ function Footer() {
   }
 
   return (
-    <footer className="mt-16 bg-[#05070a] text-slate-400">
+    <footer className="mt-16 bg-[#05070a] text-ink-faint">
       <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8 lg:py-14">
         <div className="grid gap-10 lg:grid-cols-[minmax(0,1.6fr)_repeat(3,minmax(0,1fr))] lg:gap-16">
           <div>
-            <Link to="/" className="inline-flex items-center gap-2.5">
-              <span className="flex h-10 w-10 items-center justify-center rounded-[10px] bg-brand">
-                <LogoIcon />
-              </span>
-              <span className="text-lg font-semibold text-white">
-                SewaSathi
-              </span>
-            </Link>
+            <Brandmark to="/" size="md" tone="dark" />
 
-            <p className="mt-4 max-w-sm text-sm leading-relaxed text-slate-400">
+            <p className="mt-4 max-w-sm text-sm leading-relaxed text-ink-faint">
               Nepal&apos;s most trusted local service marketplace. Connecting verified
               workers with people who need help — safely, simply, and affordably.
             </p>
 
             <div className="mt-8">
-              <span className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
+              <span className="text-xs font-semibold uppercase tracking-[0.16em] text-ink-muted">
                 STAY UPDATED
               </span>
               <form
@@ -141,7 +116,7 @@ function Footer() {
                     placeholder="Enter your email"
                     aria-label="Email for newsletter"
                     required
-                    className="flex-1 border-0 bg-transparent text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-0"
+                    className="flex-1 border-0 bg-transparent text-sm text-slate-100 placeholder:text-ink-muted focus:outline-none focus:ring-0"
                   />
                   <span className="inline-flex items-center">
                     <VerifiedIcon />
@@ -165,12 +140,12 @@ function Footer() {
 
         <div className="mt-10 h-px bg-slate-800" />
 
-        <div className="mt-6 flex flex-col gap-4 text-xs text-slate-500 sm:flex-row sm:items-center sm:justify-between">
+        <div className="mt-6 flex flex-col gap-4 text-xs text-ink-muted sm:flex-row sm:items-center sm:justify-between">
           <p>
             © 2026 SewaSathi. All rights reserved. Built for Nepal.
           </p>
           <div className="flex items-center gap-3">
-            <span className="text-slate-500">Secured by</span>
+            <span className="text-ink-muted">Secured by</span>
             <div className="flex gap-2">
               <span className="inline-flex items-center rounded-md border border-slate-700 bg-slate-900 px-3 py-1 text-xs font-semibold text-slate-200">
                 eSewa

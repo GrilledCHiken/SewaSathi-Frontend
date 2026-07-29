@@ -1,10 +1,10 @@
 const ACCENTS = {
   brand: {
-    pill: "bg-brand text-white shadow-sm",
+    pill: "bg-brand text-white shadow-e1",
     input: "focus:border-brand focus:ring-brand/20",
   },
   emerald: {
-    pill: "bg-emerald-600 text-white shadow-sm",
+    pill: "bg-emerald-600 text-white shadow-e1",
     input: "focus:border-emerald-500 focus:ring-emerald-500/20",
   },
 };
@@ -31,7 +31,7 @@ export default function TaskFilterBar({
   const tone = ACCENTS[accent] || ACCENTS.brand;
 
   return (
-    <div className="z-20 -mx-4 mb-4 border-b border-slate-200/70 bg-slate-50/85 px-4 py-3 backdrop-blur sm:sticky sm:top-[var(--dash-header-h)] sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8">
+    <div className="z-20 -mx-4 mb-4 border-b border-line/70 bg-surface-muted/85 px-4 py-3 backdrop-blur sm:sticky sm:top-[var(--dash-header-h)] sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8">
       <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
         {filters.length > 0 && (
           <div className="flex gap-2 overflow-x-auto pb-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
@@ -47,14 +47,14 @@ export default function TaskFilterBar({
                     "inline-flex shrink-0 items-center rounded-full px-3 py-1.5 text-xs font-medium capitalize transition",
                     isActive
                       ? tone.pill
-                      : "bg-white text-slate-600 ring-1 ring-slate-200 hover:bg-slate-50",
+                      : "bg-surface text-ink-muted ring-1 ring-line hover:bg-surface-muted",
                   ].join(" ")}
                 >
                   {label}
                   <span
                     className={[
                       "ml-1.5 rounded-full px-1.5 text-[10px] font-semibold tabular-nums",
-                      isActive ? "bg-black/15 text-white" : "bg-slate-100 text-slate-500",
+                      isActive ? "bg-black/15 text-white" : "bg-surface-sunken text-ink-muted",
                     ].join(" ")}
                   >
                     {counts[key] ?? 0}
@@ -72,7 +72,7 @@ export default function TaskFilterBar({
             {onSearchChange && (
               <div className="relative w-full lg:w-80">
                 <svg
-                  className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400"
+                  className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-faint"
                   fill="none"
                   viewBox="0 0 24 24"
                   stroke="currentColor"
@@ -91,7 +91,7 @@ export default function TaskFilterBar({
                   onChange={(e) => onSearchChange(e.target.value)}
                   placeholder={searchPlaceholder}
                   aria-label={searchPlaceholder}
-                  className={`w-full rounded-xl border border-slate-200 bg-white py-2 pl-9 pr-4 text-sm text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 ${tone.input}`}
+                  className={`w-full rounded-xl border border-line bg-surface py-2 pl-9 pr-4 text-sm text-ink placeholder:text-ink-faint focus:outline-none focus:ring-2 ${tone.input}`}
                 />
               </div>
             )}

@@ -9,6 +9,7 @@ import {
   formatStatus,
   initialsOf,
   paletteFor,
+  statusMeta,
 } from "./taskUi";
 
 const ACCENTS = {
@@ -43,10 +44,10 @@ function DetailItem({ label, value }) {
   if (!value) return null;
   return (
     <div>
-      <dt className="text-[11px] font-medium uppercase tracking-wide text-slate-400">
+      <dt className="text-[11px] font-medium uppercase tracking-wide text-ink-faint">
         {label}
       </dt>
-      <dd className="mt-0.5 text-sm font-medium text-slate-700">{value}</dd>
+      <dd className="mt-0.5 text-sm font-medium text-ink-body">{value}</dd>
     </div>
   );
 }
@@ -55,13 +56,13 @@ function PartyLine({ party, createdAt }) {
   if (party?.person) {
     const palette = paletteFor(party.person.id);
     return (
-      <span className="flex min-w-0 items-center gap-1.5 text-xs text-slate-500">
+      <span className="flex min-w-0 items-center gap-1.5 text-xs text-ink-muted">
         <span
           className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[10px] font-bold ${palette.bg} ${palette.text}`}
         >
           {initialsOf(party.person.fullName)}
         </span>
-        <span className="truncate font-medium text-slate-700">
+        <span className="truncate font-medium text-ink-body">
           {party.person.fullName}
         </span>
       </span>
@@ -70,14 +71,14 @@ function PartyLine({ party, createdAt }) {
 
   if (party?.emptyLabel) {
     return (
-      <span className="truncate text-xs italic text-slate-400">
+      <span className="truncate text-xs italic text-ink-faint">
         {party.emptyLabel}
       </span>
     );
   }
 
   return (
-    <span className="truncate text-xs text-slate-400">
+    <span className="truncate text-xs text-ink-faint">
       Posted {formatDate(createdAt, "recently")}
     </span>
   );
@@ -105,7 +106,14 @@ export default function TaskCard({
   const due = task.dueDate ? formatDate(task.dueDate) : "Flexible";
 
   return (
-    <article className="overflow-hidden rounded-xl border border-slate-200/80 bg-white shadow-sm transition hover:border-slate-300 hover:shadow-md">
+    <article className="relative overflow-hidden rounded-card border border-line bg-surface pl-1 shadow-e1 transition duration-200 ease-out-soft hover:border-line-strong hover:shadow-e2">
+      {/* Status accent on the left edge. Driven by the status rather than the
+          panel's accent prop, so it reads the same in the worker panel. */}
+      <span
+        className={`absolute inset-y-0 left-0 w-1 ${statusMeta(status).stripe}`}
+        aria-hidden="true"
+      />
+
       <div
         className="flex cursor-pointer items-start gap-3 p-3.5 sm:gap-4 sm:p-4"
         onClick={() => setOpen((prev) => !prev)}
@@ -119,17 +127,17 @@ export default function TaskCard({
         <div className="min-w-0 flex-1">
           <div className="flex items-start justify-between gap-3">
             <div className="flex min-w-0 items-center gap-2">
-              <h3 className="truncate text-sm font-semibold text-slate-900 sm:text-base">
+              <h3 className="truncate text-sm font-semibold text-ink sm:text-base">
                 {task.title}
               </h3>
               {showStatus && <StatusBadge status={status} />}
             </div>
-            <p className="shrink-0 text-sm font-bold text-slate-900 sm:text-base">
+            <p className="shrink-0 text-sm font-bold text-ink sm:text-base">
               {formatMoney(task.budget)}
             </p>
           </div>
 
-          <p className="mt-1 truncate text-xs text-slate-500 sm:text-sm">
+          <p className="mt-1 truncate text-xs text-ink-muted sm:text-sm">
             {[task.category, location, `Due ${due}`].filter(Boolean).join(" · ")}
           </p>
 
@@ -154,7 +162,7 @@ export default function TaskCard({
                 aria-expanded={open}
                 aria-controls={panelId}
                 aria-label={open ? "Hide task details" : "Show task details"}
-                className={`rounded-lg p-1.5 text-slate-400 transition hover:bg-slate-100 focus:outline-none focus-visible:ring-2 ${tone.chevron}`}
+                className={`rounded-lg p-1.5 text-ink-faint transition hover:bg-surface-sunken focus:outline-none focus-visible:ring-2 ${tone.chevron}`}
               >
                 <ChevronIcon open={open} />
               </button>
@@ -171,10 +179,10 @@ export default function TaskCard({
         <div className="overflow-hidden" inert={!open}>
           <div
             id={panelId}
-            className="border-t border-slate-100 bg-slate-50/60 px-4 py-4 sm:pl-[4.5rem]"
+            className="border-t border-line-soft bg-surface-muted px-4 py-4 sm:pl-[4.5rem]"
           >
             {task.description && (
-              <p className="text-sm leading-relaxed text-slate-600">
+              <p className="text-sm leading-relaxed text-ink-muted">
                 {task.description}
               </p>
             )}
@@ -190,7 +198,7 @@ export default function TaskCard({
             </dl>
 
             {party?.person && (
-              <div className="mt-4 flex flex-wrap items-center gap-3 rounded-xl border border-slate-200 bg-white p-3">
+              <div className="mt-4 flex flex-wrap items-center gap-3 rounded-xl border border-line bg-surface p-3">
                 <span
                   className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-xs font-bold ${
                     paletteFor(party.person.id).bg
@@ -199,10 +207,10 @@ export default function TaskCard({
                   {initialsOf(party.person.fullName)}
                 </span>
                 <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-semibold text-slate-900">
+                  <p className="truncate text-sm font-semibold text-ink">
                     {party.person.fullName}
                   </p>
-                  <p className="truncate text-xs text-slate-500">
+                  <p className="truncate text-xs text-ink-muted">
                     {[party.role, party.person.phone].filter(Boolean).join(" · ")}
                   </p>
                 </div>

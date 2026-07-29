@@ -13,6 +13,13 @@ import {
 } from "../components/tasks/taskUi";
 import { getTask } from "../api/taskApi";
 import { initiateAdvancePayment } from "../api/paymentApi";
+import PageShell, { PageHeader } from "../components/ui/PageShell";
+import Card, { Panel } from "../components/ui/Card";
+import Alert from "../components/ui/Alert";
+import Button from "../components/ui/Button";
+import RadioCard from "../components/ui/RadioCard";
+import Skeleton from "../components/ui/Skeleton";
+import { ArrowLeftIcon } from "../components/ui/icons";
 
 const ADVANCE_PERCENT = `${Math.round(ADVANCE_RATE * 100)}%`;
 
@@ -22,8 +29,6 @@ const METHODS = [
     name: "eSewa",
     blurb: "Pay from your eSewa wallet",
     available: true,
-    tone: "text-emerald-600",
-    tile: "bg-emerald-100",
     icon: (
       <svg className="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
         <rect x="5" y="2" width="14" height="20" rx="2" />
@@ -44,8 +49,6 @@ const METHODS = [
     name: "Khalti",
     blurb: "Pay from your Khalti wallet",
     available: true,
-    tone: "text-purple-600",
-    tile: "bg-purple-100",
     icon: (
       <svg className="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
         <path d="M21 12V7H5a2 2 0 0 1 0-4h14v4" />
@@ -69,8 +72,8 @@ function SummaryRow({ label, value, strong = false, muted = false }) {
       <span
         className={
           strong
-            ? "text-sm font-semibold text-slate-900"
-            : `text-sm ${muted ? "text-slate-500" : "text-slate-600"}`
+            ? "text-sm font-semibold text-ink"
+            : `text-sm ${muted ? "text-ink-faint" : "text-ink-muted"}`
         }
       >
         {label}
@@ -78,8 +81,8 @@ function SummaryRow({ label, value, strong = false, muted = false }) {
       <span
         className={
           strong
-            ? "text-lg font-bold text-slate-900"
-            : `text-sm font-semibold ${muted ? "text-slate-500" : "text-slate-800"}`
+            ? "text-lg font-bold tabular-nums text-ink"
+            : `text-sm font-semibold tabular-nums ${muted ? "text-ink-faint" : "text-ink-body"}`
         }
       >
         {value}
@@ -88,18 +91,20 @@ function SummaryRow({ label, value, strong = false, muted = false }) {
   );
 }
 
-function Notice({ tone, title, body, children }) {
-  const tones = {
-    amber: "border-amber-200 bg-amber-50 text-amber-800",
-    emerald: "border-emerald-200 bg-emerald-50 text-emerald-800",
-    slate: "border-slate-200 bg-white text-slate-700",
-  };
+function Notice({ tone = "neutral", title, body, children }) {
   return (
-    <div className={`rounded-2xl border p-6 sm:p-8 ${tones[tone] || tones.slate}`}>
-      <h3 className="text-lg font-bold">{title}</h3>
-      <p className="mt-2 text-sm">{body}</p>
+    <Card padding="xl" radius="panel">
+      <h3 className="text-lg font-bold text-ink">{title}</h3>
+      <p className="mt-2 text-sm leading-relaxed text-ink-muted">{body}</p>
+      {tone === "success" && (
+        <div className="mt-4">
+          <Alert tone="success" icon={false}>
+            The advance has been received.
+          </Alert>
+        </div>
+      )}
       {children && <div className="mt-5 flex flex-wrap gap-3">{children}</div>}
-    </div>
+    </Card>
   );
 }
 
@@ -165,184 +170,160 @@ export default function CustomerCheckout() {
   const advance = advanceFor(task?.budget);
   const worker = task?.assignedWorker;
   const palette = paletteFor(worker?.id);
+  const confirmed = status === "assigned" || status === "in progress";
+
+  const header = <DashboardHeader title="Checkout" searchPlaceholder="Search workers..." />;
+
+  const backLink = (
+    <Link
+      to="/dashboard/tasks"
+      className="inline-flex items-center gap-1.5 rounded-field px-1 py-0.5 text-sm font-semibold text-ink-muted transition hover:text-brand focus-ring"
+    >
+      <ArrowLeftIcon className="h-4 w-4" />
+      Back to My Tasks
+    </Link>
+  );
 
   return (
-    <div className="flex min-h-svh flex-1 flex-col">
-      <DashboardHeader searchPlaceholder="Search workers..." />
+    <PageShell header={header} width="lg">
+      <PageHeader
+        back={<div className="mb-2">{backLink}</div>}
+        title="Confirm Your Task"
+        description={`Pay a ${ADVANCE_PERCENT} advance to lock in your worker.`}
+      />
 
-      <main className="flex-1 px-4 py-6 sm:px-6 lg:px-8">
-        <div className="mx-auto max-w-3xl">
-          <div className="mb-5">
-            <Link
-              to="/dashboard/tasks"
-              className="text-sm font-semibold text-slate-500 transition hover:text-brand"
-            >
-              &larr; Back to My Tasks
-            </Link>
-            <h2 className="mt-2 text-2xl font-bold text-slate-900 sm:text-3xl">
-              Confirm Your Task
-            </h2>
-            <p className="mt-1 text-sm text-slate-600 sm:text-base">
-              Pay a {ADVANCE_PERCENT} advance to lock in your worker.
-            </p>
+      <div className="mt-6">
+        {loading ? (
+          <div role="status" aria-label="Loading checkout">
+            <Skeleton className="h-64 w-full" rounded="rounded-panel" />
           </div>
-
-          {loading ? (
-            <div className="h-64 animate-pulse rounded-2xl border border-slate-200 bg-white" />
-          ) : !task ? (
-            <Notice
-              tone="slate"
-              title="Task not found"
-              body="This task no longer exists, or it isn't yours."
-            >
-              <Link
-                to="/dashboard/tasks"
-                className="inline-flex rounded-full bg-brand px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-brand-dark"
-              >
-                Back to My Tasks
-              </Link>
-            </Notice>
-          ) : status !== "accepted" ? (
-            <Notice
-              tone={status === "assigned" || status === "in progress" ? "emerald" : "slate"}
-              title={
-                status === "assigned" || status === "in progress"
-                  ? "This task is already confirmed"
-                  : "No advance is due on this task"
-              }
-              body={
-                status === "assigned" || status === "in progress"
-                  ? "The advance has been paid. You can message your worker any time."
-                  : `This task is ${status}. An advance is only due once a worker accepts it.`
-              }
-            >
-              {(status === "assigned" || status === "in progress") && (
-                <Link
-                  to={`/dashboard/messages?taskId=${task.id}`}
-                  className="inline-flex rounded-full bg-brand px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-brand-dark"
-                >
-                  Message worker
-                </Link>
-              )}
-              <Link
-                to="/dashboard/tasks"
-                className="inline-flex rounded-full border border-slate-200 bg-white px-5 py-2.5 text-sm font-semibold text-slate-700 transition hover:border-brand/30 hover:text-brand"
-              >
-                Back to My Tasks
-              </Link>
-            </Notice>
-          ) : (
-            <div className="space-y-4">
-              <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-8">
-                <h3 className="text-sm font-semibold uppercase tracking-wide text-slate-400">
-                  Order summary
-                </h3>
-
-                <p className="mt-3 text-base font-bold text-slate-900">{task.title}</p>
-                <p className="mt-0.5 text-xs text-slate-500">
-                  {[task.category, task.city].filter(Boolean).join(" · ")}
-                </p>
-
-                {worker && (
-                  <div className="mt-4 flex items-center gap-3 rounded-xl border border-slate-200 bg-slate-50/60 p-3">
-                    <span
-                      className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-xs font-bold ${palette.bg} ${palette.text}`}
-                    >
-                      {initialsOf(worker.fullName)}
-                    </span>
-                    <div className="min-w-0">
-                      <p className="truncate text-sm font-semibold text-slate-900">
-                        {worker.fullName}
-                      </p>
-                      <p className="truncate text-xs text-slate-500">
-                        Accepted your task
-                      </p>
-                    </div>
-                  </div>
-                )}
-
-                <div className="mt-5 divide-y divide-slate-100 border-t border-slate-100 pt-2">
-                  <SummaryRow label="Task total" value={formatMoney(task.budget)} />
-                  <SummaryRow
-                    label={`Advance due now (${ADVANCE_PERCENT})`}
-                    value={formatMoney(advance)}
-                    strong
-                  />
-                  <SummaryRow
-                    label="Remaining after completion"
-                    value={formatMoney(remainingAfter(task.budget))}
-                    muted
-                  />
-                </div>
-              </section>
-
-              <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-8">
-                <h3 className="text-sm font-semibold uppercase tracking-wide text-slate-400">
-                  Payment method
-                </h3>
-
-                <div className="mt-4 grid gap-3 sm:grid-cols-2">
-                  {METHODS.map((option) => {
-                    const selected = method === option.id;
-                    return (
-                      <button
-                        key={option.id}
-                        type="button"
-                        disabled={!option.available}
-                        aria-pressed={selected}
-                        onClick={() => setMethod(option.id)}
-                        className={`flex items-center gap-3 rounded-xl border p-4 text-left transition ${
-                          !option.available
-                            ? "cursor-not-allowed border-slate-200 bg-slate-50 opacity-60"
-                            : selected
-                              ? "border-brand bg-brand/5 ring-2 ring-brand/20"
-                              : "border-slate-200 bg-white hover:border-brand/30"
-                        }`}
-                      >
-                        <span
-                          className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${option.tile} ${option.tone}`}
-                        >
-                          {option.icon}
-                        </span>
-                        <span className="min-w-0">
-                          <span className="block text-sm font-semibold text-slate-900">
-                            {option.name}
-                          </span>
-                          <span className="block text-xs text-slate-500">
-                            {option.blurb}
-                          </span>
-                        </span>
-                      </button>
-                    );
-                  })}
+        ) : !task ? (
+          <Notice
+            title="Task not found"
+            body="This task no longer exists, or it isn't yours."
+          >
+            <Button as={Link} to="/dashboard/tasks">
+              Back to My Tasks
+            </Button>
+          </Notice>
+        ) : status !== "accepted" ? (
+          <Notice
+            tone={confirmed ? "success" : "neutral"}
+            title={
+              confirmed
+                ? "This task is already confirmed"
+                : "No advance is due on this task"
+            }
+            body={
+              confirmed
+                ? "The advance has been paid. You can message your worker any time."
+                : `This task is ${status}. An advance is only due once a worker accepts it.`
+            }
+          >
+            {confirmed && (
+              <Button as={Link} to={`/dashboard/messages?taskId=${task.id}`}>
+                Message worker
+              </Button>
+            )}
+            <Button as={Link} to="/dashboard/tasks" variant="secondary">
+              Back to My Tasks
+            </Button>
+          </Notice>
+        ) : (
+          /* Two columns at lg: method choice on the left, the amount that is
+             actually about to be charged pinned on the right. */
+          <div className="grid gap-6 lg:grid-cols-5">
+            <div className="space-y-6 lg:col-span-3">
+              <Panel title="Payment method" padding="lg">
+                <div className="grid gap-3">
+                  {METHODS.map((option) => (
+                    <RadioCard
+                      key={option.id}
+                      selected={method === option.id}
+                      unavailable={!option.available}
+                      onSelect={() => setMethod(option.id)}
+                      icon={option.icon}
+                      title={option.name}
+                      description={option.blurb}
+                    />
+                  ))}
                 </div>
 
-                <div className="mt-5 rounded-xl border border-sky-200 bg-sky-50 p-4 text-xs leading-relaxed text-sky-800">
-                  <span className="font-semibold">Demo payment.</span> This runs on{" "}
-                  {gateway.name}&apos;s test sandbox, so no real money is charged. Sign
-                  in there with {gateway.sandbox}
-                </div>
-
-                <button
-                  type="button"
-                  onClick={handlePay}
-                  disabled={paying}
-                  className="mt-5 w-full rounded-full bg-brand px-8 py-3 text-sm font-semibold text-white shadow-lg shadow-brand/25 transition hover:bg-brand-dark active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
-                >
-                  {paying
-                    ? `Redirecting to ${gateway.name}...`
-                    : `Pay ${formatMoney(advance)} with ${gateway.name}`}
-                </button>
-
-                <p className="mt-3 text-xs text-slate-500">
-                  You&apos;ll be taken to {gateway.name} to authorise the payment, then
-                  brought straight back here.
-                </p>
-              </section>
+                <Alert tone="info" title="Demo payment" className="mt-5">
+                  This runs on {gateway.name}&apos;s test sandbox, so no real money
+                  is charged. Sign in there with {gateway.sandbox}
+                </Alert>
+              </Panel>
             </div>
-          )}
-        </div>
-      </main>
-    </div>
+
+            <aside className="lg:col-span-2">
+              <div className="lg:sticky lg:top-[calc(var(--dash-header-h)+1.5rem)]">
+                <Panel title="Order summary" padding="lg">
+                  <p className="text-base font-bold text-ink">{task.title}</p>
+                  <p className="mt-0.5 text-xs text-ink-muted">
+                    {[task.category, task.city].filter(Boolean).join(" · ")}
+                  </p>
+
+                  {worker && (
+                    <div className="mt-4 flex items-center gap-3 rounded-field border border-line bg-surface-muted p-3">
+                      <span
+                        className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-xs font-bold ${palette.bg} ${palette.text}`}
+                      >
+                        {initialsOf(worker.fullName)}
+                      </span>
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-semibold text-ink">
+                          {worker.fullName}
+                        </p>
+                        <p className="truncate text-xs text-ink-muted">
+                          Accepted your task
+                        </p>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* The amount about to leave the customer's wallet, set as
+                      the largest thing on the panel. */}
+                  <div className="mt-5 rounded-card bg-brand-50 p-4 text-center">
+                    <p className="text-xs font-semibold uppercase tracking-wider text-brand-700">
+                      Due now ({ADVANCE_PERCENT} advance)
+                    </p>
+                    <p className="mt-1 text-4xl font-extrabold tracking-tight tabular-nums text-brand-700">
+                      {formatMoney(advance)}
+                    </p>
+                  </div>
+
+                  <div className="mt-4 divide-y divide-line-soft border-t border-line-soft pt-2">
+                    <SummaryRow label="Task total" value={formatMoney(task.budget)} />
+                    <SummaryRow
+                      label="Remaining after completion"
+                      value={formatMoney(remainingAfter(task.budget))}
+                      muted
+                    />
+                  </div>
+
+                  <Button
+                    size="lg"
+                    fullWidth
+                    className="mt-5"
+                    onClick={handlePay}
+                    loading={paying}
+                  >
+                    {paying
+                      ? `Redirecting to ${gateway.name}...`
+                      : `Pay with ${gateway.name}`}
+                  </Button>
+
+                  <p className="mt-3 text-xs leading-relaxed text-ink-faint">
+                    You&apos;ll be taken to {gateway.name} to authorise the payment,
+                    then brought straight back here.
+                  </p>
+                </Panel>
+              </div>
+            </aside>
+          </div>
+        )}
+      </div>
+    </PageShell>
   );
 }

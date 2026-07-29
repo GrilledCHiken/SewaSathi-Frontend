@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { toast } from "react-toastify";
 import Reveal from "../../components/User/Reveal";
 import { submitContactMessage } from "../../api/contactApi";
+import { INPUT_BASE } from "../../components/ui/Field";
 
 const CONTACT_CARDS = [
   {
@@ -117,8 +118,8 @@ const FAQS = [
 
 const MAX_MESSAGE_LENGTH = 500;
 
-const inputClassName =
-  "w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-slate-900 placeholder:text-slate-400 transition focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/20";
+/* Shared with every other form in the app; see ui/Field.jsx. */
+const inputClassName = `${INPUT_BASE} px-4 py-3`;
 
 function ContactAccordion() {
   const [openIndex, setOpenIndex] = useState(0);
@@ -131,7 +132,7 @@ function ContactAccordion() {
           <div
             key={item.q}
             className={`overflow-hidden rounded-2xl border transition ${
-              open ? "border-brand/30 bg-sky-50/40" : "border-slate-200 bg-white"
+              open ? "border-brand/30 bg-sky-50/40" : "border-line bg-white"
             }`}
           >
             <button
@@ -140,12 +141,12 @@ function ContactAccordion() {
               onClick={() => setOpenIndex(open ? -1 : idx)}
               aria-expanded={open}
             >
-              <span className="text-[0.9375rem] font-semibold text-slate-900">
+              <span className="text-[0.9375rem] font-semibold text-ink">
                 {item.q}
               </span>
               <span
-                className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-slate-500 transition ${
-                  open ? "rotate-180 bg-white" : "bg-slate-100"
+                className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-ink-muted transition ${
+                  open ? "rotate-180 bg-white" : "bg-surface-sunken"
                 }`}
               >
                 <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -155,8 +156,8 @@ function ContactAccordion() {
             </button>
 
             {open && (
-              <div className="border-t border-slate-200/80 px-5 pb-5">
-                <div className="pt-4 text-sm leading-relaxed text-slate-600">
+              <div className="border-t border-line px-5 pb-5">
+                <div className="pt-4 text-sm leading-relaxed text-ink-muted">
                   {item.a}
                 </div>
               </div>
@@ -226,18 +227,18 @@ export default function Contact() {
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(43,140,255,0.06),transparent_55%)]" />
 
         <div className="relative mx-auto max-w-3xl px-4 text-center sm:px-6 lg:px-8">
-          <div className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-1.5 text-sm font-medium text-slate-700 shadow-sm">
+          <div className="inline-flex items-center gap-2 rounded-full border border-line bg-white px-4 py-1.5 text-sm font-medium text-ink-body shadow-sm">
             <svg className="h-4 w-4 text-brand" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
               <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
             </svg>
             We are here to help
           </div>
 
-          <h1 className="mt-6 text-4xl font-extrabold tracking-tight text-slate-900 sm:text-5xl">
+          <h1 className="mt-6 text-4xl font-extrabold tracking-tight text-ink sm:text-5xl">
             Get in Touch
           </h1>
 
-          <p className="mx-auto mt-5 max-w-2xl text-base leading-relaxed text-slate-600 sm:text-lg">
+          <p className="mx-auto mt-5 max-w-2xl text-base leading-relaxed text-ink-muted sm:text-lg">
             Have a question, feedback, or just want to say hello? Our team is
             ready to help. Reach out through any channel below or send us a
             message directly.
@@ -254,14 +255,14 @@ export default function Contact() {
                 key={card.title}
                 as="article"
                 delay={index % 4}
-                className="flex flex-col rounded-2xl border border-slate-200 bg-white p-6 shadow-sm transition hover:border-brand/20 hover:shadow-md"
+                className="flex flex-col rounded-2xl border border-line bg-white p-6 shadow-sm transition hover:border-brand/20 hover:shadow-md"
               >
                 <span
                   className={`inline-flex h-12 w-12 items-center justify-center rounded-full ${card.iconBg} ${card.iconText}`}
                 >
                   {card.icon}
                 </span>
-                <h2 className="mt-4 text-lg font-bold text-slate-900">
+                <h2 className="mt-4 text-lg font-bold text-ink">
                   {card.title}
                 </h2>
                 <a
@@ -270,7 +271,7 @@ export default function Contact() {
                 >
                   {card.highlight}
                 </a>
-                <p className="mt-3 flex-1 text-sm leading-relaxed text-slate-600">
+                <p className="mt-3 flex-1 text-sm leading-relaxed text-ink-muted">
                   {card.description}
                 </p>
               </Reveal>
@@ -280,15 +281,15 @@ export default function Contact() {
       </section>
 
       {/* Form + FAQ */}
-      <section className="bg-slate-50/60 py-12 sm:py-14 lg:py-16">
+      <section className="bg-surface-muted py-12 sm:py-14 lg:py-16">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="grid gap-10 lg:grid-cols-[minmax(0,2fr)_minmax(0,3fr)] lg:gap-12">
             {/* Form */}
-            <div className="rounded-3xl border border-slate-200/80 bg-slate-100/50 p-6 sm:p-8">
-              <h2 className="text-2xl font-bold text-slate-900">
+            <div className="rounded-3xl border border-line bg-surface-sunken/50 p-6 sm:p-8">
+              <h2 className="text-2xl font-bold text-ink">
                 Send us a Message
               </h2>
-              <p className="mt-2 text-sm leading-relaxed text-slate-600">
+              <p className="mt-2 text-sm leading-relaxed text-ink-muted">
                 Fill out the form below and we&apos;ll get back to you within 2
                 hours during business hours.
               </p>
@@ -306,7 +307,7 @@ export default function Contact() {
                   <div>
                     <label
                       htmlFor="contact-name"
-                      className="mb-1.5 block text-sm font-medium text-slate-700"
+                      className="mb-1.5 block text-sm font-medium text-ink-body"
                     >
                       Full Name
                     </label>
@@ -331,7 +332,7 @@ export default function Contact() {
                   <div>
                     <label
                       htmlFor="contact-email"
-                      className="mb-1.5 block text-sm font-medium text-slate-700"
+                      className="mb-1.5 block text-sm font-medium text-ink-body"
                     >
                       Email
                     </label>
@@ -356,7 +357,7 @@ export default function Contact() {
                   <div>
                     <label
                       htmlFor="contact-subject"
-                      className="mb-1.5 block text-sm font-medium text-slate-700"
+                      className="mb-1.5 block text-sm font-medium text-ink-body"
                     >
                       Subject
                     </label>
@@ -365,7 +366,7 @@ export default function Contact() {
                       name="subject"
                       value={form.subject}
                       onChange={handleChange}
-                      className={`${inputClassName} ${!form.subject ? "text-slate-400" : ""}`}
+                      className={`${inputClassName} ${!form.subject ? "text-ink-faint" : ""}`}
                       aria-invalid={Boolean(errors.subject)}
                       aria-describedby={errors.subject ? "contact-subject-error" : undefined}
                     >
@@ -386,7 +387,7 @@ export default function Contact() {
                   <div>
                     <label
                       htmlFor="contact-message"
-                      className="mb-1.5 block text-sm font-medium text-slate-700"
+                      className="mb-1.5 block text-sm font-medium text-ink-body"
                     >
                       Message
                     </label>
@@ -402,7 +403,7 @@ export default function Contact() {
                         aria-invalid={Boolean(errors.message)}
                         aria-describedby={errors.message ? "contact-message-error" : undefined}
                       />
-                      <span className="pointer-events-none absolute bottom-3 right-3 text-xs text-slate-400">
+                      <span className="pointer-events-none absolute bottom-3 right-3 text-xs text-ink-faint">
                         Max {MAX_MESSAGE_LENGTH} characters
                       </span>
                     </div>
@@ -416,7 +417,7 @@ export default function Contact() {
                   <button
                     type="submit"
                     disabled={loading}
-                    className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-brand px-6 py-3.5 text-base font-semibold text-white shadow-lg shadow-brand/25 transition hover:bg-brand-dark active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
+                    className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-brand px-6 py-3.5 text-base font-semibold text-white shadow-brand transition hover:bg-brand-dark active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
                   >
                     <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                       <path d="m22 2-7 20-4-9-9-4 20-2z" />
@@ -430,10 +431,10 @@ export default function Contact() {
 
             {/* FAQ */}
             <div id="faq" className="scroll-mt-24">
-              <h2 className="text-2xl font-bold text-slate-900">
+              <h2 className="text-2xl font-bold text-ink">
                 Frequently Asked Questions
               </h2>
-              <p className="mt-2 text-sm leading-relaxed text-slate-600 sm:text-base">
+              <p className="mt-2 text-sm leading-relaxed text-ink-muted sm:text-base">
                 Quick answers to common questions. Can&apos;t find what you&apos;re
                 looking for? Send us a message.
               </p>
@@ -458,11 +459,11 @@ export default function Contact() {
             </svg>
           </span>
 
-          <h2 className="mt-6 text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">
+          <h2 className="mt-6 text-3xl font-bold tracking-tight text-ink sm:text-4xl">
             Ready to get help?
           </h2>
 
-          <p className="mx-auto mt-4 max-w-xl text-base leading-relaxed text-slate-600 sm:text-lg">
+          <p className="mx-auto mt-4 max-w-xl text-base leading-relaxed text-ink-muted sm:text-lg">
             Join thousands of Nepalis who trust SewaSathi for safe, reliable
             local services every single day.
           </p>
@@ -470,13 +471,13 @@ export default function Contact() {
           <div className="mt-8 flex flex-col items-stretch justify-center gap-3 sm:flex-row sm:items-center">
             <Link
               to="/signup"
-              className="inline-flex items-center justify-center rounded-full bg-brand px-8 py-3.5 text-base font-semibold text-white shadow-lg shadow-brand/25 transition hover:bg-brand-dark active:scale-[0.98]"
+              className="inline-flex items-center justify-center rounded-full bg-brand px-8 py-3.5 text-base font-semibold text-white shadow-brand transition hover:bg-brand-dark active:scale-[0.98]"
             >
               Create Free Account
             </Link>
             <Link
               to="/services"
-              className="inline-flex items-center justify-center rounded-full border-2 border-slate-200 bg-white px-8 py-3.5 text-base font-semibold text-slate-900 transition hover:border-slate-300 hover:bg-slate-50 active:scale-[0.98]"
+              className="inline-flex items-center justify-center rounded-full border-2 border-line bg-white px-8 py-3.5 text-base font-semibold text-ink transition hover:border-line-strong hover:bg-surface-muted active:scale-[0.98]"
             >
               Browse Services
             </Link>

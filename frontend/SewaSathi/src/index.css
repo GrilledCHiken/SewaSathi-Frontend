@@ -6,14 +6,101 @@
   --color-navy: #05070a;
   --color-navy-light: #0f172a;
   --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+
+  /* ------------------------------------------------------------------ */
+  /* Brand ramp                                                          */
+  /* ------------------------------------------------------------------ */
+  /* #2b8cff stays the anchor. --color-brand and --color-brand-dark keep
+     their exact original values so the ~26 files already using bg-brand /
+     hover:bg-brand-dark render identically — the ramp is purely additive. */
+  --color-brand-50: #eff7ff;
+  --color-brand-100: #dbecff;
+  --color-brand-200: #bcdeff;
+  --color-brand-300: #8ec9ff;
+  --color-brand-400: #59aaff;
+  --color-brand-500: #2b8cff; /* == --color-brand */
+  --color-brand-600: #1a7ae8; /* == --color-brand-dark */
+  --color-brand-700: #1461bd;
+  --color-brand-800: #165298;
+  --color-brand-900: #17457a;
+  --color-brand-950: #0f2b4f;
+
+  /* ------------------------------------------------------------------ */
+  /* Semantic surfaces                                                   */
+  /* ------------------------------------------------------------------ */
+  --color-surface: #ffffff; /* cards, sheets, sidebar */
+  --color-surface-muted: #f8fafc; /* app canvas */
+  --color-surface-sunken: #f1f5f9; /* inset wells, chips, search field */
+  --color-surface-brand: #eff7ff; /* brand tint blocks */
+
+  /* Lines */
+  --color-line: #e4e9f0; /* default border */
+  --color-line-soft: #eff2f7; /* hairline dividers */
+  --color-line-strong: #cbd5e1;
+
+  /* Ink ramp */
+  --color-ink: #0b1220; /* headings */
+  --color-ink-body: #475569; /* body copy */
+  --color-ink-muted: #64748b; /* secondary / meta */
+  --color-ink-faint: #94a3b8; /* placeholders, disabled */
+  --color-ink-invert: #ffffff;
+
+  /* ------------------------------------------------------------------ */
+  /* Status                                                              */
+  /* ------------------------------------------------------------------ */
+  /* Promoted out of the ad-hoc stock-Tailwind usage. Each tone has a solid
+     (dots, bars, fills), a -soft (badge/alert background) and an -ink
+     (text that sits on -soft at an accessible contrast). */
+  --color-success: #059669;
+  --color-success-soft: #ecfdf5;
+  --color-success-ink: #047857;
+  --color-warning: #d97706;
+  --color-warning-soft: #fffbeb;
+  --color-warning-ink: #b45309;
+  --color-danger: #e11d48;
+  --color-danger-soft: #fff1f2;
+  --color-danger-ink: #be123c;
+  --color-info: #0284c7;
+  --color-info-soft: #f0f9ff;
+  --color-info-ink: #0369a1;
+  --color-accent: #7c3aed; /* task status "accepted" */
+  --color-accent-soft: #f5f3ff;
+  --color-accent-ink: #6d28d9;
+  --color-neutral-soft: #f1f5f9; /* task status "open" */
+  --color-neutral-ink: #475569;
+
+  /* ------------------------------------------------------------------ */
+  /* Radius / elevation / motion                                         */
+  /* ------------------------------------------------------------------ */
+  /* Named rather than numeric so the ladder is intent-addressable. The
+     stock rounded-lg/xl/2xl/full and shadow-sm/md/lg scales are deliberately
+     left untouched, so migration can happen one file at a time. */
+  --radius-tile: 0.625rem; /* 10px — logo and icon tiles */
+  --radius-field: 0.75rem; /* 12px — inputs, selects, small buttons */
+  --radius-card: 1rem; /* 16px — cards, list rows */
+  --radius-panel: 1.5rem; /* 24px — hero bands, feature panels, modals */
+
+  --shadow-e1: 0 1px 2px 0 rgb(11 18 32 / 0.04), 0 1px 3px 0 rgb(11 18 32 / 0.05);
+  --shadow-e2: 0 2px 4px -1px rgb(11 18 32 / 0.05), 0 8px 20px -6px rgb(11 18 32 / 0.08);
+  --shadow-e3: 0 4px 8px -2px rgb(11 18 32 / 0.06), 0 20px 40px -12px rgb(11 18 32 / 0.12);
+  --shadow-brand: 0 8px 24px -8px rgb(43 140 255 / 0.45);
+  --shadow-inset-line: inset 0 -1px 0 0 rgb(11 18 32 / 0.05);
+
+  --ease-out-soft: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-spring: cubic-bezier(0.34, 1.35, 0.64, 1);
 }
 
 @layer base {
   :root {
-    /* Height of the sticky dashboard/worker header at sm and up:
-       py-3 (24px) + the UserMenu button (46px) + border-b (1px).
-       Sticky in-page toolbars offset themselves by this. */
-    --dash-header-h: 71px;
+    /* Height of the sticky dashboard/worker/admin header at sm and up.
+       This is AUTHORITATIVE: the headers set their own sm+ height from it
+       (`sm:h-[var(--dash-header-h)]`) and sticky in-page toolbars offset
+       themselves by it. It used to be a hand-computed derivation of the
+       header's internals, which any padding change silently broke. */
+    --dash-header-h: 72px;
+
+    /* Width of the dashboard side rail at lg and up. */
+    --dash-sidebar-w: 272px;
   }
 
   html {
@@ -41,6 +128,28 @@
 
   .animate-fade-up-delay {
     animation: fade-up 0.7s ease-out 0.15s both;
+  }
+}
+
+/* A single keyboard-focus treatment for every interactive element. The white
+   inner ring keeps the halo legible on both light surfaces and the navy rail. */
+@utility focus-ring {
+  &:focus-visible {
+    outline: none;
+    box-shadow:
+      0 0 0 2px #ffffff,
+      0 0 0 4px rgb(43 140 255 / 0.45);
+  }
+}
+
+/* Same treatment for elements whose focus ring lands on a dark surface, where
+   a white inner ring would read as a hard edge rather than a halo. */
+@utility focus-ring-dark {
+  &:focus-visible {
+    outline: none;
+    box-shadow:
+      0 0 0 2px #0f172a,
+      0 0 0 4px rgb(142 201 255 / 0.7);
   }
 }
 
@@ -76,4 +185,78 @@
     transition-duration: 0.01ms !important;
     transition-delay: 0ms !important;
   }
+}
+
+/* -------------------------------------------------------------------------- */
+/* react-toastify skin                                                         */
+/* -------------------------------------------------------------------------- */
+/* Toasts were the one surface still on stock vendor CSS, so they read as a
+   different product from everything around them.
+
+   Written unlayered AND at a higher specificity than the vendor rules
+   (`.Toastify .Toastify__toast` is 0,2,0 against their 0,1,0). Relying on
+   source order alone would be fragile here: their stylesheet is imported from
+   App.jsx while this file is imported from main.jsx, so which one lands later
+   in the bundle is the bundler's business, not ours. */
+.Toastify .Toastify__toast {
+  border-radius: var(--radius-card);
+  border: 1px solid var(--color-line);
+  box-shadow: var(--shadow-e2);
+  font-family: var(--font-sans);
+  padding: 0.875rem 1rem;
+  min-height: auto;
+}
+
+.Toastify .Toastify__toast-body {
+  color: var(--color-ink);
+  font-size: 0.875rem;
+  font-weight: 500;
+  line-height: 1.5;
+  padding: 0;
+}
+
+.Toastify .Toastify__close-button {
+  color: var(--color-ink-faint);
+  opacity: 1;
+  align-self: center;
+}
+
+.Toastify .Toastify__close-button:hover {
+  color: var(--color-ink);
+}
+
+.Toastify .Toastify__progress-bar--success {
+  background: var(--color-success);
+}
+
+.Toastify .Toastify__progress-bar--error {
+  background: var(--color-danger);
+}
+
+.Toastify .Toastify__progress-bar--warning {
+  background: var(--color-warning);
+}
+
+.Toastify .Toastify__progress-bar--info {
+  background: var(--color-brand);
+}
+
+.Toastify .Toastify__toast-icon svg {
+  fill: currentColor;
+}
+
+.Toastify .Toastify__toast--success .Toastify__toast-icon {
+  color: var(--color-success);
+}
+
+.Toastify .Toastify__toast--error .Toastify__toast-icon {
+  color: var(--color-danger);
+}
+
+.Toastify .Toastify__toast--warning .Toastify__toast-icon {
+  color: var(--color-warning);
+}
+
+.Toastify .Toastify__toast--info .Toastify__toast-icon {
+  color: var(--color-brand);
 }

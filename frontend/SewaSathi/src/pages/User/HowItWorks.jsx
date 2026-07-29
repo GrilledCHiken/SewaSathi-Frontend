@@ -258,17 +258,17 @@ function StepCard({ step }) {
       </div>
 
       <div className="min-w-0 flex-1">
-        <h3 className="text-xl font-bold text-slate-900 sm:text-[1.35rem]">
+        <h3 className="text-xl font-bold text-ink sm:text-[1.35rem]">
           {step.title}
         </h3>
-        <p className="mt-2 text-[0.9375rem] leading-relaxed text-slate-600">
+        <p className="mt-2 text-[0.9375rem] leading-relaxed text-ink-muted">
           {step.description}
         </p>
 
         <div className="mt-5 grid gap-3 sm:grid-cols-2 sm:gap-x-8">
           <ul className="space-y-2.5">
             {leftBullets.map((item) => (
-              <li key={item} className="flex items-start gap-2.5 text-sm text-slate-700">
+              <li key={item} className="flex items-start gap-2.5 text-sm text-ink-body">
                 <CheckIcon />
                 <span>{item}</span>
               </li>
@@ -276,7 +276,7 @@ function StepCard({ step }) {
           </ul>
           <ul className="space-y-2.5">
             {rightBullets.map((item) => (
-              <li key={item} className="flex items-start gap-2.5 text-sm text-slate-700">
+              <li key={item} className="flex items-start gap-2.5 text-sm text-ink-body">
                 <CheckIcon />
                 <span>{item}</span>
               </li>
@@ -299,7 +299,7 @@ function AccordionFAQ() {
           <div
             key={item.q}
             className={`overflow-hidden rounded-2xl border transition ${
-              open ? "border-brand/30 bg-sky-50/40" : "border-slate-200 bg-white"
+              open ? "border-brand/30 bg-sky-50/40" : "border-line bg-white"
             }`}
           >
             <button
@@ -308,12 +308,12 @@ function AccordionFAQ() {
               onClick={() => setOpenIndex(open ? -1 : idx)}
               aria-expanded={open}
             >
-              <span className="text-[0.9375rem] font-semibold text-slate-900 sm:text-base">
+              <span className="text-[0.9375rem] font-semibold text-ink sm:text-base">
                 {item.q}
               </span>
               <span
-                className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-slate-500 transition ${
-                  open ? "rotate-180 bg-white" : "bg-slate-100"
+                className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-ink-muted transition ${
+                  open ? "rotate-180 bg-white" : "bg-surface-sunken"
                 }`}
               >
                 <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -323,8 +323,8 @@ function AccordionFAQ() {
             </button>
 
             {open && (
-              <div className="border-t border-slate-200/80 px-5 pb-5 pt-0 sm:px-6 sm:pb-6">
-                <p className="pt-4 text-sm leading-relaxed text-slate-600">
+              <div className="border-t border-line px-5 pb-5 pt-0 sm:px-6 sm:pb-6">
+                <p className="pt-4 text-sm leading-relaxed text-ink-muted">
                   {item.a}
                 </p>
               </div>
@@ -347,25 +347,25 @@ export default function HowItWorks() {
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(43,140,255,0.08),transparent_55%)]" />
 
         <div className="relative mx-auto max-w-4xl px-4 text-center sm:px-6 lg:px-8">
-          <div className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-1.5 text-sm font-medium text-slate-700 shadow-sm">
+          <div className="inline-flex items-center gap-2 rounded-full border border-line bg-white px-4 py-1.5 text-sm font-medium text-ink-body shadow-sm">
             <svg className="h-4 w-4 text-brand" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
               <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
             </svg>
             Simple, safe and fast
           </div>
 
-          <h1 className="mt-6 text-4xl font-extrabold tracking-tight text-slate-900 sm:text-5xl lg:text-[3.25rem]">
+          <h1 className="mt-6 text-4xl font-extrabold tracking-tight text-ink sm:text-5xl lg:text-[3.25rem]">
             How SewaSathi Works
           </h1>
 
-          <p className="mx-auto mt-5 max-w-2xl text-base leading-relaxed text-slate-600 sm:text-lg">
+          <p className="mx-auto mt-5 max-w-2xl text-base leading-relaxed text-ink-muted sm:text-lg">
             Whether you need help or want to offer your services, getting started
             takes just minutes. Here&apos;s how our platform connects Nepal.
           </p>
 
           {/* Toggle */}
           <div
-            className="mx-auto mt-8 inline-flex w-full max-w-md rounded-full bg-slate-100 p-1 sm:max-w-lg"
+            className="mx-auto mt-8 inline-flex w-full max-w-md rounded-full bg-surface-sunken p-1 sm:max-w-lg"
             role="tablist"
             aria-label="Choose your path"
           >
@@ -376,8 +376,8 @@ export default function HowItWorks() {
               onClick={() => setMode("customer")}
               className={`flex flex-1 items-center justify-center gap-2 rounded-full px-4 py-3 text-sm font-semibold transition sm:px-6 ${
                 mode === "customer"
-                  ? "bg-white text-slate-900 shadow-sm"
-                  : "text-slate-600 hover:text-slate-900"
+                  ? "bg-white text-ink shadow-sm"
+                  : "text-ink-muted hover:text-ink"
               }`}
             >
               <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -393,8 +393,8 @@ export default function HowItWorks() {
               onClick={() => setMode("worker")}
               className={`flex flex-1 items-center justify-center gap-2 rounded-full px-4 py-3 text-sm font-semibold transition sm:px-6 ${
                 mode === "worker"
-                  ? "bg-white text-slate-900 shadow-sm"
-                  : "text-slate-600 hover:text-slate-900"
+                  ? "bg-white text-ink shadow-sm"
+                  : "text-ink-muted hover:text-ink"
               }`}
             >
               <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -415,7 +415,7 @@ export default function HowItWorks() {
               <Reveal key={`${mode}-${step.step}`}>
                 <StepCard step={step} />
                 {index < steps.length - 1 && (
-                  <div className="mt-12 border-b border-slate-100 sm:mt-14" />
+                  <div className="mt-12 border-b border-line-soft sm:mt-14" />
                 )}
               </Reveal>
             ))}
@@ -424,22 +424,22 @@ export default function HowItWorks() {
       </section>
 
       {/* Stats */}
-      <section className="border-y border-slate-100 bg-slate-50/60 py-10 sm:py-12">
+      <section className="border-y border-line-soft bg-surface-muted py-10 sm:py-12">
         <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-2 gap-4 lg:grid-cols-4 lg:gap-6">
             {STATS.map((stat, index) => (
               <Reveal
                 key={stat.value}
                 delay={index % 4}
-                className="flex flex-col items-center rounded-2xl border border-slate-200/80 bg-white px-4 py-6 text-center shadow-sm sm:px-6"
+                className="flex flex-col items-center rounded-2xl border border-line bg-white px-4 py-6 text-center shadow-sm sm:px-6"
               >
                 <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-brand/10 text-brand">
                   {stat.icon}
                 </span>
-                <p className="mt-3 text-2xl font-extrabold tracking-tight text-slate-900 sm:text-3xl">
+                <p className="mt-3 text-2xl font-extrabold tracking-tight text-ink sm:text-3xl">
                   {stat.value}
                 </p>
-                <p className="mt-1 text-xs font-medium text-slate-500 sm:text-sm">
+                <p className="mt-1 text-xs font-medium text-ink-muted sm:text-sm">
                   {stat.label}
                 </p>
               </Reveal>
@@ -452,10 +452,10 @@ export default function HowItWorks() {
       <section className="bg-white py-14 sm:py-16 lg:py-20">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="text-center">
-            <h2 className="text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">
+            <h2 className="text-3xl font-bold tracking-tight text-ink sm:text-4xl">
               Frequently Asked Questions
             </h2>
-            <p className="mx-auto mt-4 max-w-xl text-base text-slate-600 sm:text-lg">
+            <p className="mx-auto mt-4 max-w-xl text-base text-ink-muted sm:text-lg">
               Everything you need to know about using SewaSathi
             </p>
           </div>
@@ -469,10 +469,10 @@ export default function HowItWorks() {
       {/* CTA — light blue gradient per design */}
       <section className="bg-gradient-to-br from-sky-50 via-sky-100/80 to-blue-50 py-14 sm:py-16 lg:py-20">
         <div className="mx-auto max-w-3xl px-4 text-center sm:px-6 lg:px-8">
-          <h2 className="text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">
+          <h2 className="text-3xl font-bold tracking-tight text-ink sm:text-4xl">
             Ready to Get Started?
           </h2>
-          <p className="mx-auto mt-4 max-w-xl text-base leading-relaxed text-slate-600 sm:text-lg">
+          <p className="mx-auto mt-4 max-w-xl text-base leading-relaxed text-ink-muted sm:text-lg">
             Join thousands of Nepalis who are getting things done faster, safer,
             and more affordably.
           </p>
@@ -480,13 +480,13 @@ export default function HowItWorks() {
           <div className="mt-8 flex flex-col items-stretch justify-center gap-3 sm:flex-row sm:items-center">
             <Link
               to="/signup"
-              className="inline-flex items-center justify-center rounded-full bg-brand px-8 py-3.5 text-base font-semibold text-white shadow-lg shadow-brand/25 transition hover:bg-brand-dark active:scale-[0.98]"
+              className="inline-flex items-center justify-center rounded-full bg-brand px-8 py-3.5 text-base font-semibold text-white shadow-brand transition hover:bg-brand-dark active:scale-[0.98]"
             >
               Create Free Account
             </Link>
             <Link
               to="/signup/worker"
-              className="inline-flex items-center justify-center rounded-full border-2 border-slate-200 bg-white px-8 py-3.5 text-base font-semibold text-slate-900 transition hover:border-slate-300 hover:bg-slate-50 active:scale-[0.98]"
+              className="inline-flex items-center justify-center rounded-full border-2 border-line bg-white px-8 py-3.5 text-base font-semibold text-ink transition hover:border-line-strong hover:bg-surface-muted active:scale-[0.98]"
             >
               Become a Worker
             </Link>

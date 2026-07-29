@@ -74,7 +74,7 @@ function WorkerLayout() {
   }
 
   return (
-    <div className="flex min-h-svh bg-slate-50">
+    <div className="flex min-h-svh bg-surface-muted">
       <WorkerSidebar
         mobileOpen={mobileOpen}
         onCloseMobile={() => setMobileOpen(false)}

@@ -9,6 +9,12 @@ import WorkerCard from "../components/workers/WorkerCard";
 import WorkerCardSkeleton from "../components/workers/WorkerCardSkeleton";
 import { listWorkers } from "../api/workerApi";
 import { assignWorker, listMyTasks } from "../api/taskApi";
+import PageShell, { PageHeader } from "../components/ui/PageShell";
+import { Panel } from "../components/ui/Card";
+import Button from "../components/ui/Button";
+import { Input, Select } from "../components/ui/Field";
+import { LoadingBlock } from "../components/ui/Spinner";
+import { SearchIcon } from "../components/ui/icons";
 
 /** Preferred pill order. Skills outside this list are appended alphabetically. */
 const SKILL_ORDER = [
@@ -64,6 +70,130 @@ function mapWorker(worker) {
   };
 }
 
+/**
+ * Sticky filter rail, shown from xl up where there is room beside the grid.
+ *
+ * Page-local on purpose: it is fed by exactly the same state and setters as the
+ * TaskFilterBar used below xl, and TaskFilterBar's own API is left alone
+ * because the worker panel's Browse Tasks screen depends on it.
+ */
+function WorkerFilterRail({
+  skillFilters,
+  skill,
+  onSkillChange,
+  skillCounts,
+  search,
+  onSearchChange,
+  location,
+  onLocationChange,
+  rateBand,
+  onRateBandChange,
+  hasActiveFilters,
+  onClear,
+}) {
+  return (
+    <div className="sticky top-[calc(var(--dash-header-h)+1.5rem)] space-y-4">
+      <Panel title="Filters" padding="md">
+        <Input
+          type="search"
+          value={search}
+          onChange={(e) => onSearchChange(e.target.value)}
+          placeholder="Search workers..."
+          aria-label="Search workers"
+          leadingIcon={<SearchIcon className="h-4 w-4" />}
+          inputClassName="py-2.5 text-sm"
+        />
+
+        <div className="mt-4 space-y-3">
+          <div>
+            <label
+              htmlFor="rail-location"
+              className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-ink-muted"
+            >
+              Location
+            </label>
+            <Select
+              id="rail-location"
+              value={location}
+              onChange={(e) => onLocationChange(e.target.value)}
+              className="py-2.5 text-sm"
+            >
+              {LOCATIONS.map((loc) => (
+                <option key={loc} value={loc}>
+                  {loc}
+                </option>
+              ))}
+            </Select>
+          </div>
+
+          <div>
+            <label
+              htmlFor="rail-rate"
+              className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-ink-muted"
+            >
+              Hourly rate
+            </label>
+            <Select
+              id="rail-rate"
+              value={rateBand}
+              onChange={(e) => onRateBandChange(e.target.value)}
+              className="py-2.5 text-sm"
+            >
+              {RATE_BANDS.map((band) => (
+                <option key={band.key} value={band.key}>
+                  {band.label}
+                </option>
+              ))}
+            </Select>
+          </div>
+        </div>
+      </Panel>
+
+      <Panel title="Skills" padding="none" bodyClassName="p-2">
+        {/* A counted vertical list rather than a wrapped pill row: at this width
+            the counts stay aligned and scannable. */}
+        <ul className="max-h-[19rem] space-y-0.5 overflow-y-auto">
+          {skillFilters.map((filter) => {
+            const active = filter.key === skill;
+            const count = skillCounts[filter.key] ?? 0;
+            return (
+              <li key={filter.key}>
+                <button
+                  type="button"
+                  aria-pressed={active}
+                  onClick={() => onSkillChange(filter.key)}
+                  className={[
+                    "flex w-full items-center justify-between gap-2 rounded-field px-3 py-2 text-left text-sm transition focus-ring",
+                    active
+                      ? "bg-brand-50 font-semibold text-brand-700"
+                      : "text-ink-body hover:bg-surface-sunken",
+                  ].join(" ")}
+                >
+                  <span className="truncate">{filter.label}</span>
+                  <span
+                    className={[
+                      "shrink-0 rounded-full px-1.5 text-[10px] font-bold tabular-nums",
+                      active ? "bg-brand text-white" : "bg-surface-sunken text-ink-muted",
+                    ].join(" ")}
+                  >
+                    {count}
+                  </span>
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+      </Panel>
+
+      {hasActiveFilters && (
+        <Button variant="secondary" size="sm" fullWidth onClick={onClear}>
+          Clear all filters
+        </Button>
+      )}
+    </div>
+  );
+}
+
 function HireModal({ worker, onClose }) {
   const navigate = useNavigate();
   const [openTasks, setOpenTasks] = useState([]);
@@ -107,79 +237,69 @@ function HireModal({ worker, onClose }) {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 px-4"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-navy/60 px-4 backdrop-blur-sm"
       role="dialog"
       aria-modal="true"
       onClick={onClose}
     >
       <div
-        className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl"
+        className="w-full max-w-md rounded-panel bg-surface p-6 shadow-e3"
         onClick={(e) => e.stopPropagation()}
       >
-        <h3 className="text-lg font-bold text-slate-900">Hire {worker.name}</h3>
+        <h3 className="text-lg font-bold text-ink">Hire {worker.name}</h3>
 
         {loading ? (
-          <p className="mt-4 text-sm text-slate-500">Loading your open tasks...</p>
+          <div className="mt-4">
+            <LoadingBlock label="Loading your open tasks…" minHeight="min-h-24" />
+          </div>
         ) : openTasks.length > 0 ? (
           <>
-            <p className="mt-2 text-sm text-slate-600">
+            <p className="mt-2 text-sm leading-relaxed text-ink-muted">
               Assign {worker.name} directly to one of your open tasks. You&apos;ll pay
               a 10% advance from My Tasks to confirm the booking.
             </p>
-            <label htmlFor="hire-task-select" className="mt-4 block text-sm font-semibold text-slate-800">
+            <label
+              htmlFor="hire-task-select"
+              className="mt-4 block text-sm font-semibold text-ink"
+            >
               Select a task
             </label>
-            <select
-              id="hire-task-select"
-              value={selectedTaskId}
-              onChange={(e) => setSelectedTaskId(e.target.value)}
-              className="mt-1.5 w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-800 focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/20"
-            >
-              {openTasks.map((task) => (
-                <option key={task.id} value={task.id}>
-                  {task.title}
-                </option>
-              ))}
-            </select>
+            <div className="mt-1.5">
+              <Select
+                id="hire-task-select"
+                value={selectedTaskId}
+                onChange={(e) => setSelectedTaskId(e.target.value)}
+                className="py-2.5 text-sm"
+              >
+                {openTasks.map((task) => (
+                  <option key={task.id} value={task.id}>
+                    {task.title}
+                  </option>
+                ))}
+              </Select>
+            </div>
             <div className="mt-6 flex flex-col gap-2 sm:flex-row-reverse">
-              <button
-                type="button"
-                onClick={handleAssign}
-                disabled={assigning}
-                className="flex-1 rounded-full bg-brand py-2.5 text-sm font-semibold text-white transition hover:bg-brand-dark disabled:cursor-not-allowed disabled:opacity-60"
-              >
+              <Button fullWidth onClick={handleAssign} loading={assigning}>
                 {assigning ? "Assigning..." : "Assign to Task"}
-              </button>
-              <button
-                type="button"
-                onClick={goPostNewTask}
-                className="flex-1 rounded-full border border-slate-200 bg-white py-2.5 text-sm font-semibold text-slate-800 transition hover:bg-slate-50"
-              >
+              </Button>
+              <Button variant="secondary" fullWidth onClick={goPostNewTask}>
                 Post a New Task
-              </button>
+              </Button>
             </div>
           </>
         ) : (
           <>
-            <p className="mt-2 text-sm text-slate-600">
+            <p className="mt-2 text-sm leading-relaxed text-ink-muted">
               You don&apos;t have any open tasks yet. Post a new task and{" "}
               {worker.name} will be assigned to it directly.
             </p>
             <div className="mt-6 flex flex-col gap-2 sm:flex-row-reverse">
-              <button
-                type="button"
-                onClick={goPostNewTask}
-                className="flex-1 rounded-full bg-brand py-2.5 text-sm font-semibold text-white transition hover:bg-brand-dark"
-              >
+              <Button fullWidth onClick={goPostNewTask}>
                 Post a New Task
-              </button>
-              <button
-                type="button"
-                onClick={onClose}
-                className="flex-1 rounded-full border border-slate-200 bg-white py-2.5 text-sm font-semibold text-slate-800 transition hover:bg-slate-50"
-              >
+              </Button>
+              <Button variant="secondary" fullWidth onClick={onClose}>
                 Cancel
-              </button>
+              </Button>
             </div>
           </>
         )}
@@ -189,7 +309,7 @@ function HireModal({ worker, onClose }) {
 }
 
 const compactSelect =
-  "w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/20 sm:w-auto";
+  "w-full rounded-field border border-line bg-surface px-3 py-2 text-sm text-ink-body focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/20 sm:w-auto";
 
 /** Removable chip for a non-default dropdown filter. */
 function ActiveFilterChip({ label, onClear }) {
@@ -300,94 +420,116 @@ export default function CustomerBrowseWorkers() {
     search.trim() !== "";
 
   return (
-    <div className="flex min-h-svh flex-1 flex-col">
-      <DashboardHeader searchPlaceholder="Search workers..." />
+    <PageShell
+      header={<DashboardHeader title="Browse Workers" searchPlaceholder="Search workers..." />}
+    >
+      <PageHeader
+        title="Browse Workers"
+        description="Find trusted professionals for your tasks."
+      />
 
-      <main className="flex-1 px-4 py-6 sm:px-6 lg:px-8">
-        <div className="mx-auto max-w-6xl">
-          <div className="mb-4">
-            <h2 className="text-2xl font-bold text-slate-900 sm:text-3xl">
-              Browse Workers
-            </h2>
-            <p className="mt-1 text-sm text-slate-600 sm:text-base">
-              Find trusted professionals for your tasks.
-            </p>
-          </div>
-
-          <TaskFilterBar
-            filters={skillFilters}
-            active={skill}
-            onChange={setSkill}
-            counts={skillCounts}
+      <div className="mt-5 grid gap-6 xl:grid-cols-[264px_minmax(0,1fr)]">
+        {/* Rail at xl and up, where there is room beside the grid. */}
+        <aside className="hidden xl:block">
+          <WorkerFilterRail
+            skillFilters={skillFilters}
+            skill={skill}
+            onSkillChange={setSkill}
+            skillCounts={skillCounts}
             search={search}
             onSearchChange={setSearch}
-            searchPlaceholder="Search workers..."
-            accent="brand"
-            trailing={
-              <>
-                <select
-                  value={location}
-                  onChange={(e) => setLocation(e.target.value)}
-                  aria-label="Filter by location"
-                  className={compactSelect}
-                >
-                  {LOCATIONS.map((loc) => (
-                    <option key={loc} value={loc}>
-                      {loc}
-                    </option>
-                  ))}
-                </select>
-                <select
-                  value={rateBand}
-                  onChange={(e) => setRateBand(e.target.value)}
-                  aria-label="Filter by hourly rate"
-                  className={compactSelect}
-                >
-                  {RATE_BANDS.map((band) => (
-                    <option key={band.key} value={band.key}>
-                      {band.label}
-                    </option>
-                  ))}
-                </select>
-              </>
-            }
+            location={location}
+            onLocationChange={setLocation}
+            rateBand={rateBand}
+            onRateBandChange={setRateBand}
+            hasActiveFilters={hasActiveFilters}
+            onClear={clearFilters}
           />
+        </aside>
+
+        <div className="min-w-0">
+          {/* Below xl the rail collapses back to the horizontal bar. */}
+          <div className="xl:hidden">
+            <TaskFilterBar
+              filters={skillFilters}
+              active={skill}
+              onChange={setSkill}
+              counts={skillCounts}
+              search={search}
+              onSearchChange={setSearch}
+              searchPlaceholder="Search workers..."
+              accent="brand"
+              trailing={
+                <>
+                  <select
+                    value={location}
+                    onChange={(e) => setLocation(e.target.value)}
+                    aria-label="Filter by location"
+                    className={compactSelect}
+                  >
+                    {LOCATIONS.map((loc) => (
+                      <option key={loc} value={loc}>
+                        {loc}
+                      </option>
+                    ))}
+                  </select>
+                  <select
+                    value={rateBand}
+                    onChange={(e) => setRateBand(e.target.value)}
+                    aria-label="Filter by hourly rate"
+                    className={compactSelect}
+                  >
+                    {RATE_BANDS.map((band) => (
+                      <option key={band.key} value={band.key}>
+                        {band.label}
+                      </option>
+                    ))}
+                  </select>
+                </>
+              }
+            />
+          </div>
 
           {/* Result count + removable chips for the dropdown filters */}
           {!loading && (
             <div className="mb-4 flex flex-wrap items-center gap-x-3 gap-y-2">
-              <p className="text-sm font-medium text-slate-600">
+              <p className="text-sm font-medium text-ink-muted">
                 {filteredWorkers.length} worker
                 {filteredWorkers.length !== 1 ? "s" : ""} found
               </p>
 
-              {location !== "All Locations" && (
-                <ActiveFilterChip
-                  label={location}
-                  onClear={() => setLocation("All Locations")}
-                />
-              )}
-              {rateBand !== "any" && (
-                <ActiveFilterChip
-                  label={rateBandFor(rateBand).label}
-                  onClear={() => setRateBand("any")}
-                />
-              )}
+              <div className="xl:hidden">
+                {location !== "All Locations" && (
+                  <ActiveFilterChip
+                    label={location}
+                    onClear={() => setLocation("All Locations")}
+                  />
+                )}
+              </div>
+              <div className="xl:hidden">
+                {rateBand !== "any" && (
+                  <ActiveFilterChip
+                    label={rateBandFor(rateBand).label}
+                    onClear={() => setRateBand("any")}
+                  />
+                )}
+              </div>
 
               {hasActiveFilters && (
-                <button
-                  type="button"
+                <Button
+                  variant="quiet"
+                  size="sm"
                   onClick={clearFilters}
-                  className="text-sm font-semibold text-brand transition hover:text-brand-dark"
+                  className="xl:hidden"
                 >
                   Clear all
-                </button>
+                </Button>
               )}
             </div>
           )}
 
           {loading ? (
-            <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+            <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-2 2xl:grid-cols-3">
               {Array.from({ length: 6 }).map((_, index) => (
                 <WorkerCardSkeleton key={index} />
               ))}
@@ -398,17 +540,11 @@ export default function CustomerBrowseWorkers() {
               title="No workers match your filters"
               body="Try a different skill, widen the rate range, or clear your search."
               action={
-                <button
-                  type="button"
-                  onClick={clearFilters}
-                  className="rounded-full bg-brand px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-brand-dark"
-                >
-                  Clear all filters
-                </button>
+                <Button onClick={clearFilters}>Clear all filters</Button>
               }
             />
           ) : (
-            <ul className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+            <ul className="grid gap-4 sm:grid-cols-2 xl:grid-cols-2 2xl:grid-cols-3">
               {filteredWorkers.map((worker) => (
                 <li key={worker.id}>
                   <WorkerCard worker={worker} onHire={setHireWorker} />
@@ -417,11 +553,11 @@ export default function CustomerBrowseWorkers() {
             </ul>
           )}
         </div>
-      </main>
+      </div>
 
       {hireWorker && (
         <HireModal worker={hireWorker} onClose={() => setHireWorker(null)} />
       )}
-    </div>
+    </PageShell>
   );
 }

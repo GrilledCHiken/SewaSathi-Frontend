@@ -184,11 +184,11 @@ function SectionLabel({ children }) {
 function SectionHeading({ title, subtitle }) {
   return (
     <div className="mx-auto max-w-2xl text-center">
-      <h2 className="text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">
+      <h2 className="text-3xl font-bold tracking-tight text-ink sm:text-4xl">
         {title}
       </h2>
       {subtitle && (
-        <p className="mt-4 text-base leading-relaxed text-slate-600 sm:text-lg">
+        <p className="mt-4 text-base leading-relaxed text-ink-muted sm:text-lg">
           {subtitle}
         </p>
       )}
@@ -217,12 +217,12 @@ export default function AboutUs() {
         <div className="relative mx-auto max-w-4xl px-4 text-center sm:px-6 lg:px-8">
           <SectionLabel>About SewaSathi</SectionLabel>
 
-          <h1 className="mt-5 text-4xl font-extrabold leading-tight tracking-tight text-slate-900 sm:text-5xl lg:text-[3.25rem]">
+          <h1 className="mt-5 text-4xl font-extrabold leading-tight tracking-tight text-ink sm:text-5xl lg:text-[3.25rem]">
             Connecting Nepal,{" "}
             <span className="text-brand">one task at a time</span>
           </h1>
 
-          <p className="mx-auto mt-6 max-w-2xl text-base leading-relaxed text-slate-600 sm:text-lg">
+          <p className="mx-auto mt-6 max-w-2xl text-base leading-relaxed text-ink-muted sm:text-lg">
             SewaSathi is Nepal&apos;s trusted local services marketplace — connecting
             verified workers with people who need help, safely, simply, and
             affordably across the country.
@@ -231,7 +231,7 @@ export default function AboutUs() {
       </section>
 
       {/* Mission */}
-      <section className="bg-slate-50/60 py-14 sm:py-16 lg:py-20">
+      <section className="bg-surface-muted py-14 sm:py-16 lg:py-20">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="grid items-center gap-10 lg:grid-cols-2 lg:gap-16">
             <div className="aspect-[4/3] w-full overflow-hidden rounded-3xl shadow-xl shadow-slate-300/40 ring-1 ring-slate-200/80">
@@ -244,16 +244,16 @@ export default function AboutUs() {
 
             <div>
               <SectionLabel>Our Mission</SectionLabel>
-              <h2 className="mt-3 text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">
+              <h2 className="mt-3 text-3xl font-bold tracking-tight text-ink sm:text-4xl">
                 Empowering communities through trust
               </h2>
-              <p className="mt-5 text-base leading-relaxed text-slate-600">
+              <p className="mt-5 text-base leading-relaxed text-ink-muted">
                 We believe everyone in Nepal deserves access to reliable, affordable
                 local help — whether it&apos;s fixing a leak, assembling furniture, or
                 deep-cleaning a home. SewaSathi makes that possible by building a
                 platform where trust comes first.
               </p>
-              <p className="mt-4 text-base leading-relaxed text-slate-600">
+              <p className="mt-4 text-base leading-relaxed text-ink-muted">
                 By verifying every worker, securing every payment, and putting
                 community at the center of everything we do, we&apos;re creating
                 opportunities for skilled Nepalis while making life easier for
@@ -263,13 +263,13 @@ export default function AboutUs() {
               <div className="mt-8 flex flex-col gap-4 sm:flex-row sm:items-center">
                 <Link
                   to="/how-it-works"
-                  className="inline-flex items-center justify-center rounded-full bg-brand px-7 py-3.5 text-base font-semibold text-white shadow-lg shadow-brand/25 transition hover:bg-brand-dark active:scale-[0.98]"
+                  className="inline-flex items-center justify-center rounded-full bg-brand px-7 py-3.5 text-base font-semibold text-white shadow-brand transition hover:bg-brand-dark active:scale-[0.98]"
                 >
                   Read More
                 </Link>
                 <Link
                   to="/contact"
-                  className="inline-flex items-center gap-2 text-base font-semibold text-slate-700 transition hover:text-brand"
+                  className="inline-flex items-center gap-2 text-base font-semibold text-ink-body transition hover:text-brand"
                 >
                   Contact Us
                   <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -287,7 +287,7 @@ export default function AboutUs() {
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="text-center">
             <SectionLabel>What We Stand For</SectionLabel>
-            <h2 className="mt-3 text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">
+            <h2 className="mt-3 text-3xl font-bold tracking-tight text-ink sm:text-4xl">
               Our Core Values
             </h2>
           </div>
@@ -298,17 +298,17 @@ export default function AboutUs() {
                 key={value.title}
                 as="article"
                 delay={index % 4}
-                className="rounded-2xl border border-slate-100 bg-white p-6 shadow-sm transition hover:shadow-md"
+                className="rounded-2xl border border-line-soft bg-white p-6 shadow-sm transition hover:shadow-md"
               >
                 <span
                   className={`inline-flex h-11 w-11 items-center justify-center rounded-full ${value.iconBg} ${value.iconText}`}
                 >
                   {value.icon}
                 </span>
-                <h3 className="mt-4 text-lg font-bold text-slate-900">
+                <h3 className="mt-4 text-lg font-bold text-ink">
                   {value.title}
                 </h3>
-                <p className="mt-2 text-sm leading-relaxed text-slate-600">
+                <p className="mt-2 text-sm leading-relaxed text-ink-muted">
                   {value.description}
                 </p>
               </Reveal>
@@ -318,11 +318,11 @@ export default function AboutUs() {
       </section>
 
       {/* Journey / Timeline */}
-      <section className="bg-slate-50/60 py-14 sm:py-16 lg:py-20">
+      <section className="bg-surface-muted py-14 sm:py-16 lg:py-20">
         <div className="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8">
           <div className="text-center">
             <SectionLabel>Our Journey</SectionLabel>
-            <h2 className="mt-3 text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">
+            <h2 className="mt-3 text-3xl font-bold tracking-tight text-ink sm:text-4xl">
               From idea to impact
             </h2>
           </div>
@@ -341,10 +341,10 @@ export default function AboutUs() {
                   </span>
                   <div className="min-w-0 pt-0.5">
                     <p className="text-sm font-semibold text-brand">{item.year}</p>
-                    <h3 className="mt-1 text-lg font-bold text-slate-900">
+                    <h3 className="mt-1 text-lg font-bold text-ink">
                       {item.title}
                     </h3>
-                    <p className="mt-2 text-sm leading-relaxed text-slate-600">
+                    <p className="mt-2 text-sm leading-relaxed text-ink-muted">
                       {item.description}
                     </p>
                   </div>
@@ -372,7 +372,7 @@ export default function AboutUs() {
                 key={member.name}
                 as="article"
                 delay={index % 4}
-                className="overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-sm transition hover:shadow-md"
+                className="overflow-hidden rounded-2xl border border-line-soft bg-white shadow-sm transition hover:shadow-md"
               >
                 <div
                   className={`flex aspect-[3/4] w-full items-center justify-center bg-gradient-to-br ${member.gradient}`}
@@ -384,13 +384,13 @@ export default function AboutUs() {
                   </span>
                 </div>
                 <div className="p-5">
-                  <h3 className="text-lg font-bold text-slate-900">
+                  <h3 className="text-lg font-bold text-ink">
                     {member.name}
                   </h3>
                   <p className="mt-0.5 text-sm font-semibold text-brand">
                     {member.role}
                   </p>
-                  <p className="mt-3 text-sm leading-relaxed text-slate-600">
+                  <p className="mt-3 text-sm leading-relaxed text-ink-muted">
                     {member.bio}
                   </p>
                 </div>
@@ -430,11 +430,11 @@ export default function AboutUs() {
             </svg>
           </span>
 
-          <h2 className="mt-6 text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">
+          <h2 className="mt-6 text-3xl font-bold tracking-tight text-ink sm:text-4xl">
             Join the movement
           </h2>
 
-          <p className="mx-auto mt-4 max-w-xl text-base leading-relaxed text-slate-600 sm:text-lg">
+          <p className="mx-auto mt-4 max-w-xl text-base leading-relaxed text-ink-muted sm:text-lg">
             Whether you need help or want to offer your skills, SewaSathi is the
             place to connect with your community.
           </p>
@@ -442,13 +442,13 @@ export default function AboutUs() {
           <div className="mt-8 flex flex-col items-stretch justify-center gap-4 sm:flex-row sm:items-center">
             <Link
               to="/signup"
-              className="inline-flex items-center justify-center rounded-full bg-brand px-8 py-3.5 text-base font-semibold text-white shadow-lg shadow-brand/25 transition hover:bg-brand-dark active:scale-[0.98]"
+              className="inline-flex items-center justify-center rounded-full bg-brand px-8 py-3.5 text-base font-semibold text-white shadow-brand transition hover:bg-brand-dark active:scale-[0.98]"
             >
               Get Started
             </Link>
             <Link
               to="/contact"
-              className="inline-flex items-center justify-center gap-2 text-base font-semibold text-slate-700 transition hover:text-brand"
+              className="inline-flex items-center justify-center gap-2 text-base font-semibold text-ink-body transition hover:text-brand"
             >
               Contact Us
               <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">

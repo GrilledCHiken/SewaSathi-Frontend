@@ -14,9 +14,9 @@ export default class ErrorBoundary extends Component {
   render() {
     if (this.state.hasError) {
       return (
-        <div className="flex min-h-svh flex-col items-center justify-center gap-4 bg-slate-50 px-4 text-center">
-          <h1 className="text-xl font-bold text-slate-900">Something went wrong.</h1>
-          <p className="max-w-sm text-sm text-slate-600">
+        <div className="flex min-h-svh flex-col items-center justify-center gap-4 bg-surface-muted px-4 text-center">
+          <h1 className="text-xl font-bold text-ink">Something went wrong.</h1>
+          <p className="max-w-sm text-sm text-ink-muted">
             This page hit an unexpected error. Try reloading — if it keeps happening, let us know.
           </p>
           <button

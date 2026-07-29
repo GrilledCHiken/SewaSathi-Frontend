@@ -1,7 +1,15 @@
+import Card from "../ui/Card";
+import Spinner from "../ui/Spinner";
+import { cn } from "../../utils/cn";
+
 /**
  * The outcome cards both gateway callback pages land on. eSewa and Khalti differ
  * only in how they hand the browser back, so everything the customer actually sees
  * lives here rather than being written twice.
+ *
+ * The PRIMARY_BTN / SECONDARY_BTN class-string constants this file used to export
+ * are gone — callers use <Button> instead, which is also what removed the
+ * react-refresh/only-export-components warning this file used to carry.
  */
 
 export function CheckIcon() {
@@ -22,49 +30,51 @@ export function CrossIcon() {
   );
 }
 
-export const PRIMARY_BTN =
-  "inline-flex items-center justify-center rounded-full bg-brand px-6 py-3 text-sm font-semibold text-white transition hover:bg-brand-dark";
-
-export const SECONDARY_BTN =
-  "inline-flex items-center justify-center rounded-full border border-slate-200 bg-white px-6 py-3 text-sm font-semibold text-slate-700 transition hover:border-brand/30 hover:text-brand";
+const TONES = {
+  emerald: { card: "border-success/25 bg-success-soft", tile: "bg-white text-success" },
+  rose: { card: "border-danger/25 bg-danger-soft", tile: "bg-white text-danger" },
+};
 
 export function ResultCard({ tone, icon, title, body, children }) {
-  const tones = {
-    emerald: {
-      card: "border-emerald-200 bg-emerald-50",
-      tile: "bg-emerald-100 text-emerald-600",
-    },
-    rose: {
-      card: "border-rose-200 bg-rose-50",
-      tile: "bg-rose-100 text-rose-600",
-    },
-  };
-  const style = tones[tone];
+  const style = TONES[tone] || TONES.emerald;
+
   return (
-    <div className={`rounded-2xl border p-6 text-center sm:p-8 ${style.card}`} role="status">
+    <Card
+      padding="xl"
+      radius="panel"
+      className={cn("text-center", style.card)}
+      role="status"
+    >
       <span
-        className={`mx-auto flex h-16 w-16 items-center justify-center rounded-full ${style.tile}`}
+        className={cn(
+          "mx-auto flex h-16 w-16 items-center justify-center rounded-full shadow-e1",
+          style.tile,
+        )}
       >
         {icon}
       </span>
-      <h3 className="mt-4 text-xl font-bold text-slate-900">{title}</h3>
-      <div className="mx-auto mt-2 max-w-md text-sm text-slate-600">{body}</div>
-      <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:justify-center">{children}</div>
-    </div>
+      <h3 className="mt-4 text-xl font-extrabold tracking-tight text-ink">{title}</h3>
+      <div className="mx-auto mt-2 max-w-md text-sm leading-relaxed text-ink-body">
+        {body}
+      </div>
+      <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:justify-center">
+        {children}
+      </div>
+    </Card>
   );
 }
 
 /** Shown while the backend asks the gateway whether the money actually arrived. */
 export function VerifyingCard({ gateway }) {
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-8 text-center shadow-sm">
-      <span className="mx-auto block h-10 w-10 animate-spin rounded-full border-4 border-slate-200 border-t-brand" />
-      <p className="mt-4 text-sm font-semibold text-slate-700">
+    <Card padding="xl" radius="panel" className="text-center" role="status">
+      <Spinner size="xl" className="mx-auto text-brand" />
+      <p className="mt-4 text-sm font-semibold text-ink-body">
         Confirming your payment with {gateway}...
       </p>
-      <p className="mt-1 text-xs text-slate-500">
+      <p className="mt-1 text-xs text-ink-muted">
         This only takes a moment. Please don&apos;t close this page.
       </p>
-    </div>
+    </Card>
   );
 }

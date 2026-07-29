@@ -1,22 +1,24 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 import { useAuth } from "../context/AuthContext";
 import useDesktopNotifications from "../hooks/useDesktopNotifications";
+import DashboardHeader from "../components/User/DashboardHeader";
+import PageShell, { PageHeader } from "../components/ui/PageShell";
+import { Panel } from "../components/ui/Card";
+import Button from "../components/ui/Button";
+import ToggleSwitch from "../components/ui/ToggleSwitch";
+import { BellIcon, ShieldIcon } from "../components/ui/icons";
 
-function BellIcon() {
-  return (
-    <svg className="h-6 w-6 text-brand" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-      <path
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        strokeWidth={1.75}
-        d="M15 17h5l-1.4-1.4A2 2 0 0 1 18 14.2V11a6 6 0 0 0-4-5.7V5a2 2 0 1 0-4 0v.3A6 6 0 0 0 6 11v3.2a2 2 0 0 1-.6 1.4L4 17h5m6 0a3 3 0 1 1-6 0"
-      />
-    </svg>
-  );
-}
-
+/**
+ * Account security.
+ *
+ * This page previously rendered no header at all — it started straight at a
+ * centred column. Since DashboardLayout is only a sidebar plus a bare Outlet,
+ * that left /dashboard/security with no page title and, more seriously, no
+ * hamburger button: on a phone the sidebar was unreachable from this route.
+ * Adding the shared header fixes both.
+ */
 export default function AccountSecurity() {
   const [signingOutEverywhere, setSigningOutEverywhere] = useState(false);
   const desktopAlerts = useDesktopNotifications();
@@ -54,82 +56,83 @@ export default function AccountSecurity() {
   };
 
   return (
-    <div className="mx-auto max-w-3xl">
-      <h1 className="text-2xl font-bold tracking-tight text-navy">Security</h1>
-      <p className="mt-1.5 text-sm text-slate-600">
-        Control how your account is protected when signing in.
-      </p>
+    <PageShell header={<DashboardHeader title="Security" />} width="sm">
+      <PageHeader
+        title="Security"
+        description="Control how your account is protected when signing in."
+      />
 
-      <section className="mt-6 rounded-2xl border border-slate-200 bg-white p-6">
+      <Panel className="mt-6" padding="lg">
         <div className="flex items-start gap-4">
-          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-brand/10">
-            <BellIcon />
+          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-field bg-brand-50 text-brand">
+            <BellIcon className="h-6 w-6" />
           </span>
 
           <div className="min-w-0 flex-1">
-            <h2 className="text-base font-semibold text-slate-900">Desktop alerts</h2>
-            <p className="mt-1 text-sm leading-relaxed text-slate-600">
-              Show messages and job updates as desktop notifications when Sewa Sathi is open in
-              a background tab. Nothing is shown while you are looking at the page — the bell
-              already covers that.
+            <h2 className="text-base font-bold text-ink">Desktop alerts</h2>
+            <p className="mt-1 text-sm leading-relaxed text-ink-muted">
+              Show messages and job updates as desktop notifications when
+              SewaSathi is open in a background tab. Nothing is shown while you
+              are looking at the page — the bell already covers that.
             </p>
 
             {!desktopAlerts.supported && (
-              <p className="mt-3 text-sm text-slate-500">
+              <p className="mt-3 text-sm text-ink-faint">
                 This browser does not support desktop notifications.
               </p>
             )}
 
             {desktopAlerts.supported && desktopAlerts.permission === "denied" && (
-              <p className="mt-3 text-sm text-slate-500">
-                Notifications are blocked for this site. Re-allow them in your browser's site
-                settings to turn this on.
+              <p className="mt-3 text-sm text-ink-faint">
+                Notifications are blocked for this site. Re-allow them in your
+                browser&apos;s site settings to turn this on.
               </p>
             )}
 
             {desktopAlerts.supported && desktopAlerts.permission !== "denied" && (
-              <>
-                <button
-                  type="button"
-                  role="switch"
-                  aria-checked={desktopAlerts.enabled}
-                  aria-label="Desktop alerts"
-                  onClick={toggleDesktopAlerts}
-                  className={`mt-4 inline-flex h-7 w-12 shrink-0 items-center rounded-full transition ${
-                    desktopAlerts.enabled ? "bg-brand" : "bg-slate-300"
-                  }`}
-                >
-                  <span
-                    className={`h-5 w-5 rounded-full bg-white shadow transition ${
-                      desktopAlerts.enabled ? "translate-x-6" : "translate-x-1"
-                    }`}
-                  />
-                </button>
-                <span className="ml-3 align-middle text-sm font-medium text-slate-700">
+              <div className="mt-4 flex items-center gap-3">
+                <ToggleSwitch
+                  checked={desktopAlerts.enabled}
+                  onChange={toggleDesktopAlerts}
+                  label="Desktop alerts"
+                  labelHidden
+                />
+                <span className="text-sm font-medium text-ink-body">
                   {desktopAlerts.enabled ? "On" : "Off"}
                 </span>
-              </>
+              </div>
             )}
           </div>
         </div>
-      </section>
+      </Panel>
 
-      <section className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 p-6">
-        <h2 className="text-base font-semibold text-slate-900">Signed-in devices</h2>
-        <p className="mt-1 text-sm leading-relaxed text-slate-600">
-          Signing in creates a session that renews itself while you are active and ends after a
-          period of inactivity. If you think someone else has access to your account, sign out
-          everywhere — every device will have to sign in again.
-        </p>
-        <button
-          type="button"
-          onClick={handleLogoutEverywhere}
-          disabled={signingOutEverywhere}
-          className="mt-4 rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:opacity-60"
-        >
-          {signingOutEverywhere ? "Signing out…" : "Sign out everywhere"}
-        </button>
-      </section>
-    </div>
+      <Panel className="mt-4" padding="lg">
+        <div className="flex items-start gap-4">
+          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-field bg-surface-sunken text-ink-muted">
+            <ShieldIcon className="h-6 w-6" />
+          </span>
+
+          <div className="min-w-0 flex-1">
+            <h2 className="text-base font-bold text-ink">Signed-in devices</h2>
+            <p className="mt-1 text-sm leading-relaxed text-ink-muted">
+              Signing in creates a session that renews itself while you are
+              active and ends after a period of inactivity. If you think someone
+              else has access to your account, sign out everywhere — every device
+              will have to sign in again.
+            </p>
+
+            <Button
+              variant="secondary"
+              shape="rounded"
+              className="mt-4"
+              onClick={handleLogoutEverywhere}
+              loading={signingOutEverywhere}
+            >
+              {signingOutEverywhere ? "Signing out…" : "Sign out everywhere"}
+            </Button>
+          </div>
+        </div>
+      </Panel>
+    </PageShell>
   );
 }

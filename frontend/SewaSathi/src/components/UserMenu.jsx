@@ -13,7 +13,7 @@ const PROFILE_PATH_BY_ROLE = {
 function ChevronIcon({ open }) {
   return (
     <svg
-      className={`h-4 w-4 text-slate-400 transition-transform ${open ? "rotate-180" : ""}`}
+      className={`h-4 w-4 text-ink-faint transition-transform ${open ? "rotate-180" : ""}`}
       fill="none"
       viewBox="0 0 24 24"
       stroke="currentColor"
@@ -54,7 +54,7 @@ function SignOutIcon() {
 }
 
 const ITEM_CLASS =
-  "flex w-full items-center gap-2.5 px-3.5 py-2.5 text-sm font-medium text-slate-700 transition hover:bg-slate-100";
+  "flex w-full items-center gap-2.5 px-3.5 py-2.5 text-sm font-medium text-ink-body transition hover:bg-surface-sunken";
 
 function UserMenu({ initials, displayName, avatarClassName = "bg-brand" }) {
   const [open, setOpen] = useState(false);
@@ -88,7 +88,7 @@ function UserMenu({ initials, displayName, avatarClassName = "bg-brand" }) {
         onClick={() => setOpen((v) => !v)}
         aria-haspopup="true"
         aria-expanded={open}
-        className="flex items-center gap-2.5 rounded-full border border-slate-200 bg-white py-1 pl-1 pr-2.5 transition hover:bg-slate-50"
+        className="flex items-center gap-2.5 rounded-full border border-line bg-surface py-1 pl-1 pr-2.5 transition hover:bg-surface-muted"
       >
         <Avatar
           storedUrl={user?.avatarUrl}
@@ -96,19 +96,19 @@ function UserMenu({ initials, displayName, avatarClassName = "bg-brand" }) {
           className="h-9 w-9 text-sm"
           fallbackClassName={avatarClassName}
         />
-        <span className="hidden max-w-[140px] truncate text-sm font-medium text-slate-700 sm:inline">
+        <span className="hidden max-w-[140px] truncate text-sm font-medium text-ink-body sm:inline">
           {displayName}
         </span>
         <ChevronIcon open={open} />
       </button>
 
       {open && (
-        <div className="absolute right-0 top-full z-40 mt-2 w-56 overflow-hidden rounded-xl border border-slate-200 bg-white py-1.5 shadow-lg">
-          <div className="border-b border-slate-100 px-3.5 pb-2.5 pt-1">
-            <p className="truncate text-sm font-semibold text-slate-900">
+        <div className="absolute right-0 top-full z-40 mt-2 w-56 overflow-hidden rounded-xl border border-line bg-surface py-1.5 shadow-lg">
+          <div className="border-b border-line-soft px-3.5 pb-2.5 pt-1">
+            <p className="truncate text-sm font-semibold text-ink">
               {user?.name || "Account"}
             </p>
-            <p className="truncate text-xs text-slate-500">{user?.email}</p>
+            <p className="truncate text-xs text-ink-muted">{user?.email}</p>
           </div>
 
           <Link to={profilePath} onClick={() => setOpen(false)} className={`${ITEM_CLASS} mt-1`}>
@@ -125,7 +125,7 @@ function UserMenu({ initials, displayName, avatarClassName = "bg-brand" }) {
             </Link>
           )}
 
-          <button type="button" onClick={handleSignOut} className={`${ITEM_CLASS} border-t border-slate-100`}>
+          <button type="button" onClick={handleSignOut} className={`${ITEM_CLASS} border-t border-line-soft`}>
             <SignOutIcon />
             Sign Out
           </button>

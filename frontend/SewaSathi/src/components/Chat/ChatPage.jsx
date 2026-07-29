@@ -101,7 +101,7 @@ function ConversationItem({ conversation, active, onSelect }) {
       onClick={() => onSelect(conversation.conversationKey)}
       className={[
         "flex w-full gap-3 rounded-xl px-3 py-3 text-left transition",
-        active ? "bg-brand/10" : "hover:bg-slate-50",
+        active ? "bg-brand/10" : "hover:bg-surface-muted",
       ].join(" ")}
     >
       <span
@@ -111,23 +111,23 @@ function ConversationItem({ conversation, active, onSelect }) {
       </span>
       <div className="min-w-0 flex-1">
         <div className="flex items-center justify-between gap-2">
-          <span className="truncate font-semibold text-slate-900">
+          <span className="truncate font-semibold text-ink">
             {conversation.otherParty?.fullName}
           </span>
           {lastMessage && (
-            <span className="shrink-0 text-xs text-slate-500">
+            <span className="shrink-0 text-xs text-ink-muted">
               {formatTime(lastMessage.createdAt)}
             </span>
           )}
         </div>
-        <p className="truncate text-xs text-slate-500">
+        <p className="truncate text-xs text-ink-muted">
           {conversation.latestCategory} · {conversation.latestTaskTitle}
           {conversation.taskCount > 1 && ` · ${conversation.taskCount} jobs`}
         </p>
         <p
           className={[
             "mt-0.5 truncate text-sm",
-            lastMessage?.deleted ? "italic text-slate-400" : "text-slate-600",
+            lastMessage?.deleted ? "italic text-ink-faint" : "text-ink-muted",
           ].join(" ")}
         >
           {preview}
@@ -179,7 +179,7 @@ function AttachmentBubble({ message }) {
     <button
       type="button"
       onClick={() => downloadFile(message.attachmentUrl, message.attachmentName)}
-      className="flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100"
+      className="flex items-center gap-2 rounded-xl border border-line bg-surface-muted px-3 py-2 text-sm font-medium text-ink-body hover:bg-surface-sunken"
     >
       <svg className="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.75">
         <path strokeLinecap="round" strokeLinejoin="round" d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48" />
@@ -204,18 +204,21 @@ function MessageBubble({ message, isSelf, otherInitials, otherPalette, selfIniti
       >
         {isSelf ? selfInitials : otherInitials}
       </span>
+      {/* Sent messages sit in the brand colour and received ones on a white
+          card, so the two sides are distinguishable at a glance rather than by
+          alignment alone — which is all a reader has when the thread is long. */}
       <div
         className={[
-          "max-w-[85%] rounded-2xl px-4 py-2.5 sm:max-w-[75%]",
+          "max-w-[85%] rounded-card px-4 py-2.5 shadow-e1 sm:max-w-[75%]",
           message.deleted
-            ? "border border-dashed border-slate-200 bg-slate-100"
+            ? "border border-dashed border-line bg-surface-sunken shadow-none"
             : isSelf
-              ? "rounded-tr-sm bg-slate-200 text-slate-900"
-              : "rounded-tl-sm border border-slate-200 bg-white text-slate-900",
+              ? "rounded-tr-sm bg-brand text-white"
+              : "rounded-tl-sm border border-line bg-surface text-ink",
         ].join(" ")}
       >
         {message.deleted ? (
-          <p className="text-sm italic leading-relaxed text-slate-400">This message was deleted</p>
+          <p className="text-sm italic leading-relaxed text-ink-faint">This message was deleted</p>
         ) : (
           <>
             {message.attachmentUrl && <AttachmentBubble message={message} />}
@@ -226,13 +229,20 @@ function MessageBubble({ message, isSelf, otherInitials, otherPalette, selfIniti
             )}
           </>
         )}
-        <p className="mt-1 text-right text-xs text-slate-500">{formatTime(message.createdAt)}</p>
+        <p
+          className={[
+            "mt-1 text-right text-xs",
+            isSelf && !message.deleted ? "text-white/70" : "text-ink-muted",
+          ].join(" ")}
+        >
+          {formatTime(message.createdAt)}
+        </p>
       </div>
 
       {canDelete && (
         <span className="flex items-center">
           {confirming ? (
-            <span className="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs shadow-sm">
+            <span className="flex items-center gap-2 rounded-lg border border-line bg-surface px-2 py-1 text-xs shadow-e1">
               <button
                 type="button"
                 onClick={() => {
@@ -246,7 +256,7 @@ function MessageBubble({ message, isSelf, otherInitials, otherPalette, selfIniti
               <button
                 type="button"
                 onClick={() => setConfirming(false)}
-                className="text-slate-500 hover:underline"
+                className="text-ink-muted hover:underline"
               >
                 Cancel
               </button>
@@ -255,7 +265,7 @@ function MessageBubble({ message, isSelf, otherInitials, otherPalette, selfIniti
             <button
               type="button"
               onClick={() => setConfirming(true)}
-              className="rounded-lg p-1.5 text-slate-400 transition hover:bg-slate-200 hover:text-rose-600 focus:opacity-100 lg:opacity-0 lg:group-hover:opacity-100"
+              className="rounded-lg p-1.5 text-ink-faint transition hover:bg-line hover:text-rose-600 focus:opacity-100 lg:opacity-0 lg:group-hover:opacity-100"
               aria-label="Delete message"
             >
               <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.75">
@@ -447,19 +457,19 @@ export default function ChatPage({ renderHeader }) {
       {renderHeader?.()}
 
       <main className="flex min-h-0 flex-1 flex-col px-4 py-4 sm:px-6 lg:px-8">
-        <div className="mx-auto flex min-h-0 w-full max-w-6xl flex-1 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+        <div className="mx-auto flex min-h-0 w-full max-w-6xl flex-1 overflow-hidden rounded-card border border-line bg-surface shadow-e1">
           {/* Conversation list */}
           <aside
             className={[
-              "flex min-h-0 w-full flex-col border-r border-slate-200 lg:w-[340px] lg:shrink-0",
+              "flex min-h-0 w-full flex-col border-r border-line lg:w-[340px] lg:shrink-0",
               mobileShowChat ? "hidden lg:flex" : "flex",
             ].join(" ")}
           >
-            <div className="border-b border-slate-200 px-4 py-4">
-              <h2 className="text-lg font-bold text-slate-900">Messages</h2>
+            <div className="border-b border-line px-4 py-4">
+              <h2 className="text-lg font-bold text-ink">Messages</h2>
               <div className="relative mt-3">
                 <svg
-                  className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400"
+                  className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-faint"
                   fill="none"
                   viewBox="0 0 24 24"
                   stroke="currentColor"
@@ -472,7 +482,7 @@ export default function ChatPage({ renderHeader }) {
                   value={convSearch}
                   onChange={(e) => setConvSearch(e.target.value)}
                   placeholder="Search conversations..."
-                  className="w-full rounded-xl border border-slate-200 bg-slate-50 py-2 pl-10 pr-3 text-sm focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/20"
+                  className="w-full rounded-xl border border-line bg-surface-muted py-2 pl-10 pr-3 text-sm focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/20"
                   aria-label="Search conversations"
                 />
               </div>
@@ -480,9 +490,9 @@ export default function ChatPage({ renderHeader }) {
 
             <ul className="min-h-0 flex-1 space-y-1 overflow-y-auto p-2">
               {loadingConversations ? (
-                <li className="px-3 py-6 text-center text-sm text-slate-500">Loading...</li>
+                <li className="px-3 py-6 text-center text-sm text-ink-muted">Loading...</li>
               ) : filteredConversations.length === 0 ? (
-                <li className="px-3 py-6 text-center text-sm text-slate-500">
+                <li className="px-3 py-6 text-center text-sm text-ink-muted">
                   No conversations yet. Messaging opens once a worker is assigned to a task.
                 </li>
               ) : (
@@ -507,16 +517,16 @@ export default function ChatPage({ renderHeader }) {
             ].join(" ")}
           >
             {!activeConversation ? (
-              <div className="flex flex-1 items-center justify-center px-6 text-center text-sm text-slate-500">
+              <div className="flex flex-1 items-center justify-center px-6 text-center text-sm text-ink-muted">
                 Select a conversation to start chatting.
               </div>
             ) : (
               <>
                 {/* Chat header */}
-                <div className="flex shrink-0 items-center gap-3 border-b border-slate-200 px-4 py-3">
+                <div className="flex shrink-0 items-center gap-3 border-b border-line px-4 py-3">
                   <button
                     type="button"
-                    className="rounded-lg p-2 text-slate-600 hover:bg-slate-100 lg:hidden"
+                    className="rounded-lg p-2 text-ink-muted hover:bg-surface-sunken lg:hidden"
                     aria-label="Back to conversations"
                     onClick={() => setMobileShowChat(false)}
                   >
@@ -531,11 +541,11 @@ export default function ChatPage({ renderHeader }) {
                     {otherInitials}
                   </span>
                   <div className="min-w-0 flex-1">
-                    <p className="font-semibold text-slate-900">
+                    <p className="font-semibold text-ink">
                       {activeConversation.otherParty?.fullName}
                     </p>
-                    <p className="flex items-center gap-1.5 text-xs text-slate-500">
-                      <span className={`h-2 w-2 rounded-full ${connected ? "bg-emerald-500" : "bg-slate-300"}`} />
+                    <p className="flex items-center gap-1.5 text-xs text-ink-muted">
+                      <span className={`h-2 w-2 rounded-full ${connected ? "bg-emerald-500" : "bg-line-strong"}`} />
                       {connected ? "Connected" : "Connecting..."} · {activeConversation.latestTaskTitle}
                     </p>
                   </div>
@@ -545,17 +555,17 @@ export default function ChatPage({ renderHeader }) {
                 <div
                   ref={scrollRef}
                   onScroll={handleMessagesScroll}
-                  className="min-h-0 flex-1 overflow-y-auto bg-slate-50/80 px-4 py-4"
+                  className="min-h-0 flex-1 overflow-y-auto bg-surface-muted px-4 py-4"
                 >
                   {loadingMessages ? (
-                    <p className="text-center text-sm text-slate-500">Loading messages...</p>
+                    <p className="text-center text-sm text-ink-muted">Loading messages...</p>
                   ) : (
                     <div className="space-y-4">
                       {timeline.map((item) => {
                         if (item.kind === "date") {
                           return (
                             <div key={item.key} className="flex justify-center pt-2">
-                              <span className="rounded-full bg-white px-3 py-1 text-xs font-medium text-slate-500 shadow-sm ring-1 ring-slate-200/80">
+                              <span className="rounded-full bg-surface px-3 py-1 text-xs font-medium text-ink-muted shadow-e1 ring-1 ring-line">
                                 {item.label}
                               </span>
                             </div>
@@ -590,7 +600,7 @@ export default function ChatPage({ renderHeader }) {
                 </div>
 
                 {/* Input */}
-                <div className="shrink-0 border-t border-slate-200 bg-white px-4 py-3">
+                <div className="shrink-0 border-t border-line bg-surface px-4 py-3">
                   <div className="flex gap-2">
                     <div className="relative flex-1">
                       <textarea
@@ -599,7 +609,7 @@ export default function ChatPage({ renderHeader }) {
                         onKeyDown={handleKeyDown}
                         placeholder="Type a message..."
                         rows={1}
-                        className="h-11 w-full resize-none overflow-y-auto rounded-xl border border-slate-200 bg-slate-50 py-2.5 pl-4 pr-10 text-sm focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/20"
+                        className="h-11 w-full resize-none overflow-y-auto rounded-xl border border-line bg-surface-muted py-2.5 pl-4 pr-10 text-sm focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/20"
                         aria-label="Message input"
                       />
                       <input
@@ -613,7 +623,7 @@ export default function ChatPage({ renderHeader }) {
                         type="button"
                         onClick={handleAttachClick}
                         disabled={uploading}
-                        className="absolute right-2 top-1/2 -translate-y-1/2 rounded-lg p-1.5 text-slate-400 hover:bg-slate-200 hover:text-slate-600 disabled:cursor-not-allowed disabled:opacity-50"
+                        className="absolute right-2 top-1/2 -translate-y-1/2 rounded-lg p-1.5 text-ink-faint hover:bg-surface-sunken hover:text-ink-body disabled:cursor-not-allowed disabled:opacity-50"
                         aria-label="Attach file"
                       >
                         <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.75">
@@ -634,7 +644,7 @@ export default function ChatPage({ renderHeader }) {
                       <span className="hidden sm:inline">Send</span>
                     </button>
                   </div>
-                  <p className="mt-2 text-xs text-slate-400">
+                  <p className="mt-2 text-xs text-ink-faint">
                     {uploading ? "Sending attachment..." : "Press Enter to send, Shift + Enter for new line"}
                   </p>
                 </div>

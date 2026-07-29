@@ -205,12 +205,12 @@ function Home() {
                 4.8 average rating · Trusted by 50,000+ across Nepal
               </span>
 
-              <h1 className="mt-6 text-[2.75rem] font-extrabold leading-[1.05] tracking-tight text-slate-900 sm:text-6xl lg:text-[4rem]">
+              <h1 className="mt-6 text-[2.75rem] font-extrabold leading-[1.05] tracking-tight text-ink sm:text-6xl lg:text-[4rem]">
                 Trusted help{" "}
                 <span className="text-brand">is always nearby</span>
               </h1>
 
-              <p className="mt-6 max-w-xl text-lg leading-relaxed text-slate-600 sm:text-xl">
+              <p className="mt-6 max-w-xl text-lg leading-relaxed text-ink-muted sm:text-xl">
                 Book verified local professionals for cleaning, repairs, moving,
                 and more — safely, simply, and affordably across Nepal.
               </p>
@@ -219,9 +219,9 @@ function Home() {
                 className="mt-9 flex max-w-xl flex-col gap-3 sm:flex-row sm:items-stretch"
                 onSubmit={handleSearch}
               >
-                <div className="relative flex flex-1 items-center rounded-2xl border border-slate-200 bg-white shadow-sm shadow-slate-200/50 transition focus-within:border-brand focus-within:ring-2 focus-within:ring-brand/20">
+                <div className="relative flex flex-1 items-center rounded-2xl border border-line bg-white shadow-sm shadow-slate-200/50 transition focus-within:border-brand focus-within:ring-2 focus-within:ring-brand/20">
                   <svg
-                    className="ml-4 h-5 w-5 shrink-0 text-slate-400"
+                    className="ml-4 h-5 w-5 shrink-0 text-ink-faint"
                     fill="none"
                     viewBox="0 0 24 24"
                     stroke="currentColor"
@@ -239,27 +239,27 @@ function Home() {
                     value={query}
                     onChange={(e) => setQuery(e.target.value)}
                     placeholder="What service do you need?"
-                    className="w-full border-0 bg-transparent py-4 pl-3 pr-4 text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-0"
+                    className="w-full border-0 bg-transparent py-4 pl-3 pr-4 text-ink placeholder:text-ink-faint focus:outline-none focus:ring-0"
                     aria-label="Search for a service"
                   />
                 </div>
 
                 <button
                   type="submit"
-                  className="rounded-2xl bg-brand px-8 py-4 text-base font-semibold text-white shadow-lg shadow-brand/25 transition hover:bg-brand-dark hover:shadow-xl hover:shadow-brand/30 active:scale-[0.98]"
+                  className="rounded-2xl bg-brand px-8 py-4 text-base font-semibold text-white shadow-brand transition hover:bg-brand-dark hover:shadow-xl hover:shadow-brand/30 active:scale-[0.98]"
                 >
                   Search
                 </button>
               </form>
 
               <div className="mt-5 flex flex-wrap items-center gap-2">
-                <span className="text-sm text-slate-500">Popular:</span>
+                <span className="text-sm text-ink-muted">Popular:</span>
                 {POPULAR_SEARCHES.map((term) => (
                   <button
                     key={term}
                     type="button"
                     onClick={() => navigate(serviceHref(term))}
-                    className="rounded-full border border-slate-200 bg-slate-50 px-4 py-1.5 text-sm font-medium text-slate-700 transition hover:border-brand/40 hover:bg-brand/5 hover:text-brand"
+                    className="rounded-full border border-line bg-surface-muted px-4 py-1.5 text-sm font-medium text-ink-body transition hover:border-brand/40 hover:bg-brand/5 hover:text-brand"
                   >
                     {term}
                   </button>
@@ -269,7 +269,7 @@ function Home() {
 
             {/* Image column — 5 of 12 */}
             <div className="relative animate-fade-up-delay lg:col-span-5">
-              <div className="relative overflow-hidden rounded-3xl shadow-2xl shadow-slate-300/40 ring-1 ring-slate-200/80">
+              <div className="relative overflow-hidden rounded-3xl shadow-2xl shadow-e3 ring-1 ring-line">
                 <img
                   src={heroImage}
                   alt="Professional movers helping with a delivery"
@@ -279,27 +279,27 @@ function Home() {
               </div>
 
               {/* Floating anchor — top left */}
-              <div className="absolute -left-3 top-6 rounded-2xl border border-slate-100 bg-white px-4 py-3 shadow-xl shadow-slate-200/60 sm:-left-6">
+              <div className="absolute -left-3 top-6 rounded-2xl border border-line-soft bg-white px-4 py-3 shadow-xl shadow-e2 sm:-left-6">
                 <div className="flex items-center gap-2">
                   <StarRating rating={5} className="h-4 w-4" />
-                  <span className="text-sm font-bold text-slate-900">4.8</span>
+                  <span className="text-sm font-bold text-ink">4.8</span>
                 </div>
-                <p className="mt-0.5 text-xs font-medium text-slate-500">
+                <p className="mt-0.5 text-xs font-medium text-ink-muted">
                   from 12,000+ reviews
                 </p>
               </div>
 
               {/* Floating anchor — bottom */}
-              <div className="absolute -bottom-5 left-4 right-4 rounded-2xl border border-slate-100 bg-white p-4 shadow-xl shadow-slate-200/60 transition hover:-translate-y-0.5 sm:left-auto sm:-right-4 sm:max-w-[16rem]">
+              <div className="absolute -bottom-5 left-4 right-4 rounded-2xl border border-line-soft bg-white p-4 shadow-xl shadow-e2 transition hover:-translate-y-0.5 sm:left-auto sm:-right-4 sm:max-w-[16rem]">
                 <div className="flex items-start gap-3">
                   <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-emerald-100 text-emerald-600">
                     <CheckIcon />
                   </span>
                   <div>
-                    <p className="text-sm font-semibold text-slate-900">
+                    <p className="text-sm font-semibold text-ink">
                       Over 10,000+ professionals
                     </p>
-                    <p className="mt-0.5 text-sm text-slate-500">
+                    <p className="mt-0.5 text-sm text-ink-muted">
                       ready to help you today
                     </p>
                   </div>
@@ -309,17 +309,17 @@ function Home() {
           </div>
 
           {/* Stat band — closes the hero */}
-          <div className="grid grid-cols-2 gap-y-8 border-t border-slate-200/70 py-10 sm:grid-cols-4 sm:divide-x sm:divide-slate-200/70 lg:py-12">
+          <div className="grid grid-cols-2 gap-y-8 border-t border-line/70 py-10 sm:grid-cols-4 sm:divide-x sm:divide-line lg:py-12">
             {STATS.map((stat, index) => (
               <Reveal
                 key={stat.label}
                 delay={index % 4}
                 className="px-2 text-center sm:px-6"
               >
-                <p className="text-3xl font-extrabold tracking-tight text-slate-900 sm:text-4xl">
+                <p className="text-3xl font-extrabold tracking-tight text-ink sm:text-4xl">
                   {stat.value}
                 </p>
-                <p className="mt-1 text-sm text-slate-500">{stat.label}</p>
+                <p className="mt-1 text-sm text-ink-muted">{stat.label}</p>
               </Reveal>
             ))}
           </div>
@@ -329,7 +329,7 @@ function Home() {
       {/* ---------------------------------------------------------------- */}
       {/* Popular services — bento grid */}
       {/* ---------------------------------------------------------------- */}
-      <section className="bg-slate-50 py-20 lg:py-28" id="services">
+      <section className="bg-surface-muted py-20 lg:py-28" id="services">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="sm:flex sm:items-end sm:justify-between sm:gap-8">
             <SectionHeading
@@ -357,7 +357,7 @@ function Home() {
                 as={Link}
                 to={serviceHref(service.name)}
                 delay={index}
-                className="group flex flex-col rounded-2xl border border-slate-200/80 bg-white p-7 shadow-sm transition duration-300 hover:-translate-y-1 hover:border-brand/30 hover:shadow-lg hover:shadow-brand/10 sm:col-span-2 lg:col-span-3"
+                className="group flex flex-col rounded-2xl border border-line bg-white p-7 shadow-sm transition duration-300 hover:-translate-y-1 hover:border-brand/30 hover:shadow-lg hover:shadow-brand/10 sm:col-span-2 lg:col-span-3"
               >
                 <div className="flex items-start justify-between gap-4">
                   <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-brand/10 text-brand transition group-hover:bg-brand group-hover:text-white">
@@ -368,22 +368,22 @@ function Home() {
                   </span>
                 </div>
 
-                <h3 className="mt-5 text-xl font-semibold text-slate-900 transition group-hover:text-brand">
+                <h3 className="mt-5 text-xl font-semibold text-ink transition group-hover:text-brand">
                   {service.name}
                 </h3>
-                <p className="mt-2 flex-1 text-sm leading-relaxed text-slate-600">
+                <p className="mt-2 flex-1 text-sm leading-relaxed text-ink-muted">
                   {service.description}
                 </p>
 
-                <div className="mt-5 flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-slate-100 pt-4">
-                  <span className="inline-flex items-center gap-1.5 text-xs font-medium text-slate-500">
+                <div className="mt-5 flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-line-soft pt-4">
+                  <span className="inline-flex items-center gap-1.5 text-xs font-medium text-ink-muted">
                     <StarRating rating={5} className="h-3.5 w-3.5" />
-                    <span className="font-semibold text-slate-900">
+                    <span className="font-semibold text-ink">
                       {service.rating}
                     </span>
                     · {service.reviews} reviews
                   </span>
-                  <span className="text-xs font-medium text-slate-500">
+                  <span className="text-xs font-medium text-ink-muted">
                     {service.workers} pros available
                   </span>
                 </div>
@@ -397,15 +397,15 @@ function Home() {
                 as={Link}
                 to={serviceHref(service.name)}
                 delay={index % 4}
-                className="group flex flex-col rounded-2xl border border-slate-200/80 bg-white p-6 shadow-sm transition duration-300 hover:-translate-y-1 hover:border-brand/30 hover:shadow-lg hover:shadow-brand/10 lg:col-span-2"
+                className="group flex flex-col rounded-2xl border border-line bg-white p-6 shadow-sm transition duration-300 hover:-translate-y-1 hover:border-brand/30 hover:shadow-lg hover:shadow-brand/10 lg:col-span-2"
               >
                 <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-brand/10 text-brand transition group-hover:bg-brand group-hover:text-white">
                   <ServiceIcon name={service.icon} className="h-5 w-5" />
                 </span>
-                <h3 className="mt-4 text-lg font-semibold text-slate-900 transition group-hover:text-brand">
+                <h3 className="mt-4 text-lg font-semibold text-ink transition group-hover:text-brand">
                   {service.name}
                 </h3>
-                <p className="mt-2 flex-1 text-sm leading-relaxed text-slate-600">
+                <p className="mt-2 flex-1 text-sm leading-relaxed text-ink-muted">
                   {service.description}
                 </p>
                 <span className="mt-4 inline-flex items-center gap-1 text-sm font-medium text-brand opacity-0 transition group-hover:opacity-100">
@@ -434,7 +434,7 @@ function Home() {
                 Sits behind the opaque cards, so the dashes only show in the
                 gutters. 3.75rem = card p-8 (2rem) + half the h-14 tile. */}
             <span
-              className="absolute left-[16.6%] right-[16.6%] top-[3.75rem] hidden border-t border-dashed border-slate-300 md:block"
+              className="absolute left-[16.6%] right-[16.6%] top-[3.75rem] hidden border-t border-dashed border-line-strong md:block"
               aria-hidden="true"
             />
 
@@ -443,7 +443,7 @@ function Home() {
                 <Reveal
                   key={item.step}
                   delay={index % 4}
-                  className="group relative overflow-hidden rounded-2xl border border-slate-200/80 bg-white p-8 transition duration-300 hover:-translate-y-1 hover:border-brand/20 hover:shadow-lg hover:shadow-slate-200/60"
+                  className="group relative overflow-hidden rounded-2xl border border-line bg-white p-8 transition duration-300 hover:-translate-y-1 hover:border-brand/20 hover:shadow-lg hover:shadow-e2"
                 >
                   {/* Oversized ghost numeral for scale contrast */}
                   <span
@@ -456,10 +456,10 @@ function Home() {
                   <span className="relative flex h-14 w-14 items-center justify-center rounded-2xl bg-brand/10 text-brand transition group-hover:scale-110 group-hover:bg-brand group-hover:text-white">
                     <ServiceIcon name={item.icon} className="h-7 w-7" />
                   </span>
-                  <h3 className="relative mt-6 text-xl font-semibold text-slate-900">
+                  <h3 className="relative mt-6 text-xl font-semibold text-ink">
                     {item.title}
                   </h3>
-                  <p className="relative mt-3 text-sm leading-relaxed text-slate-600">
+                  <p className="relative mt-3 text-sm leading-relaxed text-ink-muted">
                     {item.description}
                   </p>
                 </Reveal>
@@ -489,7 +489,7 @@ function Home() {
               <Reveal className="mt-8 flex flex-col gap-4 sm:flex-row">
                 <Link
                   to="/safety"
-                  className="inline-flex items-center justify-center rounded-full bg-white px-8 py-3.5 text-base font-semibold text-navy transition hover:bg-slate-100 active:scale-[0.98]"
+                  className="inline-flex items-center justify-center rounded-full bg-white px-8 py-3.5 text-base font-semibold text-navy transition hover:bg-surface-sunken active:scale-[0.98]"
                 >
                   Our Safety Policy
                 </Link>
@@ -517,7 +517,7 @@ function Home() {
                   <p className="mt-4 text-base font-semibold text-white">
                     {feature.label}
                   </p>
-                  <p className="mt-1.5 text-sm leading-relaxed text-slate-400">
+                  <p className="mt-1.5 text-sm leading-relaxed text-ink-faint">
                     {feature.description}
                   </p>
                 </Reveal>
@@ -534,7 +534,7 @@ function Home() {
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="grid items-center gap-12 lg:grid-cols-12 lg:gap-16">
             <Reveal className="relative lg:col-span-5">
-              <div className="overflow-hidden rounded-3xl shadow-xl shadow-slate-200/60 ring-1 ring-slate-200/80">
+              <div className="overflow-hidden rounded-3xl shadow-xl shadow-e2 ring-1 ring-line">
                 <img
                   src={testimonialImage}
                   alt="Happy SewaSathi customer"
@@ -542,14 +542,14 @@ function Home() {
                 />
               </div>
 
-              <div className="absolute -bottom-5 left-5 right-5 rounded-2xl border border-slate-100 bg-white p-4 shadow-xl shadow-slate-200/60 sm:right-auto sm:max-w-[17rem]">
+              <div className="absolute -bottom-5 left-5 right-5 rounded-2xl border border-line-soft bg-white p-4 shadow-xl shadow-e2 sm:right-auto sm:max-w-[17rem]">
                 <div className="flex items-center gap-3">
-                  <p className="text-3xl font-extrabold tracking-tight text-slate-900">
+                  <p className="text-3xl font-extrabold tracking-tight text-ink">
                     4.8
                   </p>
                   <div>
                     <StarRating rating={5} className="h-4 w-4" />
-                    <p className="mt-1 text-xs font-medium text-slate-500">
+                    <p className="mt-1 text-xs font-medium text-ink-muted">
                       from 12,000+ verified reviews
                     </p>
                   </div>
@@ -569,10 +569,10 @@ function Home() {
                   <Reveal
                     key={item.author}
                     delay={index % 4}
-                    className="rounded-2xl border border-slate-200/80 bg-white p-6 shadow-sm transition duration-300 hover:border-brand/30 hover:shadow-md"
+                    className="rounded-2xl border border-line bg-white p-6 shadow-sm transition duration-300 hover:border-brand/30 hover:shadow-md"
                   >
                     <StarRating rating={item.rating} className="h-4 w-4" />
-                    <blockquote className="mt-3 text-base leading-relaxed text-slate-700">
+                    <blockquote className="mt-3 text-base leading-relaxed text-ink-body">
                       &ldquo;{item.quote}&rdquo;
                     </blockquote>
                     <footer className="mt-4 flex items-center gap-3">
@@ -585,10 +585,10 @@ function Home() {
                         {initialsOf(item.author)}
                       </span>
                       <div>
-                        <p className="text-sm font-semibold text-slate-900">
+                        <p className="text-sm font-semibold text-ink">
                           {item.author}
                         </p>
-                        <p className="text-xs text-slate-500">{item.role}</p>
+                        <p className="text-xs text-ink-muted">{item.role}</p>
                       </div>
                     </footer>
                   </Reveal>
@@ -610,10 +610,10 @@ function Home() {
                 <p className="text-sm font-semibold uppercase tracking-wider text-emerald-600">
                   For service professionals
                 </p>
-                <h2 className="mt-3 text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">
+                <h2 className="mt-3 text-3xl font-bold tracking-tight text-ink sm:text-4xl">
                   Earn on your schedule
                 </h2>
-                <p className="mt-4 text-lg leading-relaxed text-slate-600">
+                <p className="mt-4 text-lg leading-relaxed text-ink-muted">
                   Join 12,500+ taskers already building a business on SewaSathi.
                   You choose the jobs, the hours, and the price.
                 </p>
@@ -630,10 +630,10 @@ function Home() {
                       <CheckIcon className="h-4 w-4" />
                     </span>
                     <div>
-                      <p className="text-base font-semibold text-slate-900">
+                      <p className="text-base font-semibold text-ink">
                         {benefit.title}
                       </p>
-                      <p className="mt-1 text-sm leading-relaxed text-slate-600">
+                      <p className="mt-1 text-sm leading-relaxed text-ink-muted">
                         {benefit.description}
                       </p>
                     </div>
@@ -650,7 +650,7 @@ function Home() {
                 </Link>
                 <Link
                   to="/work-with-us"
-                  className="group inline-flex items-center gap-1.5 text-base font-semibold text-slate-700 transition hover:text-emerald-700"
+                  className="group inline-flex items-center gap-1.5 text-base font-semibold text-ink-body transition hover:text-emerald-700"
                 >
                   See how earning works
                   <ArrowIcon className="h-4 w-4 transition group-hover:translate-x-0.5" />
@@ -660,13 +660,13 @@ function Home() {
 
             {/* Composed earnings card — shows the product, no image asset needed */}
             <Reveal delay={1} className="relative">
-              <div className="rounded-3xl border border-slate-200/80 bg-white p-6 shadow-2xl shadow-emerald-900/5 sm:p-8">
+              <div className="rounded-3xl border border-line bg-white p-6 shadow-2xl shadow-emerald-900/5 sm:p-8">
                 <div className="flex items-start justify-between gap-4">
                   <div>
-                    <p className="text-xs font-medium uppercase tracking-wide text-slate-400">
+                    <p className="text-xs font-medium uppercase tracking-wide text-ink-faint">
                       This week
                     </p>
-                    <p className="mt-1.5 text-4xl font-extrabold tracking-tight text-slate-900">
+                    <p className="mt-1.5 text-4xl font-extrabold tracking-tight text-ink">
                       Rs 18,400
                     </p>
                   </div>
@@ -676,7 +676,7 @@ function Home() {
                   </span>
                 </div>
 
-                <div className="mt-6 space-y-3 border-t border-slate-100 pt-6">
+                <div className="mt-6 space-y-3 border-t border-line-soft pt-6">
                   {[
                     { name: "Home Cleaning", meta: "Lalitpur · 3 hrs", amount: "Rs 4,200", icon: "cleaning" },
                     { name: "Furniture Assembly", meta: "Baneshwor · 2 hrs", amount: "Rs 3,600", icon: "furniture" },
@@ -687,10 +687,10 @@ function Home() {
                         <ServiceIcon name={job.icon} className="h-5 w-5" />
                       </span>
                       <div className="min-w-0 flex-1">
-                        <p className="truncate text-sm font-semibold text-slate-900">
+                        <p className="truncate text-sm font-semibold text-ink">
                           {job.name}
                         </p>
-                        <p className="text-xs text-slate-500">{job.meta}</p>
+                        <p className="text-xs text-ink-muted">{job.meta}</p>
                       </div>
                       <p className="shrink-0 text-sm font-bold text-emerald-600">
                         {job.amount}
@@ -699,11 +699,11 @@ function Home() {
                   ))}
                 </div>
 
-                <div className="mt-6 flex items-center justify-between rounded-xl bg-slate-50 px-4 py-3">
-                  <span className="text-xs font-medium text-slate-500">
+                <div className="mt-6 flex items-center justify-between rounded-xl bg-surface-muted px-4 py-3">
+                  <span className="text-xs font-medium text-ink-muted">
                     Next payout
                   </span>
-                  <span className="text-sm font-semibold text-slate-900">
+                  <span className="text-sm font-semibold text-ink">
                     In 2 days
                   </span>
                 </div>
@@ -737,7 +737,7 @@ function Home() {
               <div className="mt-8 flex flex-col items-center justify-center gap-4 sm:flex-row">
                 <Link
                   to="/services"
-                  className="inline-flex w-full items-center justify-center rounded-full bg-white px-8 py-3.5 text-base font-semibold text-brand shadow-lg transition hover:bg-slate-50 hover:shadow-xl active:scale-[0.98] sm:w-auto"
+                  className="inline-flex w-full items-center justify-center rounded-full bg-white px-8 py-3.5 text-base font-semibold text-brand shadow-lg transition hover:bg-surface-muted hover:shadow-xl active:scale-[0.98] sm:w-auto"
                 >
                   Book a Service
                 </Link>

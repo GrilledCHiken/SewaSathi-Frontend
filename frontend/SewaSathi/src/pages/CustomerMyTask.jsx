@@ -17,6 +17,10 @@ import {
 } from "../components/tasks/taskUi";
 import { cancelTask, listMyTasks } from "../api/taskApi";
 import { listReviewableTasks } from "../api/reviewApi";
+import PageShell, { PageHeader } from "../components/ui/PageShell";
+import Alert from "../components/ui/Alert";
+import Button from "../components/ui/Button";
+import { PlusIcon } from "../components/ui/icons";
 
 const STATUS_FILTERS = [
   { key: "all", label: "All" },
@@ -32,33 +36,15 @@ const ADVANCE_PERCENT = `${Math.round(ADVANCE_RATE * 100)}%`;
 
 function AdvanceNotice({ count }) {
   return (
-    <div
-      className="mb-4 flex items-start gap-3 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800"
-      role="status"
-    >
-      <svg
-        className="mt-0.5 h-5 w-5 shrink-0"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.75"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        aria-hidden="true"
-      >
-        <circle cx="12" cy="12" r="10" />
-        <path d="M12 16v-4M12 8h.01" />
-      </svg>
-      <p>
-        <span className="font-semibold">
-          {count === 1
-            ? "A worker accepted your task."
-            : `${count} of your tasks have been accepted.`}
-        </span>{" "}
-        You need to pay a {ADVANCE_PERCENT} advance to confirm the booking and lock
-        in your worker. The rest is due once the work is completed.
-      </p>
-    </div>
+    <Alert tone="warning" className="mb-4" role="status">
+      <span className="font-semibold">
+        {count === 1
+          ? "A worker accepted your task."
+          : `${count} of your tasks have been accepted.`}
+      </span>{" "}
+      You need to pay a {ADVANCE_PERCENT} advance to confirm the booking and lock
+      in your worker. The rest is due once the work is completed.
+    </Alert>
   );
 }
 
@@ -68,46 +54,49 @@ function TaskActions({ task, status, canReview, onCancel, canceling }) {
     // slot that Message occupies once the task is confirmed.
     case "accepted":
       return (
-        <Link
-          to={`/dashboard/checkout/${task.id}`}
-          className="rounded-full bg-brand px-3.5 py-1.5 text-xs font-semibold text-white shadow-sm shadow-brand/25 transition hover:bg-brand-dark"
-        >
+        <Button as={Link} to={`/dashboard/checkout/${task.id}`} size="xs">
           Pay For Confirmation
-        </Link>
+        </Button>
       );
     case "assigned":
     case "in progress":
       return task.assignedWorker ? (
-        <Link
+        <Button
+          as={Link}
           to={`/dashboard/messages?taskId=${task.id}`}
-          className="rounded-full border border-slate-200 bg-white px-3.5 py-1.5 text-xs font-semibold text-slate-700 transition hover:border-brand/30 hover:text-brand"
+          size="xs"
+          variant="secondary"
         >
           Message
-        </Link>
+        </Button>
       ) : null;
     case "completed":
       return canReview ? (
-        <Link
+        <Button
+          as={Link}
           to={`/dashboard/reviews?taskId=${task.id}`}
-          className="rounded-full border border-brand bg-white px-3.5 py-1.5 text-xs font-semibold text-brand transition hover:bg-brand/5"
+          size="xs"
+          variant="secondary"
+          className="border-brand text-brand"
         >
           Leave Review
-        </Link>
+        </Button>
       ) : (
-        <span className="rounded-full border border-slate-200 bg-white px-3.5 py-1.5 text-xs font-semibold text-slate-400">
+        <span className="rounded-full border border-line bg-surface px-3.5 py-1.5 text-xs font-semibold text-ink-faint">
           Reviewed
         </span>
       );
     case "open":
       return (
-        <button
-          type="button"
+        <Button
+          size="xs"
+          variant="ghost"
           onClick={onCancel}
-          disabled={canceling}
-          className="rounded-full px-3 py-1.5 text-xs font-semibold text-rose-600 transition hover:bg-rose-50 disabled:cursor-not-allowed disabled:opacity-60"
+          loading={canceling}
+          className="text-danger hover:bg-danger-soft hover:text-danger-ink"
         >
           {canceling ? "Cancelling..." : "Cancel"}
-        </button>
+        </Button>
       );
     default:
       return null;
@@ -172,72 +161,71 @@ export default function CustomerMyTask() {
   const awaitingAdvance = counts.accepted || 0;
 
   return (
-    <div className="flex min-h-svh flex-1 flex-col">
-      <DashboardHeader searchPlaceholder="Search workers..." />
+    <PageShell
+      header={<DashboardHeader title="My Tasks" searchPlaceholder="Search workers..." />}
+      width="md"
+    >
+      <div className="mb-5">
+        <PageHeader
+          title="My Tasks"
+          description="Manage and track all your posted tasks."
+          actions={
+            <Button
+              as={Link}
+              to="/dashboard/post-task"
+              iconLeft={<PlusIcon className="h-4 w-4" />}
+            >
+              Post a Task
+            </Button>
+          }
+        />
+      </div>
 
-      <main className="flex-1 px-4 py-6 sm:px-6 lg:px-8">
-        <div className="mx-auto max-w-5xl">
-          <div className="mb-5">
-            <h2 className="text-2xl font-bold text-slate-900 sm:text-3xl">
-              My Tasks
-            </h2>
-            <p className="mt-1 text-sm text-slate-600 sm:text-base">
-              Manage and track all your posted tasks.
-            </p>
-          </div>
+      {awaitingAdvance > 0 && <AdvanceNotice count={awaitingAdvance} />}
 
-          {awaitingAdvance > 0 && <AdvanceNotice count={awaitingAdvance} />}
+      <TaskFilterBar
+        filters={STATUS_FILTERS}
+        active={activeFilter}
+        onChange={setActiveFilter}
+        counts={counts}
+        search={taskSearch}
+        onSearchChange={setTaskSearch}
+        accent="brand"
+      />
 
-          <TaskFilterBar
-            filters={STATUS_FILTERS}
-            active={activeFilter}
-            onChange={setActiveFilter}
-            counts={counts}
-            search={taskSearch}
-            onSearchChange={setTaskSearch}
-            accent="brand"
-          />
-
-          {loading ? (
-            <TaskListSkeleton rows={5} />
-          ) : filteredTasks.length === 0 ? (
-            <TaskEmptyState
-              icon={isSearching ? SEARCH_ICON : INBOX_ICON}
-              title={
-                isSearching
-                  ? "No tasks match your search"
-                  : hasNoTasksAtAll
-                    ? "You haven't posted any tasks yet"
-                    : `No ${activeFilter} tasks`
-              }
-              body={
-                isSearching
-                  ? `Nothing matched "${taskSearch.trim()}". Try a different keyword.`
-                  : hasNoTasksAtAll
-                    ? "Post your first task and workers nearby can start accepting it."
-                    : "Tasks will show up here as they move through this stage."
-              }
-              action={
-                isSearching ? (
-                  <button
-                    type="button"
-                    onClick={() => setTaskSearch("")}
-                    className="text-sm font-semibold text-brand hover:text-brand-dark"
-                  >
-                    Clear search
-                  </button>
-                ) : (
-                  <Link
-                    to="/dashboard/post-task"
-                    className="inline-flex rounded-full bg-brand px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-brand-dark"
-                  >
-                    Post a new task
-                  </Link>
-                )
-              }
-            />
-          ) : (
-            <ul className="space-y-2.5">
+      {loading ? (
+        <TaskListSkeleton rows={5} />
+      ) : filteredTasks.length === 0 ? (
+        <TaskEmptyState
+          icon={isSearching ? SEARCH_ICON : INBOX_ICON}
+          title={
+            isSearching
+              ? "No tasks match your search"
+              : hasNoTasksAtAll
+                ? "You haven't posted any tasks yet"
+                : `No ${activeFilter} tasks`
+          }
+          body={
+            isSearching
+              ? `Nothing matched "${taskSearch.trim()}". Try a different keyword.`
+              : hasNoTasksAtAll
+                ? "Post your first task and workers nearby can start accepting it."
+                : "Tasks will show up here as they move through this stage."
+          }
+          action={
+            isSearching ? (
+              <Button variant="quiet" size="sm" onClick={() => setTaskSearch("")}>
+                Clear search
+              </Button>
+            ) : (
+              <Button as={Link} to="/dashboard/post-task">
+                Post a new task
+              </Button>
+            )
+          }
+        />
+      ) : (
+        <ul className="space-y-2.5">
               {filteredTasks.map((task) => {
                 const status = formatStatus(task.status);
                 return (
@@ -287,10 +275,8 @@ export default function CustomerMyTask() {
                   </li>
                 );
               })}
-            </ul>
-          )}
-        </div>
-      </main>
-    </div>
+        </ul>
+      )}
+    </PageShell>
   );
 }
