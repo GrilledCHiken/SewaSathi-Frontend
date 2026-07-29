@@ -230,11 +230,11 @@ const SAFETY_FAQS = [
 function SectionHeading({ title, subtitle }) {
   return (
     <div className="mx-auto max-w-2xl text-center">
-      <h2 className="text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">
+      <h2 className="text-3xl font-bold tracking-tight text-ink sm:text-4xl">
         {title}
       </h2>
       {subtitle && (
-        <p className="mt-4 text-base leading-relaxed text-slate-600 sm:text-lg">
+        <p className="mt-4 text-base leading-relaxed text-ink-muted sm:text-lg">
           {subtitle}
         </p>
       )}
@@ -253,7 +253,7 @@ function SafetyAccordion() {
           <div
             key={item.q}
             className={`overflow-hidden rounded-2xl border transition ${
-              open ? "border-brand/30 bg-sky-50/40" : "border-slate-200 bg-white"
+              open ? "border-brand/30 bg-sky-50/40" : "border-line bg-white"
             }`}
           >
             <button
@@ -262,12 +262,12 @@ function SafetyAccordion() {
               onClick={() => setOpenIndex(open ? -1 : idx)}
               aria-expanded={open}
             >
-              <span className="text-[0.9375rem] font-semibold text-slate-900 sm:text-base">
+              <span className="text-[0.9375rem] font-semibold text-ink sm:text-base">
                 {item.q}
               </span>
               <span
-                className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-slate-500 transition ${
-                  open ? "rotate-180 bg-white" : "bg-slate-100"
+                className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-ink-muted transition ${
+                  open ? "rotate-180 bg-white" : "bg-surface-sunken"
                 }`}
               >
                 <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -277,8 +277,8 @@ function SafetyAccordion() {
             </button>
 
             {open && (
-              <div className="border-t border-slate-200/80 px-5 pb-5 sm:px-6 sm:pb-6">
-                <p className="pt-4 text-sm leading-relaxed text-slate-600">
+              <div className="border-t border-line px-5 pb-5 sm:px-6 sm:pb-6">
+                <p className="pt-4 text-sm leading-relaxed text-ink-muted">
                   {item.a}
                 </p>
               </div>
@@ -302,11 +302,11 @@ export default function Safety() {
             Verified. Secured. Trusted.
           </p>
 
-          <h1 className="mt-4 text-4xl font-extrabold tracking-tight text-slate-900 sm:text-5xl lg:text-[3.25rem]">
+          <h1 className="mt-4 text-4xl font-extrabold tracking-tight text-ink sm:text-5xl lg:text-[3.25rem]">
             Safety &amp; Trust at SewaSathi
           </h1>
 
-          <p className="mx-auto mt-5 max-w-2xl text-base leading-relaxed text-slate-600 sm:text-lg">
+          <p className="mx-auto mt-5 max-w-2xl text-base leading-relaxed text-ink-muted sm:text-lg">
             Your safety is our highest priority. Every worker is verified,
             payments are secured through trusted Nepali gateways, and our support
             team is here whenever you need help.
@@ -315,7 +315,7 @@ export default function Safety() {
       </section>
 
       {/* Stats */}
-      <section className="border-b border-slate-100 bg-white py-10 sm:py-12">
+      <section className="border-b border-line-soft bg-white py-10 sm:py-12">
         <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-2 gap-6 lg:grid-cols-4 lg:gap-8">
             {STATS.map((stat, index) => (
@@ -325,10 +325,10 @@ export default function Safety() {
                 >
                   {stat.icon}
                 </span>
-                <p className="mt-3 text-2xl font-extrabold tracking-tight text-slate-900 sm:text-3xl">
+                <p className="mt-3 text-2xl font-extrabold tracking-tight text-ink sm:text-3xl">
                   {stat.value}
                 </p>
-                <p className="mt-1 text-xs font-medium text-slate-500 sm:text-sm">
+                <p className="mt-1 text-xs font-medium text-ink-muted sm:text-sm">
                   {stat.label}
                 </p>
               </Reveal>
@@ -338,7 +338,7 @@ export default function Safety() {
       </section>
 
       {/* Verification Process */}
-      <section className="bg-slate-50/50 py-14 sm:py-16 lg:py-20">
+      <section className="bg-surface-muted/50 py-14 sm:py-16 lg:py-20">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <SectionHeading
             title="Our Verification Process"
@@ -348,16 +348,16 @@ export default function Safety() {
           <div className="mt-10 grid gap-5 sm:mt-12 lg:grid-cols-4 lg:gap-4">
             {VERIFICATION_STEPS.map((step, index) => (
               <Reveal key={step.title} delay={index % 4} className="relative">
-                <article className="flex h-full flex-col rounded-2xl border border-slate-200/80 bg-white p-6 shadow-sm transition hover:shadow-md">
+                <article className="flex h-full flex-col rounded-2xl border border-line bg-white p-6 shadow-sm transition hover:shadow-md">
                   <span
                     className={`inline-flex h-11 w-11 items-center justify-center rounded-xl ${step.iconBg} ${step.iconText}`}
                   >
                     {step.icon}
                   </span>
-                  <h3 className="mt-4 text-lg font-bold text-slate-900">
+                  <h3 className="mt-4 text-lg font-bold text-ink">
                     {step.title}
                   </h3>
-                  <p className="mt-2 flex-1 text-sm leading-relaxed text-slate-600">
+                  <p className="mt-2 flex-1 text-sm leading-relaxed text-ink-muted">
                     {step.description}
                   </p>
                 </article>
@@ -391,14 +391,14 @@ export default function Safety() {
               <Reveal
                 key={feature.title}
                 delay={index % 4}
-                className="flex gap-4 rounded-2xl border border-slate-100 bg-slate-50/50 p-5 transition hover:border-brand/20 hover:bg-white hover:shadow-sm"
+                className="flex gap-4 rounded-2xl border border-line-soft bg-surface-muted/50 p-5 transition hover:border-brand/20 hover:bg-white hover:shadow-sm"
               >
                 <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand/10 text-brand">
                   {feature.icon}
                 </span>
                 <div className="min-w-0">
-                  <h3 className="font-semibold text-slate-900">{feature.title}</h3>
-                  <p className="mt-1 text-sm leading-relaxed text-slate-600">
+                  <h3 className="font-semibold text-ink">{feature.title}</h3>
+                  <p className="mt-1 text-sm leading-relaxed text-ink-muted">
                     {feature.description}
                   </p>
                 </div>
@@ -409,7 +409,7 @@ export default function Safety() {
       </section>
 
       {/* Guarantees */}
-      <section className="bg-slate-50/50 py-14 sm:py-16 lg:py-20">
+      <section className="bg-surface-muted/50 py-14 sm:py-16 lg:py-20">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <SectionHeading
             title="Our Guarantees"
@@ -422,17 +422,17 @@ export default function Safety() {
                 key={item.title}
                 as="article"
                 delay={index % 4}
-                className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm"
+                className="rounded-2xl border border-line bg-white p-6 shadow-sm"
               >
                 <span className="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-100 text-emerald-600">
                   <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                     <path d="M20 6L9 17l-5-5" />
                   </svg>
                 </span>
-                <h3 className="mt-4 text-lg font-bold text-slate-900">
+                <h3 className="mt-4 text-lg font-bold text-ink">
                   {item.title}
                 </h3>
-                <p className="mt-2 text-sm leading-relaxed text-slate-600">
+                <p className="mt-2 text-sm leading-relaxed text-ink-muted">
                   {item.description}
                 </p>
               </Reveal>
@@ -465,11 +465,11 @@ export default function Safety() {
             </svg>
           </span>
 
-          <h2 className="mt-6 text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">
+          <h2 className="mt-6 text-3xl font-bold tracking-tight text-ink sm:text-4xl">
             Hire with Confidence
           </h2>
 
-          <p className="mx-auto mt-4 max-w-xl text-base leading-relaxed text-slate-600 sm:text-lg">
+          <p className="mx-auto mt-4 max-w-xl text-base leading-relaxed text-ink-muted sm:text-lg">
             Verified workers, secure payments, and guarantees that protect you
             every step of the way.
           </p>
@@ -477,13 +477,13 @@ export default function Safety() {
           <div className="mt-8 flex flex-col items-stretch justify-center gap-3 sm:flex-row sm:items-center">
             <Link
               to="/signup"
-              className="inline-flex items-center justify-center rounded-full bg-brand px-8 py-3.5 text-base font-semibold text-white shadow-lg shadow-brand/25 transition hover:bg-brand-dark active:scale-[0.98]"
+              className="inline-flex items-center justify-center rounded-full bg-brand px-8 py-3.5 text-base font-semibold text-white shadow-brand transition hover:bg-brand-dark active:scale-[0.98]"
             >
               Get Started Now
             </Link>
             <Link
               to="/services"
-              className="inline-flex items-center justify-center rounded-full border-2 border-slate-200 bg-white px-8 py-3.5 text-base font-semibold text-slate-900 transition hover:border-slate-300 hover:bg-slate-50 active:scale-[0.98]"
+              className="inline-flex items-center justify-center rounded-full border-2 border-line bg-white px-8 py-3.5 text-base font-semibold text-ink transition hover:border-line-strong hover:bg-surface-muted active:scale-[0.98]"
             >
               Browse Services
             </Link>

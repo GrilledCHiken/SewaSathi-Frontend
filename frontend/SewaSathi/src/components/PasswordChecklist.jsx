@@ -39,7 +39,7 @@ function PasswordChecklist({ value = '', accent = 'brand', show = true }) {
           <li
             key={rule.id}
             className={`flex items-center gap-1.5 text-xs transition ${
-              met ? `font-medium ${metClass}` : 'text-slate-400'
+              met ? `font-medium ${metClass}` : 'text-ink-faint'
             }`}
           >
             {met ? (

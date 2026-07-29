@@ -5,17 +5,17 @@ export default function TaskListSkeleton({ rows = 4 }) {
       {Array.from({ length: rows }).map((_, index) => (
         <li
           key={index}
-          className="rounded-xl border border-slate-200/80 bg-white p-3.5 shadow-sm sm:p-4"
+          className="rounded-xl border border-line bg-surface p-3.5 shadow-e1 sm:p-4"
         >
           <div className="flex animate-pulse items-start gap-3 sm:gap-4">
-            <div className="h-10 w-10 shrink-0 rounded-xl bg-slate-200" />
+            <div className="h-10 w-10 shrink-0 rounded-xl bg-line" />
             <div className="min-w-0 flex-1">
               <div className="flex items-center justify-between gap-3">
-                <div className="h-4 w-1/3 rounded bg-slate-200" />
-                <div className="h-4 w-16 rounded bg-slate-200" />
+                <div className="h-4 w-1/3 rounded bg-line" />
+                <div className="h-4 w-16 rounded bg-line" />
               </div>
-              <div className="mt-2 h-3 w-2/3 rounded bg-slate-100" />
-              <div className="mt-3 h-3 w-1/4 rounded bg-slate-100" />
+              <div className="mt-2 h-3 w-2/3 rounded bg-surface-sunken" />
+              <div className="mt-3 h-3 w-1/4 rounded bg-surface-sunken" />
             </div>
           </div>
         </li>

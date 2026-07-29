@@ -31,13 +31,13 @@ const SECTIONS = [
 export default function Terms() {
   return (
     <div className="flex-1 bg-white">
-      <section className="bg-slate-50 py-14 sm:py-16">
+      <section className="bg-surface-muted py-14 sm:py-16">
         <div className="mx-auto max-w-3xl px-4 text-center sm:px-6 lg:px-8">
           <Reveal>
-            <h1 className="text-4xl font-extrabold tracking-tight text-slate-900 sm:text-5xl">
+            <h1 className="text-4xl font-extrabold tracking-tight text-ink sm:text-5xl">
               Terms of Service
             </h1>
-            <p className="mt-4 text-base text-slate-600">Last updated: January 2026</p>
+            <p className="mt-4 text-base text-ink-muted">Last updated: January 2026</p>
           </Reveal>
         </div>
       </section>
@@ -47,14 +47,14 @@ export default function Terms() {
           <Reveal className="space-y-10">
             {SECTIONS.map((section) => (
               <div key={section.title}>
-                <h2 className="text-xl font-bold text-slate-900">{section.title}</h2>
-                <p className="mt-3 text-base leading-relaxed text-slate-600">{section.body}</p>
+                <h2 className="text-xl font-bold text-ink">{section.title}</h2>
+                <p className="mt-3 text-base leading-relaxed text-ink-muted">{section.body}</p>
               </div>
             ))}
           </Reveal>
 
-          <div className="mt-14 rounded-2xl border border-slate-200 bg-slate-50 p-6 text-center">
-            <p className="text-sm text-slate-600">
+          <div className="mt-14 rounded-2xl border border-line bg-surface-muted p-6 text-center">
+            <p className="text-sm text-ink-muted">
               Questions about these terms?{" "}
               <Link to="/contact" className="font-semibold text-brand hover:underline">
                 Contact our team

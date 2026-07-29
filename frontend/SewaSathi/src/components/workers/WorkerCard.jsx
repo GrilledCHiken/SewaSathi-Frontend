@@ -1,4 +1,5 @@
 import { formatMoney } from "../tasks/taskUi.jsx";
+import Button from "../ui/Button";
 
 const MAX_VISIBLE_SKILLS = 3;
 
@@ -24,13 +25,23 @@ function VerifiedBadge() {
  * an identical height no matter how long a bio is or how many skills a worker
  * lists. Do not swap a fixed height for a min-height here — that is what made
  * the grid ragged before.
+ *
+ * The bio's `h-10` is exactly two lines of `text-sm leading-5`. If you ever
+ * change that type scale, recompute all three fixed heights rather than
+ * adjusting them by eye.
  */
 export default function WorkerCard({ worker, onHire }) {
   const visibleSkills = worker.skills.slice(0, MAX_VISIBLE_SKILLS);
   const overflowCount = worker.skills.length - visibleSkills.length;
 
   return (
-    <article className="flex h-full flex-col rounded-2xl border border-slate-200/80 bg-white p-5 shadow-sm transition hover:border-brand/30 hover:shadow-md">
+    <article className="group relative flex h-full flex-col overflow-hidden rounded-card border border-line bg-surface p-5 shadow-e1 transition duration-200 ease-out-soft hover:-translate-y-0.5 hover:border-brand/30 hover:shadow-e2 motion-reduce:hover:translate-y-0">
+      {/* Hairline that warms on hover. Absolutely positioned, so it sits
+          outside the height-locked flow and cannot affect card height. */}
+      <span
+        className="pointer-events-none absolute inset-x-0 top-0 h-0.5 bg-gradient-to-r from-brand via-cyan-400 to-brand opacity-0 transition-opacity duration-200 group-hover:opacity-100"
+        aria-hidden="true"
+      />
       {/* Identity */}
       <div className="flex h-12 items-center justify-between gap-3">
         <div className="flex min-w-0 items-center gap-3">
@@ -41,12 +52,12 @@ export default function WorkerCard({ worker, onHire }) {
           </span>
           <div className="min-w-0">
             <div className="flex items-center gap-1">
-              <h3 className="truncate font-bold leading-tight text-slate-900">
+              <h3 className="truncate font-bold leading-tight text-ink">
                 {worker.name}
               </h3>
               <VerifiedBadge />
             </div>
-            <p className="mt-0.5 flex items-center gap-1 text-xs text-slate-500">
+            <p className="mt-0.5 flex items-center gap-1 text-xs text-ink-muted">
               <svg
                 className="h-3.5 w-3.5 shrink-0"
                 viewBox="0 0 24 24"
@@ -67,14 +78,14 @@ export default function WorkerCard({ worker, onHire }) {
 
         <p className="shrink-0 text-right text-sm font-bold leading-tight text-emerald-600">
           {formatMoney(worker.rate)}
-          <span className="mt-0.5 block text-xs font-medium text-slate-500">
+          <span className="mt-0.5 block text-xs font-medium text-ink-muted">
             per hour
           </span>
         </p>
       </div>
 
       {/* Stats — locked to a single line so it can never reflow the card */}
-      <div className="mt-4 flex items-center gap-2 truncate whitespace-nowrap text-xs text-slate-500">
+      <div className="mt-4 flex items-center gap-2 truncate whitespace-nowrap text-xs text-ink-muted">
         <span className="inline-flex shrink-0 items-center gap-1">
           <svg
             className="h-3.5 w-3.5 text-amber-400"
@@ -84,7 +95,7 @@ export default function WorkerCard({ worker, onHire }) {
           >
             <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
           </svg>
-          <span className="font-semibold text-slate-700">{worker.rating}</span>
+          <span className="font-semibold text-ink-body">{worker.rating}</span>
           <span>({worker.reviews})</span>
         </span>
         <span aria-hidden="true">·</span>
@@ -92,7 +103,7 @@ export default function WorkerCard({ worker, onHire }) {
       </div>
 
       {/* Bio — exactly two lines (h-10 = 2 x leading-5) */}
-      <p className="mt-3 line-clamp-2 h-10 text-sm leading-5 text-slate-600">
+      <p className="mt-3 line-clamp-2 h-10 text-sm leading-5 text-ink-muted">
         {worker.description}
       </p>
 
@@ -103,38 +114,31 @@ export default function WorkerCard({ worker, onHire }) {
         {visibleSkills.map((skill) => (
           <span
             key={skill}
-            className="min-w-0 truncate whitespace-nowrap rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-600"
+            className="min-w-0 truncate whitespace-nowrap rounded-full bg-surface-sunken px-2.5 py-1 text-xs font-medium text-ink-muted"
           >
             {skill}
           </span>
         ))}
         {overflowCount > 0 && (
           <span
-            className="shrink-0 rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-500"
+            className="shrink-0 rounded-full bg-surface-sunken px-2.5 py-1 text-xs font-medium text-ink-muted"
             title={worker.skills.slice(MAX_VISIBLE_SKILLS).join(", ")}
           >
             +{overflowCount}
           </span>
         )}
         {worker.skills.length === 0 && (
-          <span className="text-xs text-slate-400">No skills listed</span>
+          <span className="text-xs text-ink-faint">No skills listed</span>
         )}
       </div>
 
       <div className="mt-auto flex gap-2 pt-5">
-        <button
-          type="button"
-          onClick={() => onHire(worker)}
-          className="flex-1 rounded-full bg-brand py-2.5 text-sm font-semibold text-white transition hover:bg-brand-dark"
-        >
+        <Button size="sm" fullWidth onClick={() => onHire(worker)}>
           Hire Now
-        </button>
-        <button
-          type="button"
-          className="flex-1 rounded-full border border-slate-200 bg-white py-2.5 text-sm font-semibold text-slate-800 transition hover:bg-slate-50"
-        >
+        </Button>
+        <Button size="sm" variant="secondary" fullWidth>
           Message
-        </button>
+        </Button>
       </div>
     </article>
   );

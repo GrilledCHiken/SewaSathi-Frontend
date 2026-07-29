@@ -4,101 +4,36 @@ import { toast } from 'react-toastify'
 import { useAuth } from '../../context/AuthContext'
 import PasswordChecklist from '../../components/PasswordChecklist'
 import { parseSignupError, sanitizePhone, validateSignupForm } from '../../utils/validation'
-
-function LogoIcon() {
-  return (
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <path
-        d="M12 21s-6.5-4.35-9-8.2C1.5 9.5 3.5 5 7.5 5c2.1 0 3.5 1.2 4.5 2.5C13 6.2 14.4 5 16.5 5 20.5 5 22.5 9.5 21 12.8 18.5 16.65 12 21 12 21z"
-        stroke="white"
-        strokeWidth="1.6"
-        strokeLinejoin="round"
-      />
-    </svg>
-  )
-}
+import AuthLayout, { AuthFooterLink } from '../../components/auth/AuthLayout'
+import Button from '../../components/ui/Button'
+import { Field, Input } from '../../components/ui/Field'
+import {
+  ArrowLeftIcon,
+  ArrowRightIcon,
+  CheckIcon,
+  EyeIcon,
+  LockIcon,
+  MailIcon,
+  PhoneIcon,
+  UserIcon,
+} from '../../components/ui/icons'
 
 function TaskIcon({ className = 'h-3.5 w-3.5' }) {
   return (
-    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-      <path
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        strokeWidth={1.75}
-        d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"
-      />
+    <svg
+      className={className}
+      fill="none"
+      viewBox="0 0 24 24"
+      stroke="currentColor"
+      strokeWidth={1.75}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
     </svg>
   )
 }
-
-function UserIcon() {
-  return (
-    <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.75} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-    </svg>
-  )
-}
-
-function MailIcon() {
-  return (
-    <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.75} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-    </svg>
-  )
-}
-
-function PhoneIcon() {
-  return (
-    <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.75} d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" />
-    </svg>
-  )
-}
-
-function LockIcon() {
-  return (
-    <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.75} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-    </svg>
-  )
-}
-
-function EyeIcon({ open }) {
-  if (open) {
-    return (
-      <svg className="h-5 w-5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.75} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.75} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-      </svg>
-    )
-  }
-  return (
-    <svg className="h-5 w-5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.75} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
-    </svg>
-  )
-}
-
-function ArrowRightIcon() {
-  return (
-    <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
-    </svg>
-  )
-}
-
-function CheckIcon({ className = 'h-4 w-4' }) {
-  return (
-    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.25} d="M5 12.5l4.5 4.5L19 7" />
-    </svg>
-  )
-}
-
-const inputClass =
-  'w-full rounded-xl border border-slate-200 bg-white py-3.5 pl-11 pr-4 text-slate-800 shadow-sm placeholder:text-slate-400 transition focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/20'
-
-const errorInputClass = 'border-red-300 focus:border-red-400 focus:ring-red-500/20'
 
 function UserSignup() {
   const [showPassword, setShowPassword] = useState(false)
@@ -166,144 +101,96 @@ function UserSignup() {
     }
   }
 
+  const passwordToggle = (
+    <button
+      type="button"
+      className="rounded-field p-1.5 text-ink-faint transition hover:bg-surface-sunken hover:text-ink-body focus-ring"
+      onClick={() => setShowPassword((v) => !v)}
+      aria-label={showPassword ? 'Hide password' : 'Show password'}
+    >
+      <EyeIcon open={showPassword} className="h-5 w-5" />
+    </button>
+  )
+
   return (
-    <div className="relative flex min-h-svh flex-col items-center overflow-hidden bg-slate-50 px-4 py-10 sm:py-12">
-      <div className="pointer-events-none absolute -left-24 -top-24 h-72 w-72 rounded-full bg-brand/10 blur-3xl" />
-      <div className="pointer-events-none absolute -right-24 bottom-0 h-72 w-72 rounded-full bg-brand/5 blur-3xl" />
-
-      <Link
-        to="/"
-        className="relative mb-8 flex items-center gap-2.5 transition hover:opacity-90"
-      >
-        <span className="flex h-10 w-10 items-center justify-center rounded-[10px] bg-brand">
-          <LogoIcon />
-        </span>
-        <span className="text-xl font-bold tracking-tight text-slate-900">SewaSathi</span>
-      </Link>
-
-      <div className="relative w-full max-w-lg animate-fade-up rounded-2xl border border-slate-100 bg-white p-8 shadow-xl shadow-slate-200/60 sm:p-10">
-        <div className="flex items-center justify-between">
+    <AuthLayout
+      width="max-w-lg"
+      title="Create your account"
+      subtitle="Post tasks and get matched with verified workers in minutes."
+      topBar={
+        <div className="flex items-center justify-between gap-3">
           <Link
             to="/signup"
-            className="inline-flex items-center gap-1 text-sm font-medium text-slate-400 transition hover:text-slate-600"
+            className="inline-flex items-center gap-1.5 rounded-field px-1 py-0.5 text-sm font-medium text-ink-faint transition hover:text-ink-body focus-ring"
           >
-            <span aria-hidden="true">←</span> Back
+            <ArrowLeftIcon className="h-4 w-4" />
+            Back
           </Link>
-          <span className="inline-flex items-center gap-1.5 rounded-full bg-brand/10 px-3 py-1 text-xs font-semibold text-brand">
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-brand-50 px-3 py-1 text-xs font-semibold text-brand-700">
             <TaskIcon />
             Customer Account
           </span>
         </div>
+      }
+      footer={<AuthFooterLink prompt="Already have an account?" to="/login" label="Log in" />}
+    >
+      <form className="mt-7 space-y-4" onSubmit={handleSubmit} noValidate>
+        <Field id="fullName" label="Full Name" error={errors.fullName}>
+          {(field) => (
+            <Input
+              {...field}
+              type="text"
+              value={form.fullName}
+              onChange={update('fullName')}
+              placeholder="Ram Bahadur"
+              autoComplete="name"
+              maxLength={150}
+              required
+              leadingIcon={<UserIcon className="h-5 w-5" />}
+            />
+          )}
+        </Field>
 
-        <div className="mt-5 text-center">
-          <h1 className="text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
-            Create your account
-          </h1>
-          <p className="mt-2 text-sm text-slate-500 sm:text-base">
-            Post tasks and get matched with verified workers in minutes.
-          </p>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Field id="email" label="Email" error={errors.email}>
+            {(field) => (
+              <Input
+                {...field}
+                type="email"
+                value={form.email}
+                onChange={update('email')}
+                placeholder="you@example.com"
+                autoComplete="email"
+                maxLength={255}
+                required
+                leadingIcon={<MailIcon className="h-5 w-5" />}
+              />
+            )}
+          </Field>
+
+          <Field id="phone" label="Phone Number" error={errors.phone}>
+            {(field) => (
+              <Input
+                {...field}
+                type="tel"
+                inputMode="numeric"
+                value={form.phone}
+                onChange={update('phone')}
+                placeholder="98XXXXXXXX"
+                autoComplete="tel"
+                maxLength={10}
+                required
+                leadingIcon={<PhoneIcon className="h-5 w-5" />}
+              />
+            )}
+          </Field>
         </div>
 
-        <form className="mt-7 space-y-4" onSubmit={handleSubmit} noValidate>
-          <div>
-            <label htmlFor="fullName" className="block text-sm font-semibold text-slate-800">
-              Full Name
-            </label>
-            <div className="group relative mt-2">
-              <span className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 transition group-focus-within:text-brand">
-                <UserIcon />
-              </span>
-              <input
-                id="fullName"
-                type="text"
-                value={form.fullName}
-                onChange={update('fullName')}
-                placeholder="Ram Bahadur"
-                autoComplete="name"
-                maxLength={150}
-                required
-                aria-invalid={Boolean(errors.fullName)}
-                aria-describedby={errors.fullName ? 'fullName-error' : undefined}
-                className={`${inputClass} ${errors.fullName ? errorInputClass : ''}`}
-              />
-            </div>
-            {errors.fullName && (
-              <p id="fullName-error" className="mt-1.5 text-sm text-red-600">
-                {errors.fullName}
-              </p>
-            )}
-          </div>
-
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div>
-              <label htmlFor="email" className="block text-sm font-semibold text-slate-800">
-                Email
-              </label>
-              <div className="group relative mt-2">
-                <span className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 transition group-focus-within:text-brand">
-                  <MailIcon />
-                </span>
-                <input
-                  id="email"
-                  type="email"
-                  value={form.email}
-                  onChange={update('email')}
-                  placeholder="you@example.com"
-                  autoComplete="email"
-                  maxLength={255}
-                  required
-                  aria-invalid={Boolean(errors.email)}
-                  aria-describedby={errors.email ? 'email-error' : undefined}
-                  className={`${inputClass} ${errors.email ? errorInputClass : ''}`}
-                />
-              </div>
-              {errors.email && (
-                <p id="email-error" className="mt-1.5 text-sm text-red-600">
-                  {errors.email}
-                </p>
-              )}
-            </div>
-            <div>
-              <label htmlFor="phone" className="block text-sm font-semibold text-slate-800">
-                Phone Number
-              </label>
-              <div className="group relative mt-2">
-                <span className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 transition group-focus-within:text-brand">
-                  <PhoneIcon />
-                </span>
-                <input
-                  id="phone"
-                  type="tel"
-                  inputMode="numeric"
-                  value={form.phone}
-                  onChange={update('phone')}
-                  placeholder="98XXXXXXXX"
-                  autoComplete="tel"
-                  maxLength={10}
-                  required
-                  aria-invalid={Boolean(errors.phone)}
-                  aria-describedby={errors.phone ? 'phone-error' : undefined}
-                  className={`${inputClass} ${errors.phone ? errorInputClass : ''}`}
-                />
-              </div>
-              {errors.phone && (
-                <p id="phone-error" className="mt-1.5 text-sm text-red-600">
-                  {errors.phone}
-                </p>
-              )}
-            </div>
-          </div>
-
-          <div>
-            <label htmlFor="password" className="block text-sm font-semibold text-slate-800">
-              Password
-            </label>
-            <div className="group relative mt-2">
-              <span className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 transition group-focus-within:text-brand">
-                <LockIcon />
-              </span>
-              <input
-                id="password"
+        <div>
+          <Field id="password" label="Password" error={errors.password}>
+            {(field) => (
+              <Input
+                {...field}
                 type={showPassword ? 'text' : 'password'}
                 value={form.password}
                 onChange={update('password')}
@@ -313,41 +200,27 @@ function UserSignup() {
                 minLength={8}
                 maxLength={72}
                 required
-                aria-invalid={Boolean(errors.password)}
-                aria-describedby={errors.password ? 'password-error' : undefined}
-                className={`${inputClass} pr-11 ${errors.password ? errorInputClass : ''}`}
+                leadingIcon={<LockIcon className="h-5 w-5" />}
+                trailing={passwordToggle}
               />
-              <button
-                type="button"
-                className="absolute right-3.5 top-1/2 -translate-y-1/2 rounded-md p-0.5 text-slate-400 transition hover:text-slate-600"
-                onClick={() => setShowPassword((v) => !v)}
-                aria-label={showPassword ? 'Hide password' : 'Show password'}
-              >
-                <EyeIcon open={showPassword} />
-              </button>
-            </div>
-            {errors.password && (
-              <p id="password-error" className="mt-1.5 text-sm text-red-600">
-                {errors.password}
-              </p>
             )}
-            <PasswordChecklist
-              value={form.password}
-              accent="brand"
-              show={passwordTouched || form.password.length > 0}
-            />
-          </div>
+          </Field>
+          <PasswordChecklist
+            value={form.password}
+            accent="brand"
+            show={passwordTouched || form.password.length > 0}
+          />
+        </div>
 
-          <div>
-            <label htmlFor="confirmPassword" className="block text-sm font-semibold text-slate-800">
-              Confirm Password
-            </label>
-            <div className="group relative mt-2">
-              <span className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 transition group-focus-within:text-brand">
-                <LockIcon />
-              </span>
-              <input
-                id="confirmPassword"
+        <Field
+          id="confirmPassword"
+          label="Confirm Password"
+          error={errors.confirmPassword}
+        >
+          {(field) => (
+            <>
+              <Input
+                {...field}
                 type={showPassword ? 'text' : 'password'}
                 value={form.confirmPassword}
                 onChange={update('confirmPassword')}
@@ -356,74 +229,66 @@ function UserSignup() {
                 minLength={8}
                 maxLength={72}
                 required
-                aria-invalid={Boolean(errors.confirmPassword)}
-                aria-describedby={errors.confirmPassword ? 'confirmPassword-error' : undefined}
-                className={`${inputClass} pr-11 ${errors.confirmPassword ? errorInputClass : ''}`}
+                leadingIcon={<LockIcon className="h-5 w-5" />}
+                trailing={
+                  passwordsMatch ? (
+                    <span className="pr-2 text-success" aria-hidden="true">
+                      <CheckIcon className="h-5 w-5" />
+                    </span>
+                  ) : null
+                }
               />
-              {passwordsMatch && (
-                <span className="absolute right-3.5 top-1/2 -translate-y-1/2 text-emerald-500">
-                  <CheckIcon />
-                </span>
+              {/* Softer than an error: the field is simply not finished yet. */}
+              {!errors.confirmPassword && passwordsMismatch && (
+                <p className="mt-1.5 text-xs font-medium text-warning-ink">
+                  Passwords don&apos;t match yet.
+                </p>
               )}
-            </div>
-            {errors.confirmPassword ? (
-              <p id="confirmPassword-error" className="mt-1.5 text-sm text-red-600">
-                {errors.confirmPassword}
-              </p>
-            ) : (
-              passwordsMismatch && (
-                <p className="mt-1.5 text-xs font-medium text-amber-600">Passwords don&apos;t match yet.</p>
-              )
-            )}
-          </div>
+            </>
+          )}
+        </Field>
 
-          <div className="pt-1">
-            <label className="flex cursor-pointer items-start gap-3">
-              <input
-                type="checkbox"
-                checked={agreed}
-                onChange={toggleAgreed}
-                required
-                aria-invalid={Boolean(errors.agreed)}
-                aria-describedby={errors.agreed ? 'agreed-error' : undefined}
-                className="mt-1 h-4 w-4 shrink-0 rounded border-slate-300 text-brand focus:ring-brand/30"
-              />
-              <span className="text-sm leading-relaxed text-slate-600">
-                I agree to the{' '}
-                <Link to="/terms" className="font-medium text-brand hover:text-brand-dark">
-                  Terms of Service
-                </Link>{' '}
-                and{' '}
-                <Link to="/privacy" className="font-medium text-brand hover:text-brand-dark">
-                  Privacy Policy
-                </Link>
-              </span>
-            </label>
-            {errors.agreed && (
-              <p id="agreed-error" className="mt-1.5 text-sm text-red-600">
-                {errors.agreed}
-              </p>
-            )}
-          </div>
+        <div className="pt-1">
+          <label className="flex cursor-pointer items-start gap-3">
+            <input
+              type="checkbox"
+              checked={agreed}
+              onChange={toggleAgreed}
+              required
+              aria-invalid={Boolean(errors.agreed)}
+              aria-describedby={errors.agreed ? 'agreed-error' : undefined}
+              className="mt-1 h-4 w-4 shrink-0 rounded border-line-strong text-brand focus:ring-brand/30"
+            />
+            <span className="text-sm leading-relaxed text-ink-body">
+              I agree to the{' '}
+              <Link to="/terms" className="font-medium text-brand hover:text-brand-dark">
+                Terms of Service
+              </Link>{' '}
+              and{' '}
+              <Link to="/privacy" className="font-medium text-brand hover:text-brand-dark">
+                Privacy Policy
+              </Link>
+            </span>
+          </label>
+          {errors.agreed && (
+            <p id="agreed-error" className="mt-1.5 text-sm font-medium text-danger">
+              {errors.agreed}
+            </p>
+          )}
+        </div>
 
-          <button
-            type="submit"
-            disabled={loading}
-            className="flex w-full items-center justify-center gap-2 rounded-xl bg-brand py-3.5 text-base font-semibold text-white shadow-md shadow-brand/25 transition hover:bg-brand-dark hover:shadow-lg hover:shadow-brand/30 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60"
-          >
-            {loading ? 'Creating account...' : 'Create Account'}
-            {!loading && <ArrowRightIcon />}
-          </button>
-        </form>
-      </div>
-
-      <p className="relative mt-8 text-sm text-slate-600">
-        Already have an account?{' '}
-        <Link to="/login" className="font-semibold text-brand transition hover:text-brand-dark">
-          Log in
-        </Link>
-      </p>
-    </div>
+        <Button
+          type="submit"
+          size="lg"
+          shape="rounded"
+          fullWidth
+          loading={loading}
+          iconRight={<ArrowRightIcon className="h-5 w-5" />}
+        >
+          {loading ? 'Creating account...' : 'Create Account'}
+        </Button>
+      </form>
+    </AuthLayout>
   )
 }
 

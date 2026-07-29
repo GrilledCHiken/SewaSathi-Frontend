@@ -64,7 +64,7 @@ export default function NotificationBell() {
           unreadCount > 0 ? `Notifications, ${unreadCount} unread` : "Notifications"
         }
         aria-expanded={open}
-        className="relative flex h-10 w-10 items-center justify-center rounded-full text-slate-600 transition hover:bg-slate-100 hover:text-slate-900"
+        className="relative flex h-10 w-10 items-center justify-center rounded-full text-ink-muted transition hover:bg-surface-sunken hover:text-ink"
       >
         <BellIcon />
         {unreadCount > 0 && (
@@ -75,9 +75,9 @@ export default function NotificationBell() {
       </button>
 
       {open && (
-        <div className="absolute right-0 z-50 mt-2 w-[min(22rem,calc(100vw-2rem))] overflow-hidden rounded-xl border border-slate-200 bg-white shadow-lg">
-          <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3">
-            <h2 className="text-sm font-semibold text-slate-900">Notifications</h2>
+        <div className="absolute right-0 z-50 mt-2 w-[min(22rem,calc(100vw-2rem))] overflow-hidden rounded-xl border border-line bg-surface shadow-lg">
+          <div className="flex items-center justify-between border-b border-line-soft px-4 py-3">
+            <h2 className="text-sm font-semibold text-ink">Notifications</h2>
             {unreadCount > 0 && (
               <button
                 type="button"
@@ -90,10 +90,10 @@ export default function NotificationBell() {
           </div>
 
           <div className="max-h-[22rem] overflow-y-auto">
-            {loading && <p className="px-4 py-6 text-center text-sm text-slate-500">Loading…</p>}
+            {loading && <p className="px-4 py-6 text-center text-sm text-ink-muted">Loading…</p>}
 
             {!loading && notifications.length === 0 && (
-              <p className="px-4 py-8 text-center text-sm text-slate-500">
+              <p className="px-4 py-8 text-center text-sm text-ink-muted">
                 Nothing yet. Updates about your tasks and payments will show up here.
               </p>
             )}
@@ -103,7 +103,7 @@ export default function NotificationBell() {
                 key={n.id}
                 type="button"
                 onClick={() => handleOpenNotification(n)}
-                className={`flex w-full gap-3 border-b border-slate-50 px-4 py-3 text-left transition last:border-b-0 hover:bg-slate-50 ${
+                className={`flex w-full gap-3 border-b border-slate-50 px-4 py-3 text-left transition last:border-b-0 hover:bg-surface-muted ${
                   n.read ? "" : "bg-brand/[0.04]"
                 }`}
               >
@@ -114,13 +114,13 @@ export default function NotificationBell() {
                   aria-hidden="true"
                 />
                 <span className="min-w-0 flex-1">
-                  <span className="block truncate text-sm font-semibold text-slate-900">
+                  <span className="block truncate text-sm font-semibold text-ink">
                     {n.title}
                   </span>
-                  <span className="mt-0.5 block text-xs leading-relaxed text-slate-600">
+                  <span className="mt-0.5 block text-xs leading-relaxed text-ink-muted">
                     {n.body}
                   </span>
-                  <span className="mt-1 block text-[11px] text-slate-400">
+                  <span className="mt-1 block text-[11px] text-ink-faint">
                     {relativeTime(n.createdAt)}
                   </span>
                 </span>

@@ -49,13 +49,13 @@ const TOPICS = [
 export default function Help() {
   return (
     <div className="flex-1 bg-white">
-      <section className="bg-slate-50 py-14 sm:py-16">
+      <section className="bg-surface-muted py-14 sm:py-16">
         <div className="mx-auto max-w-3xl px-4 text-center sm:px-6 lg:px-8">
           <Reveal>
-            <h1 className="text-4xl font-extrabold tracking-tight text-slate-900 sm:text-5xl">
+            <h1 className="text-4xl font-extrabold tracking-tight text-ink sm:text-5xl">
               Help Center
             </h1>
-            <p className="mt-4 text-base leading-relaxed text-slate-600">
+            <p className="mt-4 text-base leading-relaxed text-ink-muted">
               Browse common topics below, or reach out directly if you can&apos;t find what you need.
             </p>
           </Reveal>
@@ -69,22 +69,22 @@ export default function Help() {
               <Reveal
                 key={topic.title}
                 delay={index % 3}
-                className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm transition hover:border-brand/20 hover:shadow-md"
+                className="rounded-2xl border border-line bg-white p-6 shadow-sm transition hover:border-brand/20 hover:shadow-md"
               >
                 <span className="flex h-12 w-12 items-center justify-center rounded-xl bg-brand/10 text-brand">
                   <svg className="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">
                     {topic.icon}
                   </svg>
                 </span>
-                <h2 className="mt-4 text-lg font-bold text-slate-900">{topic.title}</h2>
-                <p className="mt-2 text-sm leading-relaxed text-slate-600">{topic.description}</p>
+                <h2 className="mt-4 text-lg font-bold text-ink">{topic.title}</h2>
+                <p className="mt-2 text-sm leading-relaxed text-ink-muted">{topic.description}</p>
               </Reveal>
             ))}
           </div>
 
-          <div className="mt-12 rounded-2xl border border-slate-200 bg-slate-50 p-8 text-center">
-            <h2 className="text-xl font-bold text-slate-900">Still need help?</h2>
-            <p className="mt-2 text-sm text-slate-600">
+          <div className="mt-12 rounded-2xl border border-line bg-surface-muted p-8 text-center">
+            <h2 className="text-xl font-bold text-ink">Still need help?</h2>
+            <p className="mt-2 text-sm text-ink-muted">
               Check our{" "}
               <Link to="/contact#faq" className="font-semibold text-brand hover:underline">
                 FAQ
@@ -93,7 +93,7 @@ export default function Help() {
             </p>
             <Link
               to="/contact"
-              className="mt-5 inline-flex items-center justify-center rounded-full bg-brand px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-brand/25 transition hover:bg-brand-dark"
+              className="mt-5 inline-flex items-center justify-center rounded-full bg-brand px-6 py-3 text-sm font-semibold text-white shadow-brand transition hover:bg-brand-dark"
             >
               Contact Support
             </Link>

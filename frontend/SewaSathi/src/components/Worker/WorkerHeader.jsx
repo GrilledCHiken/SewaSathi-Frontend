@@ -1,7 +1,13 @@
 import { useOutletContext } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import UserMenu from "../UserMenu";
+import { MenuIcon } from "../ui/icons";
 
+/**
+ * Worker header. Height comes from `--dash-header-h` at sm and up, matching the
+ * customer and admin headers — the worker Browse Tasks filter bar offsets its
+ * sticky position by that same token.
+ */
 function WorkerHeader({ title = "Worker Dashboard" }) {
   const { customer } = useAuth();
   const outletContext = useOutletContext();
@@ -10,20 +16,20 @@ function WorkerHeader({ title = "Worker Dashboard" }) {
   const displayId = customer?.email || customer?.name || "Worker";
 
   return (
-    <header className="sticky top-0 z-30 border-b border-slate-200 bg-white px-4 py-3 sm:px-6 lg:px-8">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">
+    <header className="sticky top-0 z-30 border-b border-line bg-surface/85 px-4 py-3 shadow-inset-line backdrop-blur-md sm:h-[var(--dash-header-h)] sm:px-6 sm:py-0 lg:px-8">
+      <div className="flex h-full flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">
         <div className="flex items-center gap-3">
           <button
             type="button"
-            className="inline-flex items-center justify-center rounded-lg p-2 text-slate-600 hover:bg-slate-100 lg:hidden"
+            className="inline-flex items-center justify-center rounded-field p-2 text-ink-muted transition hover:bg-surface-sunken hover:text-ink focus-ring lg:hidden"
             aria-label="Open menu"
             onClick={openMobileMenu}
           >
-            <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-            </svg>
+            <MenuIcon className="h-6 w-6" />
           </button>
-          <h1 className="text-lg font-bold text-slate-900 sm:text-xl">{title}</h1>
+          <h1 className="truncate text-lg font-bold tracking-tight text-ink sm:text-xl">
+            {title}
+          </h1>
         </div>
 
         <div className="flex flex-1 items-center justify-end gap-3 sm:ml-auto">

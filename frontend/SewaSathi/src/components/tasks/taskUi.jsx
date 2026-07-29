@@ -7,20 +7,58 @@
 /* Status                                                                      */
 /* -------------------------------------------------------------------------- */
 
+/**
+ * `badge` and `dot` are the original raw class pairs, kept so the existing
+ * StatusBadge and the worker task surfaces render unchanged.
+ *
+ * `tone` and `pulse` are the same information expressed against the semantic
+ * tone vocabulary in ui/tones.js, for surfaces built on the <Badge> primitive.
+ * `stripe` is the left-edge accent on TaskCard. All of these describe one
+ * status; they must not be allowed to disagree, so change them together.
+ *
+ * Class strings are written out in full — Tailwind's JIT scans source text, so
+ * anything assembled at runtime would compile to nothing.
+ */
 export const STATUS_META = {
-  open: { badge: "bg-slate-100 text-slate-600", dot: "bg-slate-400" },
+  open: {
+    badge: "bg-slate-100 text-slate-600",
+    dot: "bg-slate-400",
+    tone: "neutral",
+    stripe: "bg-slate-300",
+  },
   // A worker has said yes but the customer still owes the confirmation advance.
   accepted: {
     badge: "bg-violet-100 text-violet-700",
     dot: "bg-violet-500 animate-pulse",
+    tone: "accent",
+    pulse: true,
+    stripe: "bg-accent",
   },
-  assigned: { badge: "bg-amber-100 text-amber-700", dot: "bg-amber-500" },
+  assigned: {
+    badge: "bg-amber-100 text-amber-700",
+    dot: "bg-amber-500",
+    tone: "warning",
+    stripe: "bg-warning",
+  },
   "in progress": {
     badge: "bg-sky-100 text-sky-700",
     dot: "bg-sky-500 animate-pulse",
+    tone: "info",
+    pulse: true,
+    stripe: "bg-info",
   },
-  completed: { badge: "bg-emerald-100 text-emerald-700", dot: "bg-emerald-500" },
-  cancelled: { badge: "bg-rose-100 text-rose-700", dot: "bg-rose-500" },
+  completed: {
+    badge: "bg-emerald-100 text-emerald-700",
+    dot: "bg-emerald-500",
+    tone: "success",
+    stripe: "bg-success",
+  },
+  cancelled: {
+    badge: "bg-rose-100 text-rose-700",
+    dot: "bg-rose-500",
+    tone: "danger",
+    stripe: "bg-danger",
+  },
 };
 
 export function statusMeta(status) {

@@ -1,42 +1,47 @@
 import { useMemo, useState } from "react";
 import DashboardHeader from "../components/User/DashboardHeader";
+import PageShell, { PageHeader } from "../components/ui/PageShell";
+import { Panel } from "../components/ui/Card";
+import Badge from "../components/ui/Badge";
+import Button from "../components/ui/Button";
+import StatTile from "../components/ui/StatTile";
+import EmptyState from "../components/ui/EmptyState";
+import SegmentedControl from "../components/ui/SegmentedControl";
+import {
+  CardIcon,
+  CheckCircleIcon,
+  ClockIcon,
+  PlusIcon,
+  SearchIcon,
+} from "../components/ui/icons";
+
+/**
+ * Payments.
+ *
+ * Note for whoever picks this up next: everything below is static sample data.
+ * `paymentApi.listMyPayments()` already exists and hits GET /payments/mine —
+ * wiring it up is a functional change and was deliberately out of scope for the
+ * visual pass, so the figures here are still placeholders.
+ */
 
 const SUMMARY_STATS = [
   {
     label: "Total Paid",
     value: "NPR 800",
-    iconBg: "bg-emerald-100",
-    iconText: "text-emerald-600",
-    icon: (
-      <svg className="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-        <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
-        <path d="M22 4L12 14.01l-3-3" />
-      </svg>
-    ),
+    tone: "success",
+    icon: <CheckCircleIcon className="h-6 w-6" />,
   },
   {
     label: "Pending",
     value: "NPR 4,000",
-    iconBg: "bg-amber-100",
-    iconText: "text-amber-600",
-    icon: (
-      <svg className="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-        <circle cx="12" cy="12" r="10" />
-        <path d="M12 6v6l4 2" />
-      </svg>
-    ),
+    tone: "warning",
+    icon: <ClockIcon className="h-6 w-6" />,
   },
   {
     label: "Payment Methods",
     value: "2",
-    iconBg: "bg-sky-100",
-    iconText: "text-sky-600",
-    icon: (
-      <svg className="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-        <rect x="1" y="4" width="22" height="16" rx="2" />
-        <path d="M1 10h22" />
-      </svg>
-    ),
+    tone: "info",
+    icon: <CardIcon className="h-6 w-6" />,
   },
 ];
 
@@ -97,11 +102,9 @@ const TRANSACTIONS = [
 
 const TX_FILTERS = ["All", "Completed", "Pending", "Refunded"];
 
-const STATUS_STYLES = {
+const STATUS_META = {
   completed: {
-    iconBg: "bg-emerald-100",
-    iconText: "text-emerald-600",
-    label: "text-emerald-600",
+    tone: "success",
     icon: (
       <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
         <path d="M20 6L9 17l-5-5" />
@@ -109,9 +112,7 @@ const STATUS_STYLES = {
     ),
   },
   pending: {
-    iconBg: "bg-amber-100",
-    iconText: "text-amber-600",
-    label: "text-amber-600",
+    tone: "warning",
     icon: (
       <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
         <circle cx="12" cy="12" r="10" />
@@ -120,9 +121,7 @@ const STATUS_STYLES = {
     ),
   },
   refunded: {
-    iconBg: "bg-sky-100",
-    iconText: "text-sky-600",
-    label: "text-sky-600",
+    tone: "info",
     icon: (
       <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
         <path d="M3 10h10a8 8 0 0 1 8 8v2M3 10l6 6M3 10l6-6" />
@@ -131,67 +130,66 @@ const STATUS_STYLES = {
   },
 };
 
+const TONE_TILES = {
+  success: "bg-success-soft text-success",
+  warning: "bg-warning-soft text-warning",
+  info: "bg-info-soft text-info",
+};
+
 function PaymentMethodCard({ method }) {
   return (
     <div
       className={[
-        "flex items-center justify-between gap-3 rounded-xl border p-4",
+        "flex items-center justify-between gap-3 rounded-card border p-4 transition",
         method.active
-          ? "border-emerald-200 bg-emerald-50/60"
-          : "border-slate-200 bg-white",
+          ? "border-success/25 bg-success-soft"
+          : "border-line bg-surface",
       ].join(" ")}
     >
       <div className="flex min-w-0 items-center gap-3">
         <span
           className={[
-            "flex h-11 w-11 shrink-0 items-center justify-center rounded-xl",
+            "flex h-11 w-11 shrink-0 items-center justify-center rounded-field",
             method.active
-              ? "bg-emerald-100 text-emerald-600"
-              : "bg-slate-100 text-slate-600",
+              ? "bg-white text-success"
+              : "bg-surface-sunken text-ink-muted",
           ].join(" ")}
         >
           {method.icon}
         </span>
         <div className="min-w-0">
-          <p className="font-semibold text-slate-900">{method.name}</p>
-          <p className="text-sm text-slate-500">{method.status}</p>
+          <p className="font-semibold text-ink">{method.name}</p>
+          <p className="text-sm text-ink-muted">{method.status}</p>
         </div>
       </div>
-      <span
-        className={[
-          "shrink-0 rounded-full px-2.5 py-0.5 text-xs font-semibold capitalize",
-          method.active
-            ? "bg-emerald-100 text-emerald-700"
-            : "bg-slate-100 text-slate-600",
-        ].join(" ")}
-      >
+      <Badge tone={method.active ? "success" : "neutral"}>
         {method.active ? "Active" : "Inactive"}
-      </span>
+      </Badge>
     </div>
   );
 }
 
 function TransactionItem({ transaction }) {
-  const style = STATUS_STYLES[transaction.status] || STATUS_STYLES.pending;
+  const meta = STATUS_META[transaction.status] || STATUS_META.pending;
 
   return (
-    <li className="flex items-center gap-4 border-b border-slate-100 py-4 last:border-0">
+    <li className="flex items-center gap-4 py-4 first:pt-0 last:pb-0">
       <span
-        className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${style.iconBg} ${style.iconText}`}
+        className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${TONE_TILES[meta.tone]}`}
       >
-        {style.icon}
+        {meta.icon}
       </span>
       <div className="min-w-0 flex-1">
-        <p className="font-semibold text-slate-900">{transaction.title}</p>
-        <p className="text-sm text-slate-500">
+        <p className="truncate font-semibold text-ink">{transaction.title}</p>
+        <p className="text-sm text-ink-muted">
           {transaction.date} · {transaction.method}
         </p>
       </div>
       <div className="shrink-0 text-right">
-        <p className="font-bold text-slate-900">{transaction.amount}</p>
-        <p className={`text-xs font-medium capitalize ${style.label}`}>
+        <p className="font-bold tabular-nums text-ink">{transaction.amount}</p>
+        <Badge tone={meta.tone} className="mt-1">
           {transaction.status}
-        </p>
+        </Badge>
       </div>
     </li>
   );
@@ -202,110 +200,85 @@ export default function CustomerPayment() {
 
   const filteredTransactions = useMemo(() => {
     if (txFilter === "All") return TRANSACTIONS;
-    return TRANSACTIONS.filter(
-      (tx) => tx.status === txFilter.toLowerCase(),
-    );
+    return TRANSACTIONS.filter((tx) => tx.status === txFilter.toLowerCase());
   }, [txFilter]);
 
+  const counts = useMemo(
+    () => ({
+      All: TRANSACTIONS.length,
+      Completed: TRANSACTIONS.filter((t) => t.status === "completed").length,
+      Pending: TRANSACTIONS.filter((t) => t.status === "pending").length,
+      Refunded: TRANSACTIONS.filter((t) => t.status === "refunded").length,
+    }),
+    [],
+  );
+
   return (
-    <div className="flex min-h-svh flex-1 flex-col">
-      <DashboardHeader searchPlaceholder="Search workers..." />
+    <PageShell
+      header={<DashboardHeader title="Payments" searchPlaceholder="Search workers..." />}
+      width="lg"
+    >
+      <PageHeader
+        title="Payments"
+        description="Manage your transactions and payment methods."
+      />
 
-      <main className="flex-1 px-4 py-6 sm:px-6 lg:px-8">
-        <div className="mx-auto max-w-6xl">
-          <div className="mb-6">
-            <h2 className="text-2xl font-bold text-slate-900 sm:text-3xl">
-              Payments
-            </h2>
-            <p className="mt-1 text-sm text-slate-600 sm:text-base">
-              Manage your transactions and payment methods.
-            </p>
-          </div>
+      <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        {SUMMARY_STATS.map((stat) => (
+          <StatTile
+            key={stat.label}
+            label={stat.label}
+            value={stat.value}
+            tone={stat.tone}
+            icon={stat.icon}
+          />
+        ))}
+      </div>
 
-          {/* Summary cards */}
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {SUMMARY_STATS.map((stat) => (
-              <article
-                key={stat.label}
-                className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-sm"
-              >
-                <span
-                  className={`inline-flex h-11 w-11 items-center justify-center rounded-xl ${stat.iconBg} ${stat.iconText}`}
-                >
-                  {stat.icon}
-                </span>
-                <p className="mt-4 text-2xl font-extrabold tracking-tight text-slate-900">
-                  {stat.value}
-                </p>
-                <p className="mt-1 text-sm font-medium text-slate-500">
-                  {stat.label}
-                </p>
-              </article>
+      <div className="mt-6 grid gap-6 lg:grid-cols-2">
+        <Panel
+          title="Payment Methods"
+          padding="lg"
+          action={
+            <Button variant="quiet" size="sm" iconLeft={<PlusIcon className="h-4 w-4" />}>
+              Add
+            </Button>
+          }
+        >
+          <div className="space-y-3">
+            {PAYMENT_METHODS.map((method) => (
+              <PaymentMethodCard key={method.id} method={method} />
             ))}
           </div>
+        </Panel>
 
-          {/* Bottom two columns */}
-          <div className="mt-6 grid gap-6 lg:grid-cols-2">
-            {/* Payment methods */}
-            <section className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-sm sm:p-6">
-              <div className="mb-4 flex items-center justify-between gap-2">
-                <h3 className="text-lg font-bold text-slate-900">
-                  Payment Methods
-                </h3>
-                <button
-                  type="button"
-                  className="text-sm font-semibold text-brand transition hover:text-brand-dark"
-                >
-                  + Add
-                </button>
-              </div>
-              <div className="space-y-3">
-                {PAYMENT_METHODS.map((method) => (
-                  <PaymentMethodCard key={method.id} method={method} />
-                ))}
-              </div>
-            </section>
+        <Panel title="Transaction History" padding="lg">
+          <SegmentedControl
+            options={TX_FILTERS}
+            value={txFilter}
+            onChange={setTxFilter}
+            counts={counts}
+            size="sm"
+            ariaLabel="Filter transactions"
+            className="mb-4"
+          />
 
-            {/* Transaction history */}
-            <section className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-sm sm:p-6">
-              <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                <h3 className="text-lg font-bold text-slate-900">
-                  Transaction History
-                </h3>
-                <div className="flex flex-wrap gap-2">
-                  {TX_FILTERS.map((filter) => (
-                    <button
-                      key={filter}
-                      type="button"
-                      onClick={() => setTxFilter(filter)}
-                      className={[
-                        "rounded-full px-3 py-1.5 text-sm font-medium transition",
-                        txFilter === filter
-                          ? "bg-brand/10 text-brand"
-                          : "text-slate-600 hover:bg-slate-100",
-                      ].join(" ")}
-                    >
-                      {filter}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {filteredTransactions.length === 0 ? (
-                <p className="py-8 text-center text-sm text-slate-500">
-                  No transactions found for this filter.
-                </p>
-              ) : (
-                <ul>
-                  {filteredTransactions.map((tx) => (
-                    <TransactionItem key={tx.id} transaction={tx} />
-                  ))}
-                </ul>
-              )}
-            </section>
-          </div>
-        </div>
-      </main>
-    </div>
+          {filteredTransactions.length === 0 ? (
+            <EmptyState
+              tone="bare"
+              icon={<SearchIcon className="h-6 w-6" />}
+              title="Nothing here"
+              body="No transactions match this filter."
+            />
+          ) : (
+            <ul className="divide-y divide-line-soft">
+              {filteredTransactions.map((tx) => (
+                <TransactionItem key={tx.id} transaction={tx} />
+              ))}
+            </ul>
+          )}
+        </Panel>
+      </div>
+    </PageShell>
   );
 }

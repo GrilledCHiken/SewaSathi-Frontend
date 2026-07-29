@@ -6,7 +6,7 @@ function DashboardLayout() {
   const [mobileOpen, setMobileOpen] = useState(false);
 
   return (
-    <div className="flex min-h-svh bg-slate-50">
+    <div className="flex min-h-svh bg-surface-muted">
       <Sidebar
         mobileOpen={mobileOpen}
         onCloseMobile={() => setMobileOpen(false)}

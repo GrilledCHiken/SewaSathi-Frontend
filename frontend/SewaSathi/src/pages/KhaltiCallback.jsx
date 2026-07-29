@@ -1,11 +1,11 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import DashboardHeader from "../components/User/DashboardHeader";
+import PageShell, { PageHeader } from "../components/ui/PageShell";
+import Button from "../components/ui/Button";
 import {
   CheckIcon,
   CrossIcon,
-  PRIMARY_BTN,
-  SECONDARY_BTN,
   ResultCard,
   VerifyingCard,
 } from "../components/payments/PaymentResult";
@@ -77,85 +77,82 @@ export default function KhaltiCallback() {
   const settled = payment?.status === "COMPLETED";
 
   return (
-    <div className="flex min-h-svh flex-1 flex-col">
-      <DashboardHeader searchPlaceholder="Search workers..." />
+    <PageShell
+      header={<DashboardHeader title="Payment" searchPlaceholder="Search workers..." />}
+      width="sm"
+    >
+      <PageHeader title="Payment" />
 
-      <main className="flex-1 px-4 py-6 sm:px-6 lg:px-8">
-        <div className="mx-auto max-w-2xl">
-          <h2 className="mb-5 text-2xl font-bold text-slate-900 sm:text-3xl">
-            Payment
-          </h2>
-
-          {verifying ? (
-            <VerifyingCard gateway="Khalti" />
-          ) : abandoned ? (
-            <ResultCard
-              tone="rose"
-              icon={<CrossIcon />}
-              title="Payment was not completed"
-              body="Nothing has been charged and your task is still waiting for its advance. You can try again whenever you're ready."
-            >
-              {retryTaskId && (
-                <Link to={`/dashboard/checkout/${retryTaskId}`} className={PRIMARY_BTN}>
-                  Try again
-                </Link>
-              )}
-              <Link to="/dashboard/tasks" className={SECONDARY_BTN}>
-                Back to My Tasks
-              </Link>
-            </ResultCard>
-          ) : error || !settled ? (
-            <ResultCard
-              tone="rose"
-              icon={<CrossIcon />}
-              title="We couldn't confirm this payment"
-              body={error || "Khalti has not confirmed this payment yet."}
-            >
-              {retryTaskId && (
-                <Link to={`/dashboard/checkout/${retryTaskId}`} className={PRIMARY_BTN}>
-                  Try again
-                </Link>
-              )}
-              <Link to="/dashboard/tasks" className={SECONDARY_BTN}>
-                Back to My Tasks
-              </Link>
-            </ResultCard>
-          ) : (
-            <ResultCard
-              tone="emerald"
-              icon={<CheckIcon />}
-              title="Payment confirmed!"
-              body={
-                <>
-                  <p>
-                    Your {formatMoney(payment.amount)} advance is paid and{" "}
-                    <span className="font-semibold text-slate-900">
-                      {payment.task?.title}
-                    </span>{" "}
-                    is now assigned to{" "}
-                    {payment.task?.assignedWorker?.fullName || "your worker"}.
+      <div className="mt-6">
+        {verifying ? (
+          <VerifyingCard gateway="Khalti" />
+        ) : abandoned ? (
+          <ResultCard
+            tone="rose"
+            icon={<CrossIcon />}
+            title="Payment was not completed"
+            body="Nothing has been charged and your task is still waiting for its advance. You can try again whenever you're ready."
+          >
+            {retryTaskId && (
+              <Button as={Link} to={`/dashboard/checkout/${retryTaskId}`}>
+                Try again
+              </Button>
+            )}
+            <Button as={Link} to="/dashboard/tasks" variant="secondary">
+              Back to My Tasks
+            </Button>
+          </ResultCard>
+        ) : error || !settled ? (
+          <ResultCard
+            tone="rose"
+            icon={<CrossIcon />}
+            title="We couldn't confirm this payment"
+            body={error || "Khalti has not confirmed this payment yet."}
+          >
+            {retryTaskId && (
+              <Button as={Link} to={`/dashboard/checkout/${retryTaskId}`}>
+                Try again
+              </Button>
+            )}
+            <Button as={Link} to="/dashboard/tasks" variant="secondary">
+              Back to My Tasks
+            </Button>
+          </ResultCard>
+        ) : (
+          <ResultCard
+            tone="emerald"
+            icon={<CheckIcon />}
+            title="Payment confirmed!"
+            body={
+              <>
+                <p>
+                  Your {formatMoney(payment.amount)} advance is paid and{" "}
+                  <span className="font-semibold text-ink">
+                    {payment.task?.title}
+                  </span>{" "}
+                  is now assigned to{" "}
+                  {payment.task?.assignedWorker?.fullName || "your worker"}.
+                </p>
+                {payment.refId && (
+                  <p className="mt-2 text-xs text-ink-muted">
+                    Khalti reference {payment.refId}
                   </p>
-                  {payment.refId && (
-                    <p className="mt-2 text-xs text-slate-500">
-                      Khalti reference {payment.refId}
-                    </p>
-                  )}
-                </>
-              }
+                )}
+              </>
+            }
+          >
+            <Button
+              as={Link}
+              to={`/dashboard/messages?taskId=${payment.task?.id}`}
             >
-              <Link
-                to={`/dashboard/messages?taskId=${payment.task?.id}`}
-                className={PRIMARY_BTN}
-              >
-                Message worker
-              </Link>
-              <Link to="/dashboard/tasks" className={SECONDARY_BTN}>
-                Back to My Tasks
-              </Link>
-            </ResultCard>
-          )}
-        </div>
-      </main>
-    </div>
+              Message worker
+            </Button>
+            <Button as={Link} to="/dashboard/tasks" variant="secondary">
+              Back to My Tasks
+            </Button>
+          </ResultCard>
+        )}
+      </div>
+    </PageShell>
   );
 }

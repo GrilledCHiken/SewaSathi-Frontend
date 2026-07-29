@@ -71,7 +71,7 @@ export default function DocumentViewerModal({ storedUrl, title, onClose }) {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-navy/60 backdrop-blur-sm p-4"
       onClick={(event) => {
         if (event.target === event.currentTarget) onClose();
       }}
@@ -80,10 +80,10 @@ export default function DocumentViewerModal({ storedUrl, title, onClose }) {
         role="dialog"
         aria-modal="true"
         aria-label={title}
-        className="flex h-full max-h-[90vh] w-full max-w-4xl flex-col overflow-hidden rounded-2xl bg-white shadow-xl ring-1 ring-slate-200"
+        className="flex h-full max-h-[90vh] w-full max-w-4xl flex-col overflow-hidden rounded-card bg-surface shadow-xl ring-1 ring-slate-200"
       >
-        <div className="flex items-center justify-between gap-4 border-b border-slate-200 px-5 py-3">
-          <h2 className="truncate text-sm font-bold text-slate-900">{title}</h2>
+        <div className="flex items-center justify-between gap-4 border-b border-line px-5 py-3">
+          <h2 className="truncate text-sm font-bold text-ink">{title}</h2>
           <div className="flex shrink-0 items-center gap-2">
             <button
               type="button"
@@ -98,7 +98,7 @@ export default function DocumentViewerModal({ storedUrl, title, onClose }) {
               type="button"
               onClick={onClose}
               aria-label="Close"
-              className="-m-1 rounded-lg p-1 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700"
+              className="-m-1 rounded-lg p-1 text-ink-faint transition hover:bg-surface-sunken hover:text-ink-body"
             >
               <svg
                 className="h-5 w-5"
@@ -115,7 +115,7 @@ export default function DocumentViewerModal({ storedUrl, title, onClose }) {
           </div>
         </div>
 
-        <div className="flex flex-1 items-center justify-center overflow-auto bg-slate-100">
+        <div className="flex flex-1 items-center justify-center overflow-auto bg-surface-sunken">
           <DocumentBody file={state.file} failed={state.failed} title={title} />
         </div>
       </div>
@@ -125,11 +125,11 @@ export default function DocumentViewerModal({ storedUrl, title, onClose }) {
 
 function DocumentBody({ file, failed, title }) {
   if (failed) {
-    return <p className="p-8 text-sm text-slate-500">Could not open that document.</p>;
+    return <p className="p-8 text-sm text-ink-muted">Could not open that document.</p>;
   }
 
   if (!file) {
-    return <div className="h-full w-full animate-pulse bg-slate-200" aria-hidden="true" />;
+    return <div className="h-full w-full animate-pulse bg-line" aria-hidden="true" />;
   }
 
   if (file.contentType === "application/pdf") {
@@ -142,7 +142,7 @@ function DocumentBody({ file, failed, title }) {
 
   // Word documents and the like: no browser renders them, so offer the download instead.
   return (
-    <p className="p-8 text-center text-sm text-slate-500">
+    <p className="p-8 text-center text-sm text-ink-muted">
       This file type can&apos;t be previewed in the browser. Use Download to open it.
     </p>
   );
