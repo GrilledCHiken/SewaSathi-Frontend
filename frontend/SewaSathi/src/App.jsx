@@ -10,6 +10,8 @@ import ProtectedRoute from "./components/ProtectedRoute";
 const Signupoption = lazy(() => import("./pages/User/SignupOption"));
 const UserSignup = lazy(() => import("./pages/User/UserSignup"));
 const WorkerSignup = lazy(() => import("./pages/Worker/WorkerSignup"));
+const WorkerVerifyStep = lazy(() => import("./pages/Worker/WorkerVerifyStep"));
+const WorkerSignupSuccess = lazy(() => import("./pages/Worker/WorkerSignupSuccess"));
 const Services = lazy(() => import("./pages/User/Services"));
 const HowItWorks = lazy(() => import("./pages/User/HowItWorks"));
 const Safety = lazy(() => import("./pages/User/Safety"));
@@ -80,7 +82,18 @@ function App() {
         <Route path="/signup" element={<Signupoption />} />
         <Route path="/signup/user" element={<UserSignup />} />
         <Route path="/signup/worker" element={<WorkerSignup />} />
-        
+        {/* Step 2 of worker signup. Authenticated because it uploads documents —
+            WorkerSignup signs the new account in before routing here. */}
+        <Route
+          path="/signup/worker/verify"
+          element={
+            <ProtectedRoute role="WORKER">
+              <WorkerVerifyStep />
+            </ProtectedRoute>
+          }
+        />
+        <Route path="/signup/worker/success" element={<WorkerSignupSuccess />} />
+
         <Route
           path="/services"
           element={

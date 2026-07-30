@@ -20,6 +20,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 
@@ -77,9 +78,7 @@ class TaskServiceTest {
                 .build();
     }
 
-    @Test
-    void createTask_defaultsToOpenStatus() {
-        when(userRepository.findByEmail("customer@example.com")).thenReturn(Optional.of(customer));
+    private CreateTaskRequest validCreateRequest() {
         CreateTaskRequest request = new CreateTaskRequest();
         request.setTitle("Clean my house");
         request.setCategory("Cleaning");
@@ -87,11 +86,78 @@ class TaskServiceTest {
         request.setCity("Kathmandu");
         request.setLocation("Baneshwor");
         request.setBudget(new BigDecimal("1500"));
+        return request;
+    }
+
+    @Test
+    void createTask_defaultsToOpenStatus() {
+        when(userRepository.findByEmail("customer@example.com")).thenReturn(Optional.of(customer));
+
+        TaskResponse response = taskService.createTask("customer@example.com", validCreateRequest());
+
+        assertThat(response.getStatus()).isEqualTo(TaskStatus.OPEN);
+        assertThat(response.getCustomer().getId()).isEqualTo(customer.getId());
+    }
+
+    // The checks below are the ones bean validation cannot express, so they live in the service
+    // and are the only part of the create path a DTO-level test would miss.
+
+    @Test
+    void createTask_rejectsACategoryOutsideTheList() {
+        CreateTaskRequest request = validCreateRequest();
+        request.setCategory("Bomb Disposal");
+
+        assertThatThrownBy(() -> taskService.createTask("customer@example.com", request))
+                .isInstanceOf(InvalidOperationException.class)
+                .hasMessageContaining("category:");
+        verify(taskRepository, never()).save(any(Task.class));
+    }
+
+    @Test
+    void createTask_rejectsATimePreferenceOutsideTheList() {
+        CreateTaskRequest request = validCreateRequest();
+        request.setTimePreference("Midnight");
+
+        assertThatThrownBy(() -> taskService.createTask("customer@example.com", request))
+                .isInstanceOf(InvalidOperationException.class)
+                .hasMessageContaining("timePreference:");
+        verify(taskRepository, never()).save(any(Task.class));
+    }
+
+    @Test
+    void createTask_rejectsAnHourlyRateAboveTheBudget() {
+        CreateTaskRequest request = validCreateRequest();
+        request.setBudget(new BigDecimal("1500"));
+        request.setHourlyRate(new BigDecimal("2000"));
+
+        assertThatThrownBy(() -> taskService.createTask("customer@example.com", request))
+                .isInstanceOf(InvalidOperationException.class)
+                .hasMessageContaining("hourlyRate:");
+        verify(taskRepository, never()).save(any(Task.class));
+    }
+
+    @Test
+    void createTask_rejectsADueDateMoreThanAYearAhead() {
+        CreateTaskRequest request = validCreateRequest();
+        request.setDueDate(LocalDate.now().plusYears(1).plusDays(1));
+
+        assertThatThrownBy(() -> taskService.createTask("customer@example.com", request))
+                .isInstanceOf(InvalidOperationException.class)
+                .hasMessageContaining("dueDate:");
+        verify(taskRepository, never()).save(any(Task.class));
+    }
+
+    @Test
+    void createTask_acceptsADueDateAndHourlyRateWithinRange() {
+        when(userRepository.findByEmail("customer@example.com")).thenReturn(Optional.of(customer));
+        CreateTaskRequest request = validCreateRequest();
+        request.setHourlyRate(new BigDecimal("300"));
+        request.setDueDate(LocalDate.now().plusDays(3));
+        request.setTimePreference("Morning");
 
         TaskResponse response = taskService.createTask("customer@example.com", request);
 
         assertThat(response.getStatus()).isEqualTo(TaskStatus.OPEN);
-        assertThat(response.getCustomer().getId()).isEqualTo(customer.getId());
     }
 
     @Test

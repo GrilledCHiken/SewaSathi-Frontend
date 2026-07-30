@@ -15,6 +15,17 @@ import {
   formatMoney,
   remainingAfter,
 } from "../components/tasks/taskUi.jsx";
+import { parseFieldError } from "../utils/validation";
+import {
+  MAX_DESCRIPTION,
+  SERVICE_CATEGORIES,
+  TASK_ERROR_FIELDS,
+  TIME_PREFERENCES,
+  maxDueDateISO,
+  parseAmount,
+  todayISO,
+  validateTaskForm,
+} from "../utils/taskValidation";
 
 /**
  * Post a task.
@@ -28,27 +39,6 @@ import {
  * `advanceFor` / `remainingAfter` helpers already exported by taskUi — no new
  * state, no new requests.
  */
-
-const SERVICE_CATEGORIES = [
-  "Furniture Assembly",
-  "Mounting",
-  "Cleaning",
-  "Moving Help",
-  "Gardening",
-  "Delivery Help",
-  "Painting",
-  "Electrician",
-  "Plumbing",
-  "Outdoor Help",
-  "Heavy Lifting",
-  "Home Repair",
-  "Office Support",
-  "Other",
-];
-
-const TIME_PREFERENCES = ["Flexible", "Morning", "Afternoon", "Evening"];
-
-const MAX_DESCRIPTION = 500;
 
 const EMPTY_FORM = {
   title: "",
@@ -74,11 +64,9 @@ export default function CustomerPostTask() {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setForm((prev) => ({
-      ...prev,
-      [name]:
-        name === "description" ? value.slice(0, MAX_DESCRIPTION) : value,
-    }));
+    // Description is no longer truncated at the cap. Silently dropping the tail of a pasted
+    // description is worse than letting CharCount go red and failing the check on submit.
+    setForm((prev) => ({ ...prev, [name]: value }));
     if (errors[name]) {
       setErrors((prev) => ({ ...prev, [name]: "" }));
     }
@@ -91,20 +79,22 @@ export default function CustomerPostTask() {
     }
   };
 
-  const validate = () => {
-    const next = {};
-    if (!form.title.trim()) next.title = "Please enter a task title.";
-    if (!form.category) next.category = "Please select a service category.";
-    if (!form.description.trim()) next.description = "Please describe your task.";
-    if (!form.city.trim()) next.city = "Please enter a city.";
-    if (!form.location.trim()) next.location = "Please enter a specific location.";
-    if (!form.budget.trim()) {
-      next.budget = "Please enter a budget.";
-    } else if (Number.isNaN(Number(form.budget)) || Number(form.budget) <= 0) {
-      next.budget = "Please enter a valid budget.";
+  // Moves focus to the first field that failed, so a rejection below the fold is not
+  // something the user has to go hunting for.
+  const focusField = (name) => {
+    const el = document.getElementById(name);
+    if (el) {
+      el.scrollIntoView({ behavior: "smooth", block: "center" });
+      el.focus({ preventScroll: true });
     }
+  };
+
+  const validate = () => {
+    const next = validateTaskForm(form);
     setErrors(next);
-    return Object.keys(next).length === 0;
+    const firstField = Object.keys(next)[0];
+    if (firstField) focusField(firstField);
+    return firstField === undefined;
   };
 
   const handleSubmit = async (e) => {
@@ -119,8 +109,8 @@ export default function CustomerPostTask() {
         description: form.description.trim(),
         city: form.city.trim(),
         location: form.location.trim(),
-        budget: Number(form.budget),
-        hourlyRate: form.hourlyRate.trim() ? Number(form.hourlyRate) : null,
+        budget: parseAmount(form.budget).value,
+        hourlyRate: form.hourlyRate.trim() ? parseAmount(form.hourlyRate).value : null,
         dueDate: form.dueDate || null,
         timePreference: form.timePreference,
       });
@@ -138,7 +128,15 @@ export default function CustomerPostTask() {
 
       setSubmitted(true);
     } catch (err) {
-      toast.error(err.response?.data?.message || "Could not post your task. Please try again.");
+      // A 400 from bean validation arrives as "budget: <message>". Pin it under that input
+      // rather than showing the user a toast with a raw field name in it.
+      const { field, message } = parseFieldError(err, TASK_ERROR_FIELDS);
+      if (field) {
+        setErrors((prev) => ({ ...prev, [field]: message }));
+        focusField(field);
+      } else {
+        toast.error(message || "Could not post your task. Please try again.");
+      }
     } finally {
       setLoading(false);
     }
@@ -180,8 +178,11 @@ export default function CustomerPostTask() {
     );
   }
 
-  const budgetValue = Number(form.budget);
-  const hasBudget = form.budget.trim() !== "" && !Number.isNaN(budgetValue) && budgetValue > 0;
+  // Same parser the check uses, so the rail never previews an advance for a figure the
+  // form is about to reject.
+  const parsedBudget = parseAmount(form.budget);
+  const budgetValue = parsedBudget.value;
+  const hasBudget = parsedBudget.ok && budgetValue > 0;
 
   return (
     <PageShell header={header}>
@@ -335,7 +336,11 @@ export default function CustomerPostTask() {
                   )}
                 </Field>
 
-                <Field id="hourlyRate" label="Hourly Rate (Optional)">
+                <Field
+                  id="hourlyRate"
+                  label="Hourly Rate (Optional)"
+                  error={errors.hourlyRate}
+                >
                   {(field) => (
                     <Input
                       {...field}
@@ -351,7 +356,8 @@ export default function CustomerPostTask() {
 
                 <Field
                   id="dueDate"
-                  label="Due Date"
+                  label="Due Date (Optional)"
+                  error={errors.dueDate}
                   className="sm:col-span-2 lg:col-span-1"
                 >
                   {(field) => (
@@ -361,6 +367,10 @@ export default function CustomerPostTask() {
                       type="date"
                       value={form.dueDate}
                       onChange={handleChange}
+                      // The form is noValidate, so these only shape the native picker -
+                      // validateTaskForm is what actually blocks a past date on submit.
+                      min={todayISO()}
+                      max={maxDueDateISO()}
                     />
                   )}
                 </Field>
@@ -396,6 +406,11 @@ export default function CustomerPostTask() {
                     );
                   })}
                 </div>
+                {errors.timePreference && (
+                  <p className="mt-2 text-sm font-medium text-danger">
+                    {errors.timePreference}
+                  </p>
+                )}
               </fieldset>
             </Panel>
           </div>

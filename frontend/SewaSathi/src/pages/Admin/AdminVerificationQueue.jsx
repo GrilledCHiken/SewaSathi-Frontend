@@ -1,6 +1,7 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { toast } from "react-toastify";
 import AdminHeader from "../../components/Admin/AdminHeader";
+import AdminSearchInput from "../../components/Admin/AdminSearchInput";
 import { DetailField, DocumentLink } from "../../components/Admin/detailUi";
 import { approveWorker, listPendingWorkers, rejectWorker } from "../../api/adminApi";
 
@@ -16,6 +17,7 @@ function formatDate(iso) {
 export default function AdminVerificationQueue() {
   const [workers, setWorkers] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState("");
   const [actioningId, setActioningId] = useState(null);
   // A set rather than a single id so several cards can be opened and compared side by side.
   const [expandedIds, setExpandedIds] = useState(() => new Set());
@@ -26,6 +28,19 @@ export default function AdminVerificationQueue() {
       .catch(() => toast.error("Could not load the verification queue."))
       .finally(() => setLoading(false));
   }, []);
+
+  // The whole queue is fetched once, so searching filters the cards already in hand.
+  // Skills and city are searchable too: finding "the electricians in Lalitpur" is as common
+  // a reason to search this page as looking up one applicant by name.
+  const query = search.trim().toLowerCase();
+  const visibleWorkers = useMemo(() => {
+    if (!query) return workers;
+    return workers.filter((worker) =>
+      [worker.fullName, worker.email, worker.phone, worker.location, worker.skills].some(
+        (field) => field?.toLowerCase().includes(query),
+      ),
+    );
+  }, [workers, query]);
 
   const toggleDetails = (id) => {
     setExpandedIds((prev) => {
@@ -65,22 +80,36 @@ export default function AdminVerificationQueue() {
       <AdminHeader title="Verification Queue" />
 
       <main className="flex-1 px-4 py-6 sm:px-6 lg:px-8">
-        <div>
-          <h2 className="text-xl font-bold text-slate-900 sm:text-2xl">Verification Queue</h2>
-          <p className="mt-1 text-sm text-slate-600 sm:text-base">
-            Review worker signups and approve or reject their accounts.
-          </p>
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <h2 className="text-xl font-bold text-slate-900 sm:text-2xl">Verification Queue</h2>
+            <p className="mt-1 text-sm text-slate-600 sm:text-base">
+              Review worker signups and approve or reject their accounts.
+            </p>
+          </div>
+
+          {/* Nothing to search when the queue is empty, so the box stays out of the way. */}
+          {!loading && workers.length > 0 && (
+            <AdminSearchInput
+              value={search}
+              onChange={setSearch}
+              placeholder="Search by name, email, city, or skill"
+              className="sm:w-72"
+            />
+          )}
         </div>
 
         {loading ? (
           <p className="mt-6 text-sm text-slate-500">Loading...</p>
-        ) : workers.length === 0 ? (
+        ) : visibleWorkers.length === 0 ? (
           <div className="mt-6 rounded-2xl border border-dashed border-slate-300 bg-white p-10 text-center">
-            <p className="text-sm font-medium text-slate-600">No pending verifications.</p>
+            <p className="text-sm font-medium text-slate-600">
+              {query ? `No pending workers match "${search.trim()}".` : "No pending verifications."}
+            </p>
           </div>
         ) : (
           <ul className="mt-6 space-y-4">
-            {workers.map((worker) => (
+            {visibleWorkers.map((worker) => (
               <li
                 key={worker.id}
                 className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-sm"

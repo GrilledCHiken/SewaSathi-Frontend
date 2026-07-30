@@ -43,7 +43,8 @@ function WorkerLayout() {
     }
 
     if (user.status === "PENDING" && !profile?.verificationSubmittedAt) {
-      return <WorkerVerification profile={profile} onSubmitted={setProfile} />;
+      // The safety net for anyone who skipped or abandoned step 2 of signup.
+      return <WorkerVerification mode="gate" profile={profile} onSubmitted={setProfile} />;
     }
 
     const message = STATUS_MESSAGES[user.status] || STATUS_MESSAGES.PENDING;

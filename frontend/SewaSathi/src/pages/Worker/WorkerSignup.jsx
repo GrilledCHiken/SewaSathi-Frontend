@@ -8,10 +8,9 @@ import {
   sanitizePhone,
   validateSignupForm,
 } from "../../utils/validation";
-import AuthLayout, {
-  AuthFooterLink,
-  DefaultAside,
-} from "../../components/auth/AuthLayout";
+import AuthLayout, { AuthFooterLink } from "../../components/auth/AuthLayout";
+import WorkerAside from "../../components/auth/WorkerAside";
+import WorkerSignupSteps from "../../components/auth/WorkerSignupSteps";
 import Alert from "../../components/ui/Alert";
 import Button from "../../components/ui/Button";
 import { Field, Input } from "../../components/ui/Field";
@@ -43,28 +42,6 @@ function BriefcaseIcon({ className = "h-3.5 w-3.5" }) {
   );
 }
 
-/** Worker-facing pitch, in place of the customer one the shell defaults to. */
-const WORKER_ASIDE = (
-  <DefaultAside
-    heading={
-      <>
-        Earn on your
-        <br />
-        own terms.
-      </>
-    }
-    blurb="Set your own rate, pick the jobs that fit your week, and get paid securely for every task you complete."
-    points={[
-      "Set your own rates and schedule",
-      "Get paid within 24 hours of completion",
-      "Build a verified reputation",
-    ]}
-    quote="I pick up jobs between my regular shifts. The work is steady and payment has never been late."
-    quoteAuthor="Rajesh Thapa · Kathmandu"
-    quoteInitials="RT"
-  />
-);
-
 function WorkerSignup() {
   const [showPassword, setShowPassword] = useState(false);
   const [agreed, setAgreed] = useState(false);
@@ -79,7 +56,7 @@ function WorkerSignup() {
     password: "",
     confirmPassword: "",
   });
-  const { registerWorker } = useAuth();
+  const { registerWorker, login } = useAuth();
   const navigate = useNavigate();
 
   const update = (field) => (e) => {
@@ -106,20 +83,37 @@ function WorkerSignup() {
       return;
     }
 
+    const email = form.email.trim();
+
     setLoading(true);
     try {
       await registerWorker({
         fullName: form.fullName.trim(),
-        email: form.email.trim(),
+        email,
         phone: form.phone.trim(),
         password: form.password,
       });
       setSuccess(true);
-      toast.success("Account created! Your application is under review — sign in to track it.");
-      navigate("/login", {
-        replace: true,
-        state: { registered: true, email: form.email.trim(), role: "WORKER" },
-      });
+
+      // Registration hands back no token, but the verification step that follows posts
+      // documents to an authenticated endpoint — so trade the credentials still in
+      // state for a session and carry straight on to step 2.
+      try {
+        await login({ email, password: form.password });
+      } catch {
+        // The account exists either way; falling back to the old flow beats stranding
+        // them. WorkerLayout still puts the verification form in front of them once
+        // they sign in.
+        toast.success("Account created! Sign in to finish your verification.");
+        navigate("/login", {
+          replace: true,
+          state: { registered: true, email, role: "WORKER" },
+        });
+        return;
+      }
+
+      toast.success("Account created — one more step to go.");
+      navigate("/signup/worker/verify", { replace: true });
     } catch (err) {
       // Same as the customer form: a duplicate address is only detectable server-side, so
       // that message has to reach the email field.
@@ -147,29 +141,31 @@ function WorkerSignup() {
   return (
     <AuthLayout
       width="max-w-lg"
-      aside={WORKER_ASIDE}
+      aside={<WorkerAside />}
       title="Create your account"
       subtitle="Set up your worker profile and start accepting tasks."
       topBar={
-        <div className="flex items-center justify-between gap-3">
-          <Link
-            to="/signup"
-            className="inline-flex items-center gap-1.5 rounded-field px-1 py-0.5 text-sm font-medium text-ink-faint transition hover:text-ink-body focus-ring"
-          >
-            <ArrowLeftIcon className="h-4 w-4" />
-            Back
-          </Link>
-          <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700">
-            <BriefcaseIcon />
-            Worker Account
-          </span>
+        <div className="space-y-5">
+          <div className="flex items-center justify-between gap-3">
+            <Link
+              to="/signup"
+              className="inline-flex items-center gap-1.5 rounded-field px-1 py-0.5 text-sm font-medium text-ink-faint transition hover:text-ink-body focus-ring"
+            >
+              <ArrowLeftIcon className="h-4 w-4" />
+              Back
+            </Link>
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700">
+              <BriefcaseIcon />
+              Worker Account
+            </span>
+          </div>
+          <WorkerSignupSteps current={1} />
         </div>
       }
       notice={
         <Alert tone="success">
-          After signing up, our team reviews new worker accounts before you can be
-          hired. You&apos;ll be able to add your skills, rate, and service area once
-          approved.
+          Next you&apos;ll upload your documents and add your skills, rate, and service
+          area. Our team reviews new worker accounts within 24 hours.
         </Alert>
       }
       footer={<AuthFooterLink prompt="Already have an account?" to="/login" label="Log in" />}

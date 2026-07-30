@@ -67,7 +67,14 @@ export default function SideNav({
         className={cn(
           "fixed inset-y-0 left-0 z-50 flex w-[var(--dash-sidebar-w)] flex-col",
           "bg-navy-light transition-transform duration-300 ease-out-soft",
-          "lg:static lg:z-auto lg:translate-x-0",
+          // Desktop: the rail stays in flow (so the content column keeps doing
+          // the width math) but pins to the viewport, matching the already
+          // sticky dashboard headers. `self-start` is load-bearing — as a
+          // stretched flex child the aside is as tall as the whole scrolling
+          // page, and a sticky box that fills its container never sticks.
+          // `bottom-auto`/`left-auto` undo the mobile drawer's inset.
+          "lg:sticky lg:top-0 lg:bottom-auto lg:left-auto",
+          "lg:h-svh lg:self-start lg:z-auto lg:translate-x-0",
           mobileOpen ? "translate-x-0" : "-translate-x-full",
         )}
       >

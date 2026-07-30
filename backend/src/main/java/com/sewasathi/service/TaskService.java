@@ -17,7 +17,9 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.util.List;
+import java.util.Set;
 
 @Service
 @RequiredArgsConstructor
@@ -26,12 +28,52 @@ public class TaskService {
     private static final List<TaskStatus> ACTIVE_STATUSES =
             List.of(TaskStatus.OPEN, TaskStatus.ACCEPTED, TaskStatus.ASSIGNED, TaskStatus.IN_PROGRESS);
 
+    /** Mirrors SERVICE_CATEGORIES in the frontend's utils/taskValidation.js. */
+    private static final Set<String> ALLOWED_CATEGORIES = Set.of(
+            "Furniture Assembly", "Mounting", "Cleaning", "Moving Help", "Gardening",
+            "Delivery Help", "Painting", "Electrician", "Plumbing", "Outdoor Help",
+            "Heavy Lifting", "Home Repair", "Office Support", "Other");
+
+    private static final Set<String> ALLOWED_TIME_PREFERENCES =
+            Set.of("Flexible", "Morning", "Afternoon", "Evening");
+
+    private static final int MAX_DUE_DATE_YEARS = 1;
+
     private final TaskRepository taskRepository;
     private final UserRepository userRepository;
     private final WorkerProfileRepository workerProfileRepository;
 
+    /**
+     * The checks bean validation cannot express: a value list, and a comparison between two
+     * fields. Messages carry a {@code "<field>: "} prefix so they match the shape
+     * {@link com.sewasathi.exception.GlobalExceptionHandler} gives constraint violations, which
+     * is what lets the form pin them under the input that caused them.
+     */
+    private void validateCreateRequest(CreateTaskRequest request) {
+        if (!ALLOWED_CATEGORIES.contains(request.getCategory().trim())) {
+            throw new InvalidOperationException("category: Please select a category from the list.");
+        }
+
+        String timePreference = request.getTimePreference();
+        if (timePreference != null && !ALLOWED_TIME_PREFERENCES.contains(timePreference.trim())) {
+            throw new InvalidOperationException("timePreference: Please choose a valid time preference.");
+        }
+
+        if (request.getHourlyRate() != null
+                && request.getHourlyRate().compareTo(request.getBudget()) > 0) {
+            throw new InvalidOperationException("hourlyRate: Hourly rate cannot be more than the total budget.");
+        }
+
+        // @FutureOrPresent already covers the past; this is the other end of the range.
+        LocalDate dueDate = request.getDueDate();
+        if (dueDate != null && dueDate.isAfter(LocalDate.now().plusYears(MAX_DUE_DATE_YEARS))) {
+            throw new InvalidOperationException("dueDate: Due date cannot be more than 1 year ahead.");
+        }
+    }
+
     @Transactional
     public TaskResponse createTask(String customerEmail, CreateTaskRequest request) {
+        validateCreateRequest(request);
         User customer = getUser(customerEmail);
         Task task = Task.builder()
                 .customer(customer)
