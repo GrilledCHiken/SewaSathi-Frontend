@@ -3,60 +3,124 @@ import { toast } from "react-toastify";
 import { useAuth } from "../../context/AuthContext";
 import { submitWorkerVerification } from "../../api/workerProfileApi";
 import { SKILL_OPTIONS, LOCATION_OPTIONS, EXPERIENCE_OPTIONS } from "../../constants/workerOptions";
+import Brandmark from "../../components/ui/Brandmark";
+import Button from "../../components/ui/Button";
+import { CharCount, Field, Input, Select, Textarea } from "../../components/ui/Field";
+import { ArrowRightIcon, ShieldIcon } from "../../components/ui/icons";
+import WorkerSignupSteps from "../../components/auth/WorkerSignupSteps";
+import { cn } from "../../utils/cn";
+
 const MAX_BIO_LENGTH = 500;
 
-const inputClassName =
-  "w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-slate-900 placeholder:text-slate-400 transition focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/20";
+/**
+ * Worker verification form.
+ *
+ * Rendered in two places, which is what `mode` distinguishes:
+ *
+ * - `"signup"` — step 2 of signing up, at /signup/worker/verify. Shows the step
+ *   header and lets the applicant defer via `onSkip`.
+ * - `"gate"` — the takeover WorkerLayout puts in front of a PENDING worker who
+ *   never filed one. No step header, and no way past it but submitting.
+ */
 
 function UploadIcon() {
   return (
-    <svg className="h-6 w-6 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+    <svg className="h-6 w-6 text-ink-faint" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.75} d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5-5 5 5M12 5v12" />
     </svg>
   );
 }
 
-function PersonIcon() {
+function PersonIcon({ className = "h-7 w-7 text-ink-faint" }) {
   return (
-    <svg className="h-7 w-7 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.75} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM4 21a8 8 0 0116 0" />
     </svg>
   );
 }
 
-function ShieldIcon() {
-  return (
-    <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.75} d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-    </svg>
-  );
-}
+const DROPZONE_BASE =
+  "flex cursor-pointer flex-col items-center justify-center gap-1.5 rounded-field border-2 border-dashed " +
+  "bg-surface-sunken/60 px-4 text-center transition hover:border-brand hover:bg-brand-50/50 " +
+  "focus-within:border-brand focus-within:ring-2 focus-within:ring-brand/20";
 
-function FileDropzone({ label, required, file, onChange, accept = "application/pdf,image/*" }) {
+/**
+ * File picker styled as a dropzone.
+ *
+ * Not a `Field`: the control is the label itself, so the label/`htmlFor`
+ * wiring `Field` exists to own doesn't apply. The error message below mirrors
+ * `Field`'s so the two read identically in a column.
+ */
+function FileDropzone({
+  id,
+  label,
+  required,
+  file,
+  error,
+  onChange,
+  accept = "application/pdf,image/*",
+  icon = <UploadIcon />,
+  placeholder = "Click to upload PDF or image",
+  className = "",
+}) {
+  const errorId = error ? `${id}-error` : undefined;
+
   return (
-    <div>
-      <label className="mb-1.5 block text-sm font-semibold text-slate-800">
+    <div className="min-w-0">
+      <span className="mb-1.5 block text-sm font-semibold text-ink">
         {label}
-        {required && <span className="text-red-500"> *</span>}
-      </label>
-      <label className="flex cursor-pointer flex-col items-center justify-center gap-1.5 rounded-xl border-2 border-dashed border-slate-200 bg-slate-50/60 px-4 py-6 text-center transition hover:border-brand hover:bg-brand/5">
-        <UploadIcon />
-        <span className="text-xs font-medium text-slate-600">
-          {file ? file.name : "Click to upload PDF or image"}
+        {required && (
+          <span className="ml-0.5 text-danger" aria-hidden="true">
+            *
+          </span>
+        )}
+      </span>
+
+      <label
+        className={cn(
+          DROPZONE_BASE,
+          error ? "border-danger/60" : "border-line",
+          className || "py-6",
+        )}
+      >
+        {icon}
+        <span
+          className={cn(
+            "text-xs font-medium",
+            file ? "text-ink-body" : "text-ink-muted",
+          )}
+        >
+          {file ? file.name : placeholder}
         </span>
         <input
+          id={id}
           type="file"
           accept={accept}
-          className="hidden"
+          className="sr-only"
+          aria-invalid={error ? true : undefined}
+          aria-describedby={errorId}
           onChange={(e) => onChange(e.target.files?.[0] || null)}
         />
       </label>
+
+      {error && (
+        <p id={errorId} className="mt-1.5 text-sm font-medium text-danger">
+          {error}
+        </p>
+      )}
     </div>
   );
 }
 
-export default function WorkerVerification({ profile, onSubmitted }) {
+export default function WorkerVerification({
+  profile,
+  onSubmitted,
+  mode = "gate",
+  onSkip,
+}) {
   const { user } = useAuth();
+  const isSignup = mode === "signup";
+
   const [fullName, setFullName] = useState(user?.fullName || "");
   const [phone, setPhone] = useState(user?.phone || "");
   const [city, setCity] = useState(profile?.location || "");
@@ -71,30 +135,40 @@ export default function WorkerVerification({ profile, onSubmitted }) {
   const [hourlyRate, setHourlyRate] = useState(profile?.hourlyRate != null ? String(profile.hourlyRate) : "");
   const [bio, setBio] = useState(profile?.bio || "");
   const [submitting, setSubmitting] = useState(false);
+  const [errors, setErrors] = useState({});
+
+  /** Setter wrapper that clears the field's error as soon as it's touched. */
+  const withClear = (field, set) => (value) => {
+    set(value);
+    setErrors((prev) => (prev[field] ? { ...prev, [field]: "" } : prev));
+  };
 
   const toggleSkill = (skill) => {
     setSelectedSkills((prev) =>
       prev.includes(skill) ? prev.filter((s) => s !== skill) : [...prev, skill],
     );
+    setErrors((prev) => (prev.skills ? { ...prev, skills: "" } : prev));
+  };
+
+  const validate = () => {
+    const next = {};
+    if (!fullName.trim()) next.fullName = "Enter your full name.";
+    if (!phone.trim()) next.phone = "Enter your phone number.";
+    if (!city) next.city = "Select your city.";
+    if (!address.trim()) next.address = "Enter your full address.";
+    if (!policeClearance) next.policeClearance = "A police clearance report is required.";
+    if (!citizenshipDoc) next.citizenshipDoc = "A citizenship or ID document is required.";
+    if (selectedSkills.length === 0) next.skills = "Select at least one skill.";
+    return next;
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (!fullName.trim() || !phone.trim() || !city || !address.trim()) {
-      toast.error("Please fill in all required personal information fields.");
-      return;
-    }
-    if (!policeClearance) {
-      toast.error("A police clearance report is required for verification.");
-      return;
-    }
-    if (!citizenshipDoc) {
-      toast.error("A citizenship/ID document is required for verification.");
-      return;
-    }
-    if (selectedSkills.length === 0) {
-      toast.error("Please select at least one skill.");
+    const nextErrors = validate();
+    setErrors(nextErrors);
+    if (Object.keys(nextErrors).length > 0) {
+      toast.error("Please complete the highlighted fields.");
       return;
     }
 
@@ -114,7 +188,11 @@ export default function WorkerVerification({ profile, onSubmitted }) {
     setSubmitting(true);
     try {
       const updated = await submitWorkerVerification(formData);
-      toast.success("Verification submitted! Our team reviews every application within 24 hours.");
+      if (!isSignup) {
+        // In signup mode the success screen carries the message, so a toast here
+        // would only flash past on the way to it.
+        toast.success("Verification submitted! Our team reviews every application within 24 hours.");
+      }
       onSubmitted?.(updated);
     } catch (err) {
       toast.error(err.response?.data?.message || "Could not submit verification. Please try again.");
@@ -124,148 +202,148 @@ export default function WorkerVerification({ profile, onSubmitted }) {
   };
 
   return (
-    <div className="flex min-h-svh flex-col items-center bg-slate-50 px-4 py-10 sm:py-12">
-      <div className="mb-6 flex items-center gap-2.5">
-        <span className="flex h-9 w-9 items-center justify-center rounded-[10px] bg-brand text-white">
-          <PersonIcon />
-        </span>
-        <span className="text-xl font-bold tracking-tight text-slate-900">SewaSathi</span>
-      </div>
+    <div className="flex min-h-svh flex-col items-center bg-surface-muted px-4 py-10 sm:py-12">
+      <Brandmark to="/" size="sm" className="mb-6" />
 
-      <div className="w-full max-w-2xl rounded-2xl border border-slate-100 bg-white p-6 shadow-xl shadow-slate-200/60 sm:p-10">
+      <div className="w-full max-w-2xl animate-fade-up rounded-panel border border-line bg-surface p-6 shadow-e3 sm:p-10">
+        {isSignup && <WorkerSignupSteps current={2} className="mb-8" />}
+
         <div className="text-center">
           <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700">
-            <ShieldIcon />
+            <ShieldIcon className="h-3.5 w-3.5" />
             Verification Required
           </span>
-          <h1 className="mt-4 text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
+          <h1 className="mt-4 text-2xl font-extrabold tracking-tight text-ink sm:text-3xl">
             Worker Verification
           </h1>
-          <p className="mx-auto mt-2 max-w-md text-sm text-slate-500 sm:text-base">
+          <p className="mx-auto mt-2 max-w-md text-sm text-ink-muted sm:text-base">
             Complete the form below to get verified. Our team reviews every application within
             24 hours.
           </p>
         </div>
 
-        <form className="mt-8 space-y-8" onSubmit={handleSubmit}>
+        <form className="mt-8 space-y-8" onSubmit={handleSubmit} noValidate>
           <section>
-            <h2 className="mb-4 text-xs font-bold uppercase tracking-wide text-slate-500">
+            <h2 className="mb-4 text-xs font-bold uppercase tracking-wide text-ink-muted">
               Personal Information
             </h2>
             <div className="space-y-4">
-              <div>
-                <label htmlFor="fullName" className="mb-1.5 block text-sm font-semibold text-slate-800">
-                  Full Name <span className="text-red-500">*</span>
-                </label>
-                <input
-                  id="fullName"
-                  type="text"
-                  value={fullName}
-                  onChange={(e) => setFullName(e.target.value)}
-                  placeholder="Ram Bahadur"
-                  required
-                  className={inputClassName}
-                />
-              </div>
+              <Field id="fullName" label="Full Name" required error={errors.fullName}>
+                {(field) => (
+                  <Input
+                    {...field}
+                    type="text"
+                    value={fullName}
+                    onChange={(e) => withClear("fullName", setFullName)(e.target.value)}
+                    placeholder="Ram Bahadur"
+                    autoComplete="name"
+                    maxLength={150}
+                  />
+                )}
+              </Field>
 
               <div className="grid gap-4 sm:grid-cols-2">
-                <div>
-                  <label htmlFor="phone" className="mb-1.5 block text-sm font-semibold text-slate-800">
-                    Phone Number <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    id="phone"
-                    type="tel"
-                    value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
-                    placeholder="98XXXXXXXX"
-                    required
-                    className={inputClassName}
-                  />
-                </div>
-                <div>
-                  <label htmlFor="city" className="mb-1.5 block text-sm font-semibold text-slate-800">
-                    City <span className="text-red-500">*</span>
-                  </label>
-                  <select
-                    id="city"
-                    value={city}
-                    onChange={(e) => setCity(e.target.value)}
-                    required
-                    className={inputClassName}
-                  >
-                    <option value="">Select city</option>
-                    {LOCATION_OPTIONS.map((loc) => (
-                      <option key={loc} value={loc}>
-                        {loc}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+                <Field id="phone" label="Phone Number" required error={errors.phone}>
+                  {(field) => (
+                    <Input
+                      {...field}
+                      type="tel"
+                      inputMode="numeric"
+                      value={phone}
+                      onChange={(e) => withClear("phone", setPhone)(e.target.value)}
+                      placeholder="98XXXXXXXX"
+                      autoComplete="tel"
+                      maxLength={10}
+                    />
+                  )}
+                </Field>
+
+                <Field id="city" label="City" required error={errors.city}>
+                  {(field) => (
+                    <Select
+                      {...field}
+                      value={city}
+                      onChange={(e) => withClear("city", setCity)(e.target.value)}
+                    >
+                      <option value="">Select city</option>
+                      {LOCATION_OPTIONS.map((loc) => (
+                        <option key={loc} value={loc}>
+                          {loc}
+                        </option>
+                      ))}
+                    </Select>
+                  )}
+                </Field>
               </div>
 
-              <div>
-                <label htmlFor="address" className="mb-1.5 block text-sm font-semibold text-slate-800">
-                  Full Address <span className="text-red-500">*</span>
-                </label>
-                <input
-                  id="address"
-                  type="text"
-                  value={address}
-                  onChange={(e) => setAddress(e.target.value)}
-                  placeholder="Street, Ward, District"
-                  required
-                  className={inputClassName}
-                />
-              </div>
+              <Field id="address" label="Full Address" required error={errors.address}>
+                {(field) => (
+                  <Input
+                    {...field}
+                    type="text"
+                    value={address}
+                    onChange={(e) => withClear("address", setAddress)(e.target.value)}
+                    placeholder="Street, Ward, District"
+                    autoComplete="street-address"
+                  />
+                )}
+              </Field>
             </div>
           </section>
 
           <section>
-            <h2 className="mb-4 text-xs font-bold uppercase tracking-wide text-slate-500">
+            <h2 className="mb-4 text-xs font-bold uppercase tracking-wide text-ink-muted">
               Verification Documents
             </h2>
             <div className="grid gap-4 sm:grid-cols-2">
               <FileDropzone
+                id="policeClearance"
                 label="Police Clearance Report"
                 required
                 file={policeClearance}
-                onChange={setPoliceClearance}
+                error={errors.policeClearance}
+                onChange={withClear("policeClearance", setPoliceClearance)}
               />
               <FileDropzone
+                id="citizenshipDoc"
                 label="Citizenship / ID"
                 required
                 file={citizenshipDoc}
-                onChange={setCitizenshipDoc}
+                error={errors.citizenshipDoc}
+                onChange={withClear("citizenshipDoc", setCitizenshipDoc)}
               />
             </div>
 
-            <div className="mt-4">
-              <label className="mb-1.5 block text-sm font-semibold text-slate-800">Profile Photo</label>
-              <label className="flex cursor-pointer flex-col items-center justify-center gap-1.5 rounded-xl border-2 border-dashed border-slate-200 bg-slate-50/60 px-4 py-8 text-center transition hover:border-brand hover:bg-brand/5">
-                <PersonIcon />
-                <span className="text-xs font-medium text-slate-600">
-                  {profilePhoto ? profilePhoto.name : "Upload a clear front-facing photo"}
-                </span>
-                <input
-                  type="file"
-                  accept="image/*"
-                  className="hidden"
-                  onChange={(e) => setProfilePhoto(e.target.files?.[0] || null)}
-                />
-              </label>
-            </div>
+            <FileDropzone
+              id="profilePhoto"
+              label="Profile Photo"
+              file={profilePhoto}
+              onChange={setProfilePhoto}
+              accept="image/*"
+              icon={<PersonIcon />}
+              placeholder="Upload a clear front-facing photo"
+              className="mt-4 py-8"
+            />
           </section>
 
           <section>
-            <h2 className="mb-4 text-xs font-bold uppercase tracking-wide text-slate-500">
+            <h2 className="mb-4 text-xs font-bold uppercase tracking-wide text-ink-muted">
               Skills &amp; Experience
             </h2>
 
-            <span className="mb-2 block text-sm font-semibold text-slate-800">
-              Select your skills <span className="text-red-500">*</span>
+            <span className="mb-2 block text-sm font-semibold text-ink">
+              Select your skills
+              <span className="ml-0.5 text-danger" aria-hidden="true">
+                *
+              </span>
             </span>
-            <div className="flex flex-wrap gap-2">
+            <div
+              role="group"
+              aria-label="Skills"
+              aria-invalid={errors.skills ? true : undefined}
+              aria-describedby={errors.skills ? "skills-error" : undefined}
+              className="flex flex-wrap gap-2"
+            >
               {SKILL_OPTIONS.map((skill) => {
                 const selected = selectedSkills.includes(skill);
                 return (
@@ -274,83 +352,100 @@ export default function WorkerVerification({ profile, onSubmitted }) {
                     type="button"
                     onClick={() => toggleSkill(skill)}
                     aria-pressed={selected}
-                    className={[
-                      "rounded-full border px-3.5 py-2 text-sm font-medium transition",
+                    className={cn(
+                      "rounded-full border px-3.5 py-2 text-sm font-medium transition focus-ring",
                       selected
-                        ? "border-brand bg-brand/10 text-brand"
-                        : "border-slate-200 bg-slate-50 text-slate-700 hover:border-slate-300 hover:bg-white",
-                    ].join(" ")}
+                        ? "border-brand bg-brand-50 text-brand-700"
+                        : "border-line bg-surface-sunken text-ink-body hover:border-line-strong hover:bg-surface",
+                    )}
                   >
                     {skill}
                   </button>
                 );
               })}
             </div>
+            {errors.skills && (
+              <p id="skills-error" className="mt-1.5 text-sm font-medium text-danger">
+                {errors.skills}
+              </p>
+            )}
 
             <div className="mt-5 grid gap-4 sm:grid-cols-2">
-              <div>
-                <label htmlFor="experience" className="mb-1.5 block text-sm font-semibold text-slate-800">
-                  Years of Experience
-                </label>
-                <select
-                  id="experience"
-                  value={yearsOfExperience}
-                  onChange={(e) => setYearsOfExperience(e.target.value)}
-                  className={inputClassName}
-                >
-                  <option value="">Select</option>
-                  {EXPERIENCE_OPTIONS.map((opt) => (
-                    <option key={opt} value={opt}>
-                      {opt}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label htmlFor="hourlyRate" className="mb-1.5 block text-sm font-semibold text-slate-800">
-                  Hourly Rate (NPR)
-                </label>
-                <input
-                  id="hourlyRate"
-                  type="text"
-                  inputMode="numeric"
-                  value={hourlyRate}
-                  onChange={(e) => setHourlyRate(e.target.value)}
-                  placeholder="e.g., 500"
-                  className={inputClassName}
-                />
-              </div>
+              <Field id="experience" label="Years of Experience">
+                {(field) => (
+                  <Select
+                    {...field}
+                    value={yearsOfExperience}
+                    onChange={(e) => setYearsOfExperience(e.target.value)}
+                  >
+                    <option value="">Select</option>
+                    {EXPERIENCE_OPTIONS.map((opt) => (
+                      <option key={opt} value={opt}>
+                        {opt}
+                      </option>
+                    ))}
+                  </Select>
+                )}
+              </Field>
+
+              <Field id="hourlyRate" label="Hourly Rate (NPR)">
+                {(field) => (
+                  <Input
+                    {...field}
+                    type="text"
+                    inputMode="numeric"
+                    value={hourlyRate}
+                    onChange={(e) => setHourlyRate(e.target.value)}
+                    placeholder="e.g., 500"
+                  />
+                )}
+              </Field>
             </div>
 
-            <div className="mt-5">
-              <label htmlFor="bio" className="mb-1.5 block text-sm font-semibold text-slate-800">
-                About You
-              </label>
-              <div className="relative">
-                <textarea
-                  id="bio"
+            <Field
+              id="bio"
+              label="About You"
+              className="mt-5"
+              labelSuffix={<CharCount value={bio} max={MAX_BIO_LENGTH} />}
+            >
+              {(field) => (
+                <Textarea
+                  {...field}
                   rows={4}
                   value={bio}
                   onChange={(e) => setBio(e.target.value.slice(0, MAX_BIO_LENGTH))}
                   placeholder="Tell us about your experience and what makes you a great worker..."
-                  className={`${inputClassName} resize-y min-h-[100px] pb-8`}
                 />
-                <span className="pointer-events-none absolute bottom-3 right-3 text-xs text-slate-400">
-                  {bio.length}/{MAX_BIO_LENGTH}
-                </span>
-              </div>
-            </div>
+              )}
+            </Field>
           </section>
 
           <div>
-            <button
+            <Button
               type="submit"
-              disabled={submitting}
-              className="flex w-full items-center justify-center gap-2 rounded-xl bg-brand py-3.5 text-base font-semibold text-white shadow-md shadow-brand/25 transition hover:bg-brand-dark disabled:cursor-not-allowed disabled:opacity-60"
+              size="lg"
+              shape="rounded"
+              fullWidth
+              loading={submitting}
+              iconRight={<ArrowRightIcon className="h-5 w-5" />}
             >
               {submitting ? "Submitting..." : "Submit for Verification"}
-            </button>
-            <p className="mt-3 text-center text-xs text-slate-400">
+            </Button>
+
+            {isSignup && (
+              <div className="mt-4 text-center">
+                <button
+                  type="button"
+                  onClick={onSkip}
+                  disabled={submitting}
+                  className="rounded-field px-2 py-1 text-sm font-semibold text-ink-muted transition hover:text-ink-body focus-ring disabled:opacity-60"
+                >
+                  I&apos;ll do this later
+                </button>
+              </div>
+            )}
+
+            <p className="mt-3 text-center text-xs text-ink-faint">
               Your documents are securely stored and reviewed by our team. By submitting, you
               agree to our verification process.
             </p>

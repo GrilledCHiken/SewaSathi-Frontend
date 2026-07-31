@@ -60,7 +60,9 @@ export default function useDesktopNotifications() {
 
       const notification = new Notification(title, {
         body,
-        icon: "/favicon.svg",
+        // PNG, not the SVG favicon: Chrome and Firefox do not rasterise SVG
+        // notification icons and quietly render nothing.
+        icon: "/icon-192.png",
         // Collapses repeats of the same kind rather than stacking them up.
         tag: "sewasathi-notification",
       });

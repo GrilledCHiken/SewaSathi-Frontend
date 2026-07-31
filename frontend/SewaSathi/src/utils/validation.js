@@ -41,32 +41,39 @@ export const sanitizePhone = (value = '') => {
 // Fields the signup forms render an inline error slot for. A server message is only
 // attached to the field when it names one of these, so an unrelated error can never
 // leave a message pinned under an input the user cannot act on.
-const SERVER_ERROR_FIELDS = ['fullName', 'email', 'phone', 'password']
+const SIGNUP_ERROR_FIELDS = ['fullName', 'email', 'phone', 'password']
 
 /**
- * Turns a failed signup response into { field, message } so the error lands under the
- * input that caused it rather than only in a toast.
+ * Turns a failed request into { field, message } so the error can land under the input that
+ * caused it rather than only in a toast.
  *
- * The backend's bean-validation handler formats its 400 body as "email: <message>" -
- * useful, but the raw field name should not be shown to a user. A 409 has no prefix and
- * is always about the email address, since that is the only unique column.
+ * The backend's bean-validation handler formats its 400 body as "email: <message>" - useful,
+ * but the raw field name should not be shown to a user. `fields` is the caller's list of
+ * inputs that actually have an error slot; anything else comes back unattached.
  */
-export const parseSignupError = (err) => {
+export const parseFieldError = (err, fields = []) => {
   const raw = err?.response?.data?.message
   if (!raw) {
     return { field: null, message: null }
   }
 
-  if (err.response?.status === 409) {
-    return { field: 'email', message: raw }
-  }
-
   const match = /^(\w+):\s*(.+)$/s.exec(raw)
-  if (match && SERVER_ERROR_FIELDS.includes(match[1])) {
+  if (match && fields.includes(match[1])) {
     return { field: match[1], message: match[2] }
   }
 
   return { field: null, message: raw }
+}
+
+/**
+ * Signup flavour of the above. A 409 has no field prefix and is always about the email
+ * address, since that is the only unique column.
+ */
+export const parseSignupError = (err) => {
+  if (err?.response?.status === 409 && err.response.data?.message) {
+    return { field: 'email', message: err.response.data.message }
+  }
+  return parseFieldError(err, SIGNUP_ERROR_FIELDS)
 }
 
 export const validateSignupForm = (form, { agreed } = {}) => {

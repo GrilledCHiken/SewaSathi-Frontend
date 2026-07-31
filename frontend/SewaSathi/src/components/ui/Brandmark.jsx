@@ -1,27 +1,32 @@
 import { Link } from "react-router-dom";
 import { cn } from "../../utils/cn";
-import { LogoIcon } from "./icons";
+import LogoMark from "./LogoMark";
 
 /**
- * Logo tile + wordmark + optional subtitle — the composite every shell wants.
+ * Logo + wordmark + optional subtitle — the composite every shell wants.
  *
  * The public header, the footer, the three dashboard sidebars and the four auth
- * screens each used to assemble this by hand around their own copy of
- * `LogoIcon`, which is how the tile ended up at three different sizes.
+ * screens each used to assemble this by hand around their own copy of the mark,
+ * which is how it ended up at three different sizes.
+ *
+ * The mark used to sit in a solid `bg-brand` tile because it was a single white
+ * glyph and needed something to sit on. `LogoMark` carries its own colour and
+ * silhouette, so the tile is gone — the glyph sizes below grew to keep the same
+ * optical weight in the header and sidebar rows the tile used to occupy.
  *
  * `tone="dark"` is for navy surfaces (sidebar rail, footer, auth aside);
  * `tone="light"` for white ones.
  */
 
 const SIZES = Object.freeze({
-  sm: { tile: "h-9 w-9", glyph: 18, word: "text-sm", sub: "text-[11px]" },
-  md: { tile: "h-10 w-10", glyph: 22, word: "text-base", sub: "text-xs" },
-  lg: { tile: "h-12 w-12", glyph: 26, word: "text-lg", sub: "text-xs" },
+  sm: { glyph: 34, word: "text-sm", sub: "text-[11px]" },
+  md: { glyph: 38, word: "text-base", sub: "text-xs" },
+  lg: { glyph: 46, word: "text-lg", sub: "text-xs" },
 });
 
 const TONES = Object.freeze({
-  light: { word: "text-ink", sub: "text-brand" },
-  dark: { word: "text-white", sub: "text-brand-300" },
+  light: { word: "text-ink", sub: "text-brand", mark: "color" },
+  dark: { word: "text-white", sub: "text-brand-300", mark: "on-dark" },
 });
 
 export default function Brandmark({
@@ -48,14 +53,7 @@ export default function Brandmark({
         className,
       )}
     >
-      <span
-        className={cn(
-          "flex shrink-0 items-center justify-center rounded-tile bg-brand shadow-brand",
-          s.tile,
-        )}
-      >
-        <LogoIcon size={s.glyph} />
-      </span>
+      <LogoMark size={s.glyph} variant={t.mark} className="shrink-0" />
 
       {showWordmark && (
         <span className="min-w-0">

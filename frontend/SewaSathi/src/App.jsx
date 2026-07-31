@@ -3,6 +3,7 @@ import { Routes, Route } from "react-router-dom";
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import Layout from "./components/User/Layout";
+import LogoMark from "./components/ui/LogoMark";
 import Home from "./pages/User/Home";
 import Login from "./pages/Login";
 import ProtectedRoute from "./components/ProtectedRoute";
@@ -10,6 +11,8 @@ import ProtectedRoute from "./components/ProtectedRoute";
 const Signupoption = lazy(() => import("./pages/User/SignupOption"));
 const UserSignup = lazy(() => import("./pages/User/UserSignup"));
 const WorkerSignup = lazy(() => import("./pages/Worker/WorkerSignup"));
+const WorkerVerifyStep = lazy(() => import("./pages/Worker/WorkerVerifyStep"));
+const WorkerSignupSuccess = lazy(() => import("./pages/Worker/WorkerSignupSuccess"));
 const Services = lazy(() => import("./pages/User/Services"));
 const HowItWorks = lazy(() => import("./pages/User/HowItWorks"));
 const Safety = lazy(() => import("./pages/User/Safety"));
@@ -51,7 +54,8 @@ const WorkerProfileEdit = lazy(() => import("./pages/Worker/WorkerProfileEdit"))
 
 function RouteFallback() {
   return (
-    <div className="flex min-h-svh flex-1 items-center justify-center">
+    <div className="flex min-h-svh flex-1 flex-col items-center justify-center gap-5">
+      <LogoMark size={48} className="motion-safe:animate-pulse" />
       <div className="h-8 w-8 animate-spin rounded-full border-2 border-brand border-t-transparent" />
     </div>
   );
@@ -80,7 +84,18 @@ function App() {
         <Route path="/signup" element={<Signupoption />} />
         <Route path="/signup/user" element={<UserSignup />} />
         <Route path="/signup/worker" element={<WorkerSignup />} />
-        
+        {/* Step 2 of worker signup. Authenticated because it uploads documents —
+            WorkerSignup signs the new account in before routing here. */}
+        <Route
+          path="/signup/worker/verify"
+          element={
+            <ProtectedRoute role="WORKER">
+              <WorkerVerifyStep />
+            </ProtectedRoute>
+          }
+        />
+        <Route path="/signup/worker/success" element={<WorkerSignupSuccess />} />
+
         <Route
           path="/services"
           element={
