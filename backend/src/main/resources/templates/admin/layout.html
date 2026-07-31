@@ -17,14 +17,15 @@
     <meta name="_csrf_header" th:content="${_csrf?.headerName}">
     <meta name="session-timeout" th:content="${sessionTimeoutSeconds}">
     <title th:text="${pageTitle} + ' · ' + #{admin.brand}">Admin · Sewa Sathi</title>
-    <link rel="icon" th:href="@{/admin/assets/favicon.svg}" type="image/svg+xml">
+    <link rel="icon" th:href="@{/admin/assets/favicon.png}" type="image/png">
     <link rel="stylesheet" th:href="@{/admin/assets/app.css}">
 </head>
 <body>
 
 <header class="topbar">
     <a class="brand" th:href="@{/admin/dashboard}">
-        <span class="brand-mark">SS</span>
+        <!--/* alt is empty on purpose: the brand name sits next to it as real text. */-->
+        <img class="brand-mark" th:src="@{/admin/assets/logo.png}" alt="" width="32" height="32">
         <span th:text="#{admin.brand}">Sewa Sathi</span>
         <span class="brand-tag" th:text="#{admin.console}">Admin</span>
     </a>

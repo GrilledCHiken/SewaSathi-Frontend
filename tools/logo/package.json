@@ -1,0 +1,11 @@
+{
+  "name": "sewasathi-logo-tools",
+  "private": true,
+  "description": "Regenerates the brand assets. Not part of any app build.",
+  "scripts": {
+    "emit": "node emit.js"
+  },
+  "dependencies": {
+    "sharp": "^0.35.3"
+  }
+}

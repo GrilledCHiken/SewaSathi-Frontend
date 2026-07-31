@@ -33,18 +33,29 @@
 
     <title>
         <band height="70">
+            <!--
+              Resolved off the classpath, the same way ReportService loads this template.
+              PNG rather than SVG on purpose: SVG rendering needs Batik, which is not
+              guaranteed on the JasperReports 6.21 classpath, and a missing renderer fails
+              at fill time rather than at compile time.
+              The text fields below stop at 455 to leave this the right-hand gutter.
+            -->
+            <image scaleImage="RetainShape" hAlign="Right" vAlign="Middle">
+                <reportElement x="467" y="0" width="48" height="48"/>
+                <imageExpression><![CDATA["reports/logo.png"]]></imageExpression>
+            </image>
             <textField>
-                <reportElement x="0" y="0" width="515" height="24"/>
+                <reportElement x="0" y="0" width="455" height="24"/>
                 <textElement><font size="16" isBold="true"/></textElement>
                 <textFieldExpression><![CDATA[$P{REPORT_TITLE}]]></textFieldExpression>
             </textField>
             <textField>
-                <reportElement x="0" y="26" width="515" height="14"/>
+                <reportElement x="0" y="26" width="455" height="14"/>
                 <textElement><font size="9"/></textElement>
                 <textFieldExpression><![CDATA["Sewa Sathi  ·  " + $P{RANGE_LABEL}]]></textFieldExpression>
             </textField>
             <textField>
-                <reportElement x="0" y="42" width="515" height="14"/>
+                <reportElement x="0" y="42" width="455" height="14"/>
                 <textElement><font size="8"/></textElement>
                 <textFieldExpression><![CDATA["Generated " + $P{GENERATED_AT}]]></textFieldExpression>
             </textField>

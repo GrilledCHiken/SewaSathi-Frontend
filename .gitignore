@@ -14,6 +14,10 @@ frontend/SewaSathi/.env
 frontend/SewaSathi/*.local
 frontend/SewaSathi/*.log
 
+# --- Brand asset generator (tools/logo) ---
+# Run on demand to regenerate the icons; its output is committed, its deps are not.
+tools/logo/node_modules/
+
 # --- Logs (either project) ---
 *.log
 logs/

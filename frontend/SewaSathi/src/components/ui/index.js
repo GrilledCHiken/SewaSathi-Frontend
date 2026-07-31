@@ -25,6 +25,7 @@ export { default as RadioCard } from "./RadioCard";
 export { default as Accordion, AccordionItem } from "./Accordion";
 export { default as SideNav } from "./SideNav";
 export { default as Brandmark } from "./Brandmark";
+export { default as LogoMark } from "./LogoMark";
 
 export { TONES, toneOf } from "./tones";
 export { BUTTON_VARIANTS, BUTTON_SIZES } from "./button.variants";

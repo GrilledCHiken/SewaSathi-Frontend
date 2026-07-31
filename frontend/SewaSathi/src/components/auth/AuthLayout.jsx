@@ -8,7 +8,7 @@ import { CheckIcon } from "../ui/icons";
  * right, and a mobile logo row when the panel is hidden.
  *
  * Login, SignupOption, UserSignup and WorkerSignup each carried their own copy
- * of this markup along with their own inlined LogoIcon, which is how the four
+ * of this markup along with their own inlined brand mark, which is how the four
  * screens drifted apart — different card widths, different aside content, and
  * in one case no aside at all.
  *

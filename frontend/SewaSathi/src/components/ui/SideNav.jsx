@@ -8,7 +8,7 @@ import Brandmark from "./Brandmark";
  * Those three sidebars were byte-identical apart from four things: the nav
  * array, the `aria-label`, the subtitle string and the active-link accent. They
  * were also three separate copies of the same mobile off-canvas mechanism and
- * the same inlined LogoIcon. Restyling one and not the others would have forked
+ * the same inlined brand mark. Restyling one and not the others would have forked
  * the app's chrome, so they now share this.
  *
  * The rail is navy rather than white. This is dark *chrome* on a light app, not

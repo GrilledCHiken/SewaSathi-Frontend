@@ -3,6 +3,7 @@ import { Routes, Route } from "react-router-dom";
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import Layout from "./components/User/Layout";
+import LogoMark from "./components/ui/LogoMark";
 import Home from "./pages/User/Home";
 import Login from "./pages/Login";
 import ProtectedRoute from "./components/ProtectedRoute";
@@ -53,7 +54,8 @@ const WorkerProfileEdit = lazy(() => import("./pages/Worker/WorkerProfileEdit"))
 
 function RouteFallback() {
   return (
-    <div className="flex min-h-svh flex-1 items-center justify-center">
+    <div className="flex min-h-svh flex-1 flex-col items-center justify-center gap-5">
+      <LogoMark size={48} className="motion-safe:animate-pulse" />
       <div className="h-8 w-8 animate-spin rounded-full border-2 border-brand border-t-transparent" />
     </div>
   );

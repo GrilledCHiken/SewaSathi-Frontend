@@ -11,10 +11,17 @@
     --border: #e2e5ea;
     --ink: #16191d;
     --ink-muted: #616b76;
-    --brand: #1f6f4a;
-    --brand-dark: #17553a;
+    /* Matches the SPA's --color-brand / --color-brand-dark so the two consoles
+       read as one product. */
+    --brand: #2b8cff;
+    --brand-dark: #1a7ae8;
+    --brand-soft: #eff7ff;
     --danger: #b3261e;
     --warn: #8a5a00;
+    /* Success is its own tone, not a tint of the brand — it used to borrow
+       --brand back when the brand was green. */
+    --ok: #047857;
+    --ok-soft: #ecfdf5;
     --radius: 12px;
     --shadow: 0 1px 2px rgba(16, 24, 40, .06), 0 1px 3px rgba(16, 24, 40, .1);
 }
@@ -87,22 +94,18 @@ h2 {
     text-decoration: none;
 }
 
+/* An image slot, not a text tile: the mark carries its own colour and silhouette,
+   so it needs no plate behind it. */
 .brand-mark {
-    display: grid;
-    place-items: center;
+    display: block;
     width: 32px;
     height: 32px;
-    border-radius: 9px;
-    background: var(--brand);
-    color: #fff;
-    font-size: .8rem;
-    font-weight: 700;
+    flex: none;
 }
 
 .brand-mark-large {
     width: 48px;
     height: 48px;
-    font-size: 1.05rem;
     margin: 0 auto .75rem;
 }
 
@@ -137,7 +140,7 @@ h2 {
 }
 
 .nav a.active {
-    background: #e7f2ec;
+    background: var(--brand-soft);
     color: var(--brand-dark);
 }
 
@@ -490,8 +493,8 @@ input:focus-visible, select:focus-visible, .btn:focus-visible, a:focus-visible {
 }
 
 .alert-ok {
-    background: #e7f2ec;
-    color: var(--brand-dark);
+    background: var(--ok-soft);
+    color: var(--ok);
 }
 
 .idle-warning {

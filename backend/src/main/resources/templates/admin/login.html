@@ -8,13 +8,14 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title th:text="#{admin.login.title} + ' · ' + #{admin.brand}">Sign in · Sewa Sathi</title>
-    <link rel="icon" th:href="@{/admin/assets/favicon.svg}" type="image/svg+xml">
+    <link rel="icon" th:href="@{/admin/assets/favicon.png}" type="image/png">
     <link rel="stylesheet" th:href="@{/admin/assets/app.css}">
 </head>
 <body class="centered">
 
 <main class="login-card">
-    <div class="brand-mark brand-mark-large">SS</div>
+    <img class="brand-mark brand-mark-large" th:src="@{/admin/assets/logo.png}"
+         th:alt="#{admin.brand}" alt="Sewa Sathi" width="48" height="48">
     <h1 th:text="#{admin.login.title}">Sign in</h1>
     <p class="lede" th:text="#{admin.login.lede}">Administrator access only.</p>
 

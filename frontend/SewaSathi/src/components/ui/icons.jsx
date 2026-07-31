@@ -12,9 +12,8 @@
  *
  * Icons are hand-inlined rather than pulled from a package — the same
  * deliberate choice `ServiceIcon.jsx` and `tasks/taskUi.jsx` already make.
- * What was missing was a single home for them: `LogoIcon` alone was defined
- * verbatim in nine files, and `MailIcon`/`LockIcon`/`EyeIcon` and friends were
- * redeclared in every page that used them.
+ * What was missing was a single home for them: `MailIcon`/`LockIcon`/`EyeIcon`
+ * and friends were redeclared in every page that used them.
  *
  * The `stroke()` factory bakes in viewBox, stroke width, caps, joins and
  * `aria-hidden`, so those can never drift between call sites. Glyph paths are
@@ -291,34 +290,5 @@ export const VerifiedIcon = filled(
   <path d="M9 12.75 11.25 15 15 9.75M21 12c0 1.268-.63 2.39-1.593 3.068a3.745 3.745 0 0 1-1.043 3.296 3.745 3.745 0 0 1-3.296 1.043A3.745 3.745 0 0 1 12 21c-1.268 0-2.39-.63-3.068-1.593a3.746 3.746 0 0 1-3.296-1.043 3.745 3.745 0 0 1-1.043-3.296A3.745 3.745 0 0 1 3 12c0-1.268.63-2.39 1.593-3.068a3.745 3.745 0 0 1 1.043-3.296 3.746 3.746 0 0 1 3.296-1.043A3.746 3.746 0 0 1 12 3c1.268 0 2.39.63 3.068 1.593a3.746 3.746 0 0 1 3.296 1.043 3.746 3.746 0 0 1 1.043 3.296A3.745 3.745 0 0 1 21 12Z" />,
 );
 
-/* -------------------------------------------------------------------------- */
-/* Brand                                                                       */
-/* -------------------------------------------------------------------------- */
-
-/**
- * The SewaSathi mark — two hands cradling a heart.
- *
- * Was defined verbatim in nine files (User/Header, User/Sidebar, User/Footer,
- * Admin/AdminSidebar, Worker/WorkerSidebar, Login, SignupOption, UserSignup,
- * WorkerSignup). The stroke colour is a prop because the navy shells draw it
- * white while light surfaces draw it in the brand blue.
- */
-export function LogoIcon({ size = 22, className = "", color = "white" }) {
-  return (
-    <svg
-      width={size}
-      height={size}
-      viewBox="0 0 24 24"
-      fill="none"
-      aria-hidden="true"
-      className={className}
-    >
-      <path
-        d="M12 21s-6.5-4.35-9-8.2C1.5 9.5 3.5 5 7.5 5c2.1 0 3.5 1.2 4.5 2.5C13 6.2 14.4 5 16.5 5 20.5 5 22.5 9.5 21 12.8 18.5 16.65 12 21 12 21z"
-        stroke={color}
-        strokeWidth="1.6"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
+/* The brand mark is not here — it is two-tone and gradient-filled, so it fits
+   neither factory below. See `LogoMark.jsx`. */
