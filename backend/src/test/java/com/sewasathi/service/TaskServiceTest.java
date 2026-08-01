@@ -27,7 +27,10 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -44,6 +47,9 @@ class TaskServiceTest {
     @Mock
     private WorkerProfileRepository workerProfileRepository;
 
+    @Mock
+    private NotificationService notificationService;
+
     private TaskService taskService;
 
     private User customer;
@@ -52,7 +58,8 @@ class TaskServiceTest {
 
     @BeforeEach
     void setUp() {
-        taskService = new TaskService(taskRepository, userRepository, workerProfileRepository);
+        taskService = new TaskService(
+                taskRepository, userRepository, workerProfileRepository, notificationService);
 
         customer = User.builder()
                 .id(1L).email("customer@example.com").fullName("Customer One")
@@ -76,6 +83,14 @@ class TaskServiceTest {
                 .description("desc").city("Kathmandu").location("Baneshwor")
                 .budget(new BigDecimal("1000")).status(TaskStatus.OPEN)
                 .build();
+    }
+
+    /** A task the customer has hired {@link #approvedWorker} for, awaiting their answer. */
+    private Task requestedTask() {
+        Task task = openTaskOwnedBy(customer);
+        task.setStatus(TaskStatus.REQUESTED);
+        task.setAssignedWorker(approvedWorker);
+        return task;
     }
 
     private CreateTaskRequest validCreateRequest() {
@@ -254,7 +269,7 @@ class TaskServiceTest {
     }
 
     @Test
-    void assignWorker_valid_setsAssignedWorkerAndAwaitsAdvancePayment() {
+    void assignWorker_valid_parksTaskAtRequestedAndNotifiesTheWorker() {
         Task task = openTaskOwnedBy(customer);
         when(userRepository.findByEmail("customer@example.com")).thenReturn(Optional.of(customer));
         when(taskRepository.findById(100L)).thenReturn(Optional.of(task));
@@ -262,12 +277,16 @@ class TaskServiceTest {
 
         TaskResponse response = taskService.assignWorker(100L, "customer@example.com", 3L);
 
-        assertThat(response.getStatus()).isEqualTo(TaskStatus.ACCEPTED);
+        // A direct hire is an offer, not a booking - the worker has to answer first.
+        assertThat(response.getStatus()).isEqualTo(TaskStatus.REQUESTED);
         assertThat(response.getAssignedWorker().getId()).isEqualTo(3L);
 
         ArgumentCaptor<Task> captor = ArgumentCaptor.forClass(Task.class);
         verify(taskRepository).save(captor.capture());
         assertThat(captor.getValue().getAssignedWorker()).isEqualTo(approvedWorker);
+
+        verify(notificationService).notify(
+                eq(approvedWorker), eq("TASK_REQUESTED"), anyString(), anyString(), eq("/worker/jobs"));
     }
 
     @Test
@@ -304,6 +323,80 @@ class TaskServiceTest {
 
         assertThat(response.getStatus()).isEqualTo(TaskStatus.ACCEPTED);
         assertThat(response.getAssignedWorker().getId()).isEqualTo(3L);
+    }
+
+    @Test
+    void acceptTask_ownRequest_movesItToAcceptedAndNotifiesTheCustomer() {
+        Task task = requestedTask();
+        when(userRepository.findByEmail("worker@example.com")).thenReturn(Optional.of(approvedWorker));
+        when(taskRepository.findById(100L)).thenReturn(Optional.of(task));
+
+        TaskResponse response = taskService.acceptTask(100L, "worker@example.com");
+
+        assertThat(response.getStatus()).isEqualTo(TaskStatus.ACCEPTED);
+        assertThat(response.getAssignedWorker().getId()).isEqualTo(3L);
+        verify(notificationService).notify(
+                eq(customer), eq("TASK_ACCEPTED"), anyString(), anyString(), eq("/dashboard/tasks"));
+    }
+
+    @Test
+    void acceptTask_someoneElsesRequest_isTreatedAsNotFound() {
+        Task task = requestedTask();
+        User otherWorker = User.builder()
+                .id(5L).email("other-worker@example.com").fullName("Worker Two")
+                .phone("9800000005").role(Role.WORKER).status(ApprovalStatus.APPROVED).suspended(false)
+                .build();
+        when(userRepository.findByEmail("other-worker@example.com")).thenReturn(Optional.of(otherWorker));
+        when(taskRepository.findById(100L)).thenReturn(Optional.of(task));
+
+        // A requested task has left the open pool, so it must not be claimable by anyone else.
+        assertThatThrownBy(() -> taskService.acceptTask(100L, "other-worker@example.com"))
+                .isInstanceOf(ResourceNotFoundException.class);
+        assertThat(task.getAssignedWorker()).isEqualTo(approvedWorker);
+        verifyNoInteractions(notificationService);
+    }
+
+    @Test
+    void declineRequest_returnsTheTaskToTheOpenPoolAndNotifiesTheCustomer() {
+        Task task = requestedTask();
+        when(userRepository.findByEmail("worker@example.com")).thenReturn(Optional.of(approvedWorker));
+        when(taskRepository.findById(100L)).thenReturn(Optional.of(task));
+
+        TaskResponse response = taskService.declineRequest(100L, "worker@example.com");
+
+        // Back on the public feed rather than cancelled, so the customer can hire someone else.
+        assertThat(response.getStatus()).isEqualTo(TaskStatus.OPEN);
+        assertThat(response.getAssignedWorker()).isNull();
+        verify(notificationService).notify(
+                eq(customer), eq("TASK_DECLINED"), anyString(), anyString(), eq("/dashboard/tasks"));
+    }
+
+    @Test
+    void declineRequest_someoneElsesRequest_isTreatedAsNotFound() {
+        Task task = requestedTask();
+        User otherWorker = User.builder()
+                .id(5L).email("other-worker@example.com").fullName("Worker Two")
+                .phone("9800000005").role(Role.WORKER).status(ApprovalStatus.APPROVED).suspended(false)
+                .build();
+        when(userRepository.findByEmail("other-worker@example.com")).thenReturn(Optional.of(otherWorker));
+        when(taskRepository.findById(100L)).thenReturn(Optional.of(task));
+
+        assertThatThrownBy(() -> taskService.declineRequest(100L, "other-worker@example.com"))
+                .isInstanceOf(ResourceNotFoundException.class);
+        assertThat(task.getStatus()).isEqualTo(TaskStatus.REQUESTED);
+    }
+
+    @Test
+    void declineRequest_afterTheJobIsAlreadyUnderway_isRejected() {
+        Task task = requestedTask();
+        task.setStatus(TaskStatus.IN_PROGRESS);
+        when(userRepository.findByEmail("worker@example.com")).thenReturn(Optional.of(approvedWorker));
+        when(taskRepository.findById(100L)).thenReturn(Optional.of(task));
+
+        assertThatThrownBy(() -> taskService.declineRequest(100L, "worker@example.com"))
+                .isInstanceOf(InvalidOperationException.class)
+                .hasMessageContaining("no longer be declined");
+        assertThat(task.getAssignedWorker()).isEqualTo(approvedWorker);
     }
 
     @Test

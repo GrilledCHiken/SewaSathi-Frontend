@@ -1,6 +1,5 @@
 import { Link } from "react-router-dom";
 import SideNav from "../ui/SideNav";
-import Button from "../ui/Button";
 import {
   CardIcon,
   ChatIcon,
@@ -36,27 +35,14 @@ const NAV_ITEMS = [
 
 function SidebarFooter({ onNavigate }) {
   return (
-    <div className="space-y-2">
-      <Button
-        as={Link}
-        to="/dashboard/post-task"
-        onClick={onNavigate}
-        fullWidth
-        size="sm"
-        iconLeft={<PlusIcon className="h-4 w-4" />}
-      >
-        Post a Task
-      </Button>
-
-      <Link
-        to="/help"
-        onClick={onNavigate}
-        className="flex items-center justify-center gap-2 rounded-full px-3 py-2 text-xs font-medium text-slate-400 transition hover:bg-white/5 hover:text-white focus-ring-dark"
-      >
-        <HelpIcon className="h-4 w-4" />
-        Help &amp; support
-      </Link>
-    </div>
+    <Link
+      to="/help"
+      onClick={onNavigate}
+      className="flex items-center justify-center gap-2 rounded-full px-3 py-2 text-xs font-medium text-slate-400 transition hover:bg-white/5 hover:text-white focus-ring-dark"
+    >
+      <HelpIcon className="h-4 w-4" />
+      Help &amp; support
+    </Link>
   );
 }
 

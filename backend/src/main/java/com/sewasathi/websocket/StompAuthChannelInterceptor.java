@@ -1,11 +1,10 @@
 package com.sewasathi.websocket;
 
 import com.sewasathi.entity.Role;
-import com.sewasathi.entity.Task;
 import com.sewasathi.entity.User;
-import com.sewasathi.repository.TaskRepository;
 import com.sewasathi.repository.UserRepository;
 import com.sewasathi.security.JwtService;
+import com.sewasathi.service.ChatAccessService;
 import com.sewasathi.service.ConversationKey;
 import lombok.RequiredArgsConstructor;
 import org.springframework.messaging.Message;
@@ -22,7 +21,6 @@ import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.stereotype.Component;
 
 import java.security.Principal;
-import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -36,7 +34,7 @@ public class StompAuthChannelInterceptor implements ChannelInterceptor {
     private final JwtService jwtService;
     private final UserDetailsService userDetailsService;
     private final UserRepository userRepository;
-    private final TaskRepository taskRepository;
+    private final ChatAccessService chatAccessService;
 
     @Override
     public Message<?> preSend(Message<?> message, MessageChannel channel) {
@@ -95,9 +93,8 @@ public class StompAuthChannelInterceptor implements ChannelInterceptor {
         if (!key.includes(user) && user.getRole() != Role.ADMIN) {
             return false;
         }
-        // The pair must actually share an assigned task for the chat to exist.
-        List<Task> sharedTasks = taskRepository
-                .findByCustomerIdAndAssignedWorkerIdOrderByCreatedAtAsc(key.customerId(), key.workerId());
-        return !sharedTasks.isEmpty();
+        // The pair must share a task the advance has been paid on - checked here as well
+        // as in MessageService so the socket cannot be used to get around the REST gate.
+        return !chatAccessService.unlockedSharedTasks(key).isEmpty();
     }
 }

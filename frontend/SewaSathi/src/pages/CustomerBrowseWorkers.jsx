@@ -217,12 +217,12 @@ function HireModal({ worker, onClose }) {
     try {
       await assignWorker(selectedTaskId, worker.id);
       toast.success(
-        `${worker.name} has taken your task. Pay the 10% advance to confirm it.`,
+        `Request sent to ${worker.name}. You'll be notified when they respond.`,
       );
       onClose();
       navigate("/dashboard/tasks");
     } catch (err) {
-      toast.error(err.response?.data?.message || "Could not assign this worker.");
+      toast.error(err.response?.data?.message || "Could not send this request.");
     } finally {
       setAssigning(false);
     }
@@ -255,8 +255,9 @@ function HireModal({ worker, onClose }) {
         ) : openTasks.length > 0 ? (
           <>
             <p className="mt-2 text-sm leading-relaxed text-ink-muted">
-              Assign {worker.name} directly to one of your open tasks. You&apos;ll pay
-              a 10% advance from My Tasks to confirm the booking.
+              Send {worker.name} a request for one of your open tasks. Once they
+              accept, you&apos;ll pay a 10% advance from My Tasks to confirm the
+              booking.
             </p>
             <label
               htmlFor="hire-task-select"
@@ -280,7 +281,7 @@ function HireModal({ worker, onClose }) {
             </div>
             <div className="mt-6 flex flex-col gap-2 sm:flex-row-reverse">
               <Button fullWidth onClick={handleAssign} loading={assigning}>
-                {assigning ? "Assigning..." : "Assign to Task"}
+                {assigning ? "Sending..." : "Send Request"}
               </Button>
               <Button variant="secondary" fullWidth onClick={goPostNewTask}>
                 Post a New Task
@@ -291,7 +292,7 @@ function HireModal({ worker, onClose }) {
           <>
             <p className="mt-2 text-sm leading-relaxed text-ink-muted">
               You don&apos;t have any open tasks yet. Post a new task and{" "}
-              {worker.name} will be assigned to it directly.
+              {worker.name} will be sent a request for it directly.
             </p>
             <div className="mt-6 flex flex-col gap-2 sm:flex-row-reverse">
               <Button fullWidth onClick={goPostNewTask}>

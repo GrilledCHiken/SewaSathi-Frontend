@@ -214,13 +214,25 @@ export default function TaskCard({
                     {[party.role, party.person.phone].filter(Boolean).join(" · ")}
                   </p>
                 </div>
-                {party.messageHref && (
+                {party.messageHref ? (
                   <Link
                     to={party.messageHref}
                     className={`shrink-0 text-sm font-semibold transition ${tone.link}`}
                   >
                     Message
                   </Link>
+                ) : (
+                  // Chat is locked until the advance is paid. Keeping the control in
+                  // place, greyed out, explains the rule where it applies.
+                  party.messageLockedHint && (
+                    <span
+                      className="shrink-0 cursor-not-allowed text-sm font-semibold text-ink-faint"
+                      title={party.messageLockedHint}
+                      aria-disabled="true"
+                    >
+                      Message
+                    </span>
+                  )
                 )}
               </div>
             )}

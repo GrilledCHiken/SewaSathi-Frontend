@@ -1,10 +1,9 @@
 import { useState } from "react";
-import { Link, useNavigate, useOutletContext } from "react-router-dom";
+import { useNavigate, useOutletContext } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import NotificationBell from "../NotificationBell";
 import UserMenu from "../UserMenu";
-import Button from "../ui/Button";
-import { MenuIcon, PlusIcon, SearchIcon } from "../ui/icons";
+import { MenuIcon, SearchIcon } from "../ui/icons";
 
 /**
  * Sticky header for the customer dashboard.
@@ -76,16 +75,6 @@ function DashboardHeader({ title = "Customer Dashboard", searchPlaceholder = "Se
         </form>
 
         <div className="flex items-center justify-end gap-2 sm:shrink-0 sm:gap-3">
-          <Button
-            as={Link}
-            to="/dashboard/post-task"
-            size="sm"
-            className="hidden lg:inline-flex"
-            iconLeft={<PlusIcon className="h-4 w-4" />}
-          >
-            Post a Task
-          </Button>
-
           {/* Was a decorative bell with a hardcoded red dot; now backed by the real feed. */}
           <NotificationBell />
 

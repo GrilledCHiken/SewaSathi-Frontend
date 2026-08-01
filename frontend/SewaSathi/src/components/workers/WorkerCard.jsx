@@ -1,7 +1,10 @@
-import { formatMoney } from "../tasks/taskUi.jsx";
+import { ADVANCE_PERCENT_LABEL, formatMoney } from "../tasks/taskUi.jsx";
 import Button from "../ui/Button";
 
 const MAX_VISIBLE_SKILLS = 3;
+
+const HIRE_FIRST_HINT =
+  `Messaging opens after you hire this worker and pay the ${ADVANCE_PERCENT_LABEL} advance.`;
 
 function VerifiedBadge() {
   return (
@@ -136,9 +139,13 @@ export default function WorkerCard({ worker, onHire }) {
         <Button size="sm" fullWidth onClick={() => onHire(worker)}>
           Hire Now
         </Button>
-        <Button size="sm" variant="secondary" fullWidth>
-          Message
-        </Button>
+        {/* There is no thread to open yet: chat starts once this worker has been hired
+            and the advance is paid. Shown disabled so the path is at least legible. */}
+        <span title={HIRE_FIRST_HINT} className="inline-flex w-full">
+          <Button size="sm" variant="secondary" fullWidth disabled>
+            Message
+          </Button>
+        </span>
       </div>
     </article>
   );

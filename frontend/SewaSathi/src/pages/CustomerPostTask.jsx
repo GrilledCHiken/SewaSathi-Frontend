@@ -58,6 +58,7 @@ export default function CustomerPostTask() {
   const targetWorkerId = searchParams.get("workerId");
   const targetWorkerName = searchParams.get("workerName");
   const [submitted, setSubmitted] = useState(false);
+  const [requestSent, setRequestSent] = useState(false);
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState({});
   const [form, setForm] = useState(EMPTY_FORM);
@@ -118,10 +119,13 @@ export default function CustomerPostTask() {
       if (targetWorkerId) {
         try {
           await assignWorker(task.id, targetWorkerId);
+          setRequestSent(true);
         } catch (err) {
+          // The task itself is posted either way, so this is not fatal - but the
+          // success screen must not then claim a request went out.
           toast.error(
             err.response?.data?.message ||
-              `Task posted, but ${targetWorkerName || "the worker"} could not be assigned.`
+              `Task posted, but ${targetWorkerName || "the worker"} could not be sent a request.`
           );
         }
       }
@@ -155,8 +159,8 @@ export default function CustomerPostTask() {
             Task posted successfully!
           </h3>
           <p className="mx-auto mt-2 max-w-md text-sm leading-relaxed text-ink-muted">
-            {targetWorkerId
-              ? `${targetWorkerName || "The selected worker"} has taken your task. Pay the 10% advance from My Tasks to confirm it.`
+            {requestSent
+              ? `Your request has been sent to ${targetWorkerName || "the selected worker"}. You'll be notified when they accept or decline it.`
               : "Your task is now live. Verified workers in your area can view and apply shortly."}
           </p>
           <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:justify-center">
@@ -167,6 +171,7 @@ export default function CustomerPostTask() {
               variant="secondary"
               onClick={() => {
                 setSubmitted(false);
+                setRequestSent(false);
                 setForm(EMPTY_FORM);
               }}
             >
@@ -193,11 +198,11 @@ export default function CustomerPostTask() {
 
       {targetWorkerId && (
         <Alert tone="brand" className="mt-6">
-          This task will be posted and given directly to{" "}
+          This task will be posted and sent as a request to{" "}
           <strong className="font-semibold">
             {targetWorkerName || "the selected worker"}
           </strong>
-          . A 10% advance confirms the booking.
+          . Once they accept, a 10% advance confirms the booking.
         </Alert>
       )}
 
