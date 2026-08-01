@@ -40,6 +40,11 @@ public class WorkerTaskController {
         return taskService.acceptTask(id, principal.getUsername());
     }
 
+    @PatchMapping("/{id}/decline")
+    public TaskResponse decline(@AuthenticationPrincipal UserPrincipal principal, @PathVariable Long id) {
+        return taskService.declineRequest(id, principal.getUsername());
+    }
+
     @PatchMapping("/{id}/start")
     public TaskResponse start(@AuthenticationPrincipal UserPrincipal principal, @PathVariable Long id) {
         return taskService.startTask(id, principal.getUsername());

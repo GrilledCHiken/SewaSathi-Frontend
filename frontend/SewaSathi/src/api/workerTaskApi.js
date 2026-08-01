@@ -15,6 +15,11 @@ export async function acceptTask(id) {
   return data;
 }
 
+export async function declineTask(id) {
+  const { data } = await httpClient.patch(`/worker/tasks/${id}/decline`);
+  return data;
+}
+
 export async function startTask(id) {
   const { data } = await httpClient.patch(`/worker/tasks/${id}/start`);
   return data;

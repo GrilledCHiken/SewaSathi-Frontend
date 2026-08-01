@@ -9,6 +9,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.time.LocalDateTime;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
@@ -23,6 +24,16 @@ public interface PaymentRepository extends JpaRepository<Payment, Long> {
     List<Payment> findByTaskIdAndStatus(Long taskId, PaymentStatus status);
 
     boolean existsByTaskIdAndStatus(Long taskId, PaymentStatus status);
+
+    /**
+     * Which of these tasks have a payment in the given state. Answers "has the advance
+     * settled?" for a whole conversation in one round-trip, where
+     * {@link #existsByTaskIdAndStatus} would cost a query per task.
+     */
+    @Query("select p.task.id from Payment p where p.task.id in :taskIds and p.status = :status")
+    List<Long> findTaskIdsByTaskIdInAndStatus(
+            @Param("taskIds") Collection<Long> taskIds,
+            @Param("status") PaymentStatus status);
 
     /**
      * Revenue by month and gateway, for the report in

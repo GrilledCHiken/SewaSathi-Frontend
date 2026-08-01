@@ -21,11 +21,15 @@ import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * Chat is one-to-one between a customer and a worker. A conversation covers every
  * task the two share, so hiring the same worker again continues the same thread
  * instead of starting a new one.
+ *
+ * <p>Threads only exist once the customer's advance has settled - see
+ * {@link ChatAccessService}.
  */
 @Service
 @RequiredArgsConstructor
@@ -35,6 +39,7 @@ public class MessageService {
     private final TaskRepository taskRepository;
     private final UserRepository userRepository;
     private final FileStorageService fileStorageService;
+    private final ChatAccessService chatAccessService;
     private final SimpMessagingTemplate messagingTemplate;
 
     @Transactional(readOnly = true)
@@ -55,7 +60,12 @@ public class MessageService {
             tasksByPeer.computeIfAbsent(peerId, id -> new ArrayList<>()).add(task);
         }
 
+        // One lookup for every task on screen, then drop the people this user has hired
+        // but not yet paid - their thread is not open, so it should not be listed either.
+        Set<Long> paidTaskIds = chatAccessService.paidTaskIds(tasks.stream().map(Task::getId).toList());
+
         return tasksByPeer.values().stream()
+                .filter(sharedTasks -> sharedTasks.stream().anyMatch(t -> paidTaskIds.contains(t.getId())))
                 .map(sharedTasks -> {
                     Message last = messageRepository.findFirstByTaskIdInOrderByCreatedAtDesc(
                             sharedTasks.stream().map(Task::getId).toList()
@@ -157,8 +167,9 @@ public class MessageService {
     }
 
     /**
-     * Returns the tasks behind a conversation, oldest first. Non-participants and
-     * unknown keys get a 404 rather than a 403 so conversations cannot be enumerated.
+     * Returns the tasks behind a conversation, oldest first. Non-participants, unknown
+     * keys and threads whose advance has not been paid all get a 404 rather than a 403,
+     * so conversations cannot be enumerated and an unpaid one leaves no trace.
      */
     private List<Task> resolveConversation(User user, String conversationKey) {
         ConversationKey key = ConversationKey.parse(conversationKey);
@@ -168,8 +179,7 @@ public class MessageService {
         if (!key.includes(user) && user.getRole() != Role.ADMIN) {
             throw new ResourceNotFoundException("No conversation " + conversationKey);
         }
-        List<Task> sharedTasks = taskRepository
-                .findByCustomerIdAndAssignedWorkerIdOrderByCreatedAtAsc(key.customerId(), key.workerId());
+        List<Task> sharedTasks = chatAccessService.unlockedSharedTasks(key);
         if (sharedTasks.isEmpty()) {
             throw new ResourceNotFoundException("No conversation " + conversationKey);
         }

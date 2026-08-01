@@ -34,9 +34,19 @@ function CheckIcon() {
   );
 }
 
+function InboxIcon() {
+  return (
+    <svg className="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M22 12h-6l-2 3h-4l-2-3H2" />
+      <path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z" />
+    </svg>
+  );
+}
+
 export default function WorkerOverview() {
   const [loading, setLoading] = useState(true);
   const [openCount, setOpenCount] = useState(0);
+  const [requestedCount, setRequestedCount] = useState(0);
   const [activeCount, setActiveCount] = useState(0);
   const [completedCount, setCompletedCount] = useState(0);
   const [profileIncomplete, setProfileIncomplete] = useState(false);
@@ -45,6 +55,7 @@ export default function WorkerOverview() {
     Promise.all([listOpenTasks(), listMyJobs(), getMyWorkerProfile()])
       .then(([openTasks, myJobs, profile]) => {
         setOpenCount(openTasks.length);
+        setRequestedCount(myJobs.filter((t) => t.status === "REQUESTED").length);
         setActiveCount(myJobs.filter((t) => ACTIVE_STATUSES.includes(t.status)).length);
         setCompletedCount(myJobs.filter((t) => t.status === "COMPLETED").length);
         setProfileIncomplete(!profile.skills || !profile.location || !profile.hourlyRate);
@@ -61,11 +72,23 @@ export default function WorkerOverview() {
       iconText: "text-sky-600",
       icon: <SearchIcon />,
     },
+    // Customers who hired this worker by name and are waiting on an answer. The only tile
+    // that asks the worker to do something, so it is the only one that links anywhere.
+    {
+      label: "Job Requests",
+      value: requestedCount,
+      iconBg: "bg-amber-100",
+      iconText: "text-amber-600",
+      icon: <InboxIcon />,
+      to: "/worker/jobs",
+      urgent: requestedCount > 0,
+    },
     {
       label: "Active Jobs",
       value: activeCount,
-      iconBg: "bg-amber-100",
-      iconText: "text-amber-600",
+      // Violet, matching the `accepted` badge in taskUi - amber now belongs to `requested`.
+      iconBg: "bg-violet-100",
+      iconText: "text-violet-600",
       icon: <BriefcaseIcon />,
     },
     {
@@ -110,23 +133,37 @@ export default function WorkerOverview() {
               </div>
             )}
 
-            <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
-              {stats.map((stat) => (
-                <article
-                  key={stat.label}
-                  className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-sm"
-                >
-                  <span
-                    className={`flex h-11 w-11 items-center justify-center rounded-xl ${stat.iconBg} ${stat.iconText}`}
+            <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              {stats.map((stat) => {
+                // A tile with somewhere to go becomes a link; the rest stay plain cards.
+                const Tile = stat.to ? Link : "article";
+                return (
+                  <Tile
+                    key={stat.label}
+                    {...(stat.to ? { to: stat.to } : {})}
+                    className={`block rounded-2xl border bg-white p-5 shadow-sm transition ${
+                      stat.urgent
+                        ? "border-amber-300 ring-2 ring-amber-200 hover:border-amber-400"
+                        : "border-slate-200/80"
+                    } ${stat.to ? "hover:shadow-md" : ""}`}
                   >
-                    {stat.icon}
-                  </span>
-                  <p className="mt-4 text-2xl font-extrabold tracking-tight text-slate-900">
-                    {stat.value}
-                  </p>
-                  <p className="mt-1 text-sm font-medium text-slate-600">{stat.label}</p>
-                </article>
-              ))}
+                    <span
+                      className={`flex h-11 w-11 items-center justify-center rounded-xl ${stat.iconBg} ${stat.iconText}`}
+                    >
+                      {stat.icon}
+                    </span>
+                    <p className="mt-4 text-2xl font-extrabold tracking-tight text-slate-900">
+                      {stat.value}
+                    </p>
+                    <p className="mt-1 text-sm font-medium text-slate-600">{stat.label}</p>
+                    {stat.urgent && (
+                      <p className="mt-1 text-xs font-semibold text-amber-700">
+                        Waiting on your response
+                      </p>
+                    )}
+                  </Tile>
+                );
+              })}
             </div>
 
             <section className="mt-6 overflow-hidden rounded-2xl bg-gradient-to-r from-emerald-500 via-emerald-600 to-teal-500 p-6 shadow-lg shadow-emerald-600/20 sm:p-8">

@@ -26,6 +26,16 @@ export const STATUS_META = {
     tone: "neutral",
     stripe: "bg-slate-300",
   },
+  // The customer hired a named worker directly and is waiting on their answer.
+  // Amber rather than the violet `accepted` uses, because those two are the pair a
+  // customer has to tell apart at a glance: only one of them has a Pay button.
+  requested: {
+    badge: "bg-amber-100 text-amber-700",
+    dot: "bg-amber-500 animate-pulse",
+    tone: "warning",
+    pulse: true,
+    stripe: "bg-warning",
+  },
   // A worker has said yes but the customer still owes the confirmation advance.
   accepted: {
     badge: "bg-violet-100 text-violet-700",
@@ -274,6 +284,23 @@ export function remainingAfter(budget) {
   if (budget == null) return 0;
   return Math.round((Number(budget) - advanceFor(budget)) * 100) / 100;
 }
+
+export const ADVANCE_PERCENT_LABEL = `${Math.round(ADVANCE_RATE * 100)}%`;
+
+/**
+ * Chat is a paid feature: the backend only opens a thread once the advance has settled
+ * on a task the two people share. Nothing in a task listing says whether a payment went
+ * through, but only a settled advance moves a task past `accepted` — so these statuses
+ * stand in for it when deciding whether to enable a Message control. The Messages page
+ * itself is driven by the server, which remains the authority.
+ */
+const CHAT_OPEN_STATUSES = new Set(["assigned", "in progress", "completed"]);
+
+export function chatUnlocked(task) {
+  return CHAT_OPEN_STATUSES.has(formatStatus(task?.status));
+}
+
+export const CHAT_LOCKED_HINT = `Messaging opens once the ${ADVANCE_PERCENT_LABEL} advance is paid.`;
 
 export function formatDate(iso, fallback = "Flexible") {
   if (!iso) return fallback;

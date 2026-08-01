@@ -4,6 +4,7 @@ import com.sewasathi.dto.response.ConversationResponse;
 import com.sewasathi.dto.response.MessageResponse;
 import com.sewasathi.entity.ApprovalStatus;
 import com.sewasathi.entity.Message;
+import com.sewasathi.entity.PaymentStatus;
 import com.sewasathi.entity.Role;
 import com.sewasathi.entity.Task;
 import com.sewasathi.entity.TaskStatus;
@@ -11,6 +12,7 @@ import com.sewasathi.entity.User;
 import com.sewasathi.exception.InvalidOperationException;
 import com.sewasathi.exception.ResourceNotFoundException;
 import com.sewasathi.repository.MessageRepository;
+import com.sewasathi.repository.PaymentRepository;
 import com.sewasathi.repository.TaskRepository;
 import com.sewasathi.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -23,6 +25,7 @@ import org.springframework.messaging.simp.SimpMessagingTemplate;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
@@ -52,6 +55,9 @@ class MessageServiceTest {
     private FileStorageService fileStorageService;
 
     @Mock
+    private PaymentRepository paymentRepository;
+
+    @Mock
     private SimpMessagingTemplate messagingTemplate;
 
     private MessageService messageService;
@@ -62,9 +68,18 @@ class MessageServiceTest {
 
     @BeforeEach
     void setUp() {
+        // The real access service, so these tests exercise the paid-advance gate rather
+        // than a mock's idea of it.
         messageService = new MessageService(
-                messageRepository, taskRepository, userRepository, fileStorageService, messagingTemplate
+                messageRepository, taskRepository, userRepository, fileStorageService,
+                new ChatAccessService(taskRepository, paymentRepository), messagingTemplate
         );
+
+        // Default fixture is a confirmed booking: every task asked about has been paid for.
+        // Tests about the gate itself override this.
+        lenient().when(paymentRepository
+                        .findTaskIdsByTaskIdInAndStatus(anyCollection(), eq(PaymentStatus.COMPLETED)))
+                .thenAnswer(inv -> List.copyOf(inv.getArgument(0, Collection.class)));
 
         customer = User.builder()
                 .id(1L).email("customer@example.com").fullName("Customer One")
@@ -93,6 +108,12 @@ class MessageServiceTest {
                 .budget(new BigDecimal("1000")).status(TaskStatus.ASSIGNED)
                 .createdAt(LocalDateTime.now().minusDays(10 - id))
                 .build();
+    }
+
+    /** Makes the 10% advance look settled on exactly these tasks and no others. */
+    private void advancePaidOn(Long... taskIds) {
+        when(paymentRepository.findTaskIdsByTaskIdInAndStatus(anyCollection(), eq(PaymentStatus.COMPLETED)))
+                .thenReturn(List.of(taskIds));
     }
 
     private Message message(Long id, Task onTask, User sender, String content) {
@@ -213,5 +234,90 @@ class MessageServiceTest {
                 .hasMessageContaining("your own messages");
         assertThat(theirs.isDeleted()).isFalse();
         verify(messageRepository, never()).save(any(Message.class));
+    }
+
+    /* ---------------------------------------------------------------------- */
+    /* Chat is a paid feature: nothing opens until the advance settles          */
+    /* ---------------------------------------------------------------------- */
+
+    @Test
+    void conversationIsHiddenUntilTheAdvanceIsPaid() {
+        Task unpaid = task(10L, "Kitchen sink", customer, worker);
+        unpaid.setStatus(TaskStatus.ACCEPTED);
+        when(taskRepository.findByCustomerIdAndAssignedWorkerIsNotNullOrderByUpdatedAtDesc(customer.getId()))
+                .thenReturn(List.of(unpaid));
+        advancePaidOn();
+
+        assertThat(messageService.listConversations(customer.getEmail())).isEmpty();
+        verify(messageRepository, never()).findFirstByTaskIdInOrderByCreatedAtDesc(anyCollection());
+    }
+
+    @Test
+    void listConversationsKeepsThePeopleAlreadyPaidFor() {
+        Task paid = task(10L, "Kitchen sink", customer, worker);
+        Task unpaid = task(11L, "Painting", customer, stranger);
+        when(taskRepository.findByCustomerIdAndAssignedWorkerIsNotNullOrderByUpdatedAtDesc(customer.getId()))
+                .thenReturn(List.of(unpaid, paid));
+        when(messageRepository.findFirstByTaskIdInOrderByCreatedAtDesc(anyCollection())).thenReturn(null);
+        advancePaidOn(10L);
+
+        assertThat(messageService.listConversations(customer.getEmail()))
+                .extracting(ConversationResponse::getConversationKey)
+                .containsExactly("c1-w2");
+    }
+
+    @Test
+    void historyIsRefusedUntilTheAdvanceIsPaid() {
+        when(taskRepository.findByCustomerIdAndAssignedWorkerIdOrderByCreatedAtAsc(1L, 2L))
+                .thenReturn(List.of(task(10L, "Kitchen sink", customer, worker)));
+        advancePaidOn();
+
+        // Same 404 an outsider gets, so an unconfirmed booking leaves no trace of a thread.
+        assertThatThrownBy(() -> messageService.getHistory(customer.getEmail(), "c1-w2"))
+                .isInstanceOf(ResourceNotFoundException.class);
+        verify(messageRepository, never()).findByTaskIdInOrderByCreatedAtAsc(anyCollection());
+    }
+
+    @Test
+    void sendingIsRefusedUntilTheAdvanceIsPaid() {
+        when(taskRepository.findByCustomerIdAndAssignedWorkerIdOrderByCreatedAtAsc(1L, 2L))
+                .thenReturn(List.of(task(10L, "Kitchen sink", customer, worker)));
+        advancePaidOn();
+
+        assertThatThrownBy(() -> messageService.sendTextMessage(customer.getEmail(), "c1-w2", "hello?"))
+                .isInstanceOf(ResourceNotFoundException.class);
+        verify(messageRepository, never()).save(any(Message.class));
+        verify(messagingTemplate, never()).convertAndSend(any(String.class), any(Object.class));
+    }
+
+    @Test
+    void payingOnOneSharedTaskUnlocksTheWholeThread() {
+        Task paid = task(10L, "Kitchen sink", customer, worker);
+        Task laterRequest = task(11L, "Wiring fix", customer, worker);
+        laterRequest.setStatus(TaskStatus.REQUESTED);
+        when(taskRepository.findByCustomerIdAndAssignedWorkerIdOrderByCreatedAtAsc(1L, 2L))
+                .thenReturn(List.of(paid, laterRequest));
+        when(messageRepository.findByTaskIdInOrderByCreatedAtAsc(List.of(10L, 11L)))
+                .thenReturn(List.of(message(1L, paid, customer, "hello")));
+        advancePaidOn(10L);
+
+        // The chat belongs to the pair, so a second unpaid job does not close it again.
+        assertThat(messageService.getHistory(customer.getEmail(), "c1-w2"))
+                .extracting(MessageResponse::getContent).containsExactly("hello");
+    }
+
+    @Test
+    void aCancelledTaskKeepsThePaidThreadOpen() {
+        Task cancelled = task(10L, "Kitchen sink", customer, worker);
+        cancelled.setStatus(TaskStatus.CANCELLED);
+        when(taskRepository.findByCustomerIdAndAssignedWorkerIdOrderByCreatedAtAsc(1L, 2L))
+                .thenReturn(List.of(cancelled));
+        advancePaidOn(10L);
+
+        // The gate is the settled payment, not the task's current status - the two still
+        // need to be able to talk about a job that fell through.
+        MessageResponse sent = messageService.sendTextMessage(worker.getEmail(), "c1-w2", "sorry about that");
+
+        assertThat(sent.getTaskId()).isEqualTo(10L);
     }
 }

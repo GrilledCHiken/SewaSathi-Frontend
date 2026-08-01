@@ -6,21 +6,54 @@ import TaskEmptyState from "../../components/tasks/TaskEmptyState";
 import TaskFilterBar from "../../components/tasks/TaskFilterBar";
 import TaskListSkeleton from "../../components/tasks/TaskListSkeleton";
 import {
+  CHAT_LOCKED_HINT,
   INBOX_ICON,
+  chatUnlocked,
   formatMoney,
   formatStatus,
 } from "../../components/tasks/taskUi";
-import { completeTask, listMyJobs, startTask } from "../../api/workerTaskApi";
+import {
+  acceptTask,
+  completeTask,
+  declineTask,
+  listMyJobs,
+  startTask,
+} from "../../api/workerTaskApi";
 
 const STATUS_FILTERS = [
   { key: "all", label: "All" },
+  { key: "requested", label: "requested" },
   { key: "accepted", label: "accepted" },
   { key: "assigned", label: "assigned" },
   { key: "in progress", label: "in progress" },
   { key: "completed", label: "completed" },
 ];
 
-function JobActions({ status, onStart, onComplete, working }) {
+function JobActions({ status, onAccept, onDecline, onStart, onComplete, working }) {
+  // A customer hired this worker by name. It isn't their job until they say yes,
+  // and declining puts the task back on the open list for someone else.
+  if (status === "requested") {
+    return (
+      <>
+        <button
+          type="button"
+          onClick={onDecline}
+          disabled={working}
+          className="rounded-full border border-slate-300 px-3.5 py-1.5 text-xs font-semibold text-slate-600 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+        >
+          Reject
+        </button>
+        <button
+          type="button"
+          onClick={onAccept}
+          disabled={working}
+          className="rounded-full bg-emerald-600 px-3.5 py-1.5 text-xs font-semibold text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-60"
+        >
+          {working ? "Saving..." : "Accept"}
+        </button>
+      </>
+    );
+  }
   // The customer owes a 10% advance before this job is confirmed; until it lands
   // the backend won't let the job be started.
   if (status === "accepted") {
@@ -69,6 +102,29 @@ export default function WorkerMyJobs() {
       .catch(() => toast.error("Could not load your jobs."))
       .finally(() => setLoading(false));
   }, []);
+
+  /* Accepting keeps the row (it becomes a real job); rejecting hands the task back
+     to the open list, so it drops off this worker's list entirely. */
+  const handleRespond = async (id, action) => {
+    setWorkingId(id);
+    try {
+      if (action === "accept") {
+        const updated = await acceptTask(id);
+        setJobs((prev) => prev.map((j) => (j.id === id ? updated : j)));
+        toast.success("Request accepted! It's confirmed once the customer pays their advance.");
+      } else {
+        await declineTask(id);
+        setJobs((prev) => prev.filter((j) => j.id !== id));
+        toast.success("Request rejected. The task is back on the open list.");
+      }
+    } catch (err) {
+      toast.error(
+        err.response?.data?.message || `Could not ${action} this request.`,
+      );
+    } finally {
+      setWorkingId(null);
+    }
+  };
 
   const handleStart = async (id) => {
     setWorkingId(id);
@@ -120,7 +176,8 @@ export default function WorkerMyJobs() {
               My Jobs
             </h2>
             <p className="mt-1 text-sm text-slate-600 sm:text-base">
-              Tasks you&apos;ve accepted, in progress, or completed.
+              Requests waiting on you, plus the tasks you&apos;ve accepted, are in
+              progress, or have completed.
             </p>
           </div>
 
@@ -158,7 +215,10 @@ export default function WorkerMyJobs() {
                     party={{
                       role: "Customer",
                       person: job.customer,
-                      messageHref: `/worker/messages?taskId=${job.id}`,
+                      // No chat on a job the customer has not confirmed with the advance.
+                      ...(chatUnlocked(job)
+                        ? { messageHref: `/worker/messages?taskId=${job.id}` }
+                        : { messageLockedHint: CHAT_LOCKED_HINT }),
                     }}
                     extraDetails={
                       job.hourlyRate != null
@@ -168,6 +228,8 @@ export default function WorkerMyJobs() {
                     actions={
                       <JobActions
                         status={formatStatus(job.status)}
+                        onAccept={() => handleRespond(job.id, "accept")}
+                        onDecline={() => handleRespond(job.id, "decline")}
                         onStart={() => handleStart(job.id)}
                         onComplete={() => handleComplete(job.id)}
                         working={workingId === job.id}

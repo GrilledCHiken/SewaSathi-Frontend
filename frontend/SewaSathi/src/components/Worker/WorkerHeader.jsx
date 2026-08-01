@@ -1,5 +1,6 @@
 import { useOutletContext } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
+import NotificationBell from "../NotificationBell";
 import UserMenu from "../UserMenu";
 import { MenuIcon } from "../ui/icons";
 
@@ -33,6 +34,10 @@ function WorkerHeader({ title = "Worker Dashboard" }) {
         </div>
 
         <div className="flex flex-1 items-center justify-end gap-3 sm:ml-auto">
+          {/* Workers had no bell at all, so a job request or a confirmed booking was
+              invisible until they happened to open the right page. */}
+          <NotificationBell />
+
           <UserMenu initials={customer?.initials || "WK"} displayName={displayId} avatarClassName="bg-emerald-600" />
         </div>
       </div>

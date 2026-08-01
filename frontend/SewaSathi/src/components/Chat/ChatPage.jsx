@@ -12,6 +12,7 @@ import {
   listConversations,
   uploadAttachment,
 } from "../../api/messageApi";
+import { ADVANCE_PERCENT_LABEL } from "../tasks/taskUi";
 
 const AVATAR_PALETTE = [
   { bg: "bg-sky-100", text: "text-sky-700" },
@@ -493,7 +494,8 @@ export default function ChatPage({ renderHeader }) {
                 <li className="px-3 py-6 text-center text-sm text-ink-muted">Loading...</li>
               ) : filteredConversations.length === 0 ? (
                 <li className="px-3 py-6 text-center text-sm text-ink-muted">
-                  No conversations yet. Messaging opens once a worker is assigned to a task.
+                  No conversations yet. Messaging opens once a booking is confirmed with
+                  the {ADVANCE_PERCENT_LABEL} advance.
                 </li>
               ) : (
                 filteredConversations.map((conv) => (
