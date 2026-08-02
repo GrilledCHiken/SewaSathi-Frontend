@@ -1,6 +1,9 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import Reveal from "../../components/User/Reveal";
+import Skeleton from "../../components/ui/Skeleton";
+import { usePublicStats } from "../../hooks/usePublicData";
+import { formatCount, formatPercent } from "../../utils/formatStats";
 
 const CUSTOMER_STEPS = [
   {
@@ -9,7 +12,8 @@ const CUSTOMER_STEPS = [
     description:
       "Describe what you need help with, choose a service category, set your budget, and pick a convenient time. It takes less than 2 minutes to post a task on SewaSathi.",
     bullets: [
-      "Choose from 12+ service categories",
+      // {categories} is filled in from the live catalogue size — see fillTokens.
+      "Choose from {categories} service categories",
       "Add photos and detailed instructions",
       "Set hourly rate or fixed budget",
       "Select preferred date and time",
@@ -168,20 +172,15 @@ const WORKER_STEPS = [
   },
 ];
 
-const STATS = [
+// This row used to read "< 2 min to post a task", "24 hrs average response time",
+// "90% customer satisfaction" and "100% secure payments". Nothing in the system
+// measures how long posting takes or how fast workers respond, and the 90% both
+// contradicted the 98% on Home and Safety and came from nowhere. The four tiles
+// below are the ones the database can actually answer.
+const STAT_CARDS = [
   {
-    value: "< 2 min",
-    label: "to post a task",
-    icon: (
-      <svg className="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-        <circle cx="12" cy="12" r="10" />
-        <path d="M12 6v6l4 2" />
-      </svg>
-    ),
-  },
-  {
-    value: "24 hrs",
-    label: "average response time",
+    id: "tasksPosted",
+    label: "tasks posted",
     icon: (
       <svg className="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
         <rect x="3" y="4" width="18" height="18" rx="2" />
@@ -190,21 +189,32 @@ const STATS = [
     ),
   },
   {
-    value: "90%",
-    label: "customer satisfaction",
+    id: "tasksCompleted",
+    label: "tasks completed",
     icon: (
       <svg className="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-        <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
+        <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+        <path d="M22 4L12 14.01l-3-3" />
       </svg>
     ),
   },
   {
-    value: "100%",
-    label: "secure payments",
+    id: "verifiedWorkers",
+    label: "verified workers",
     icon: (
       <svg className="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-        <circle cx="12" cy="12" r="10" />
-        <path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
+        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+        <circle cx="9" cy="7" r="4" />
+        <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+      </svg>
+    ),
+  },
+  {
+    id: "satisfaction",
+    label: "customer satisfaction",
+    icon: (
+      <svg className="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
       </svg>
     ),
   },
@@ -245,9 +255,10 @@ function CheckIcon() {
   );
 }
 
-function StepCard({ step }) {
-  const leftBullets = step.bullets.slice(0, 2);
-  const rightBullets = step.bullets.slice(2, 4);
+function StepCard({ step, stats }) {
+  const bullets = step.bullets.map((bullet) => fillTokens(bullet, stats));
+  const leftBullets = bullets.slice(0, 2);
+  const rightBullets = bullets.slice(2, 4);
 
   return (
     <article className="flex flex-col gap-5 sm:flex-row sm:gap-6">
@@ -336,9 +347,30 @@ function AccordionFAQ() {
   );
 }
 
+/**
+ * Fills {token} placeholders in the step bullets from live figures.
+ *
+ * One bullet quotes the size of the service catalogue, which is a real number
+ * the API reports. Leaving the token unresolved until the stats land would flash
+ * raw braces, so an unknown value falls back to the generic wording.
+ */
+function fillTokens(text, stats) {
+  if (!text.includes("{categories}")) return text;
+  if (!stats) return text.replace("{categories} service categories", "our service categories");
+  return text.replace("{categories}", formatCount(stats.categoriesOffered));
+}
+
 export default function HowItWorks() {
   const [mode, setMode] = useState("customer");
   const steps = mode === "customer" ? CUSTOMER_STEPS : WORKER_STEPS;
+  const { stats } = usePublicStats();
+
+  const statValues = {
+    tasksPosted: formatCount(stats?.tasksPosted),
+    tasksCompleted: formatCount(stats?.tasksCompleted),
+    verifiedWorkers: formatCount(stats?.verifiedWorkers),
+    satisfaction: formatPercent(stats?.satisfactionRate),
+  };
 
   return (
     <div className="flex-1 bg-white">
@@ -413,7 +445,7 @@ export default function HowItWorks() {
           <div className="space-y-12 sm:space-y-14">
             {steps.map((step, index) => (
               <Reveal key={`${mode}-${step.step}`}>
-                <StepCard step={step} />
+                <StepCard step={step} stats={stats} />
                 {index < steps.length - 1 && (
                   <div className="mt-12 border-b border-line-soft sm:mt-14" />
                 )}
@@ -427,9 +459,9 @@ export default function HowItWorks() {
       <section className="border-y border-line-soft bg-surface-muted py-10 sm:py-12">
         <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-2 gap-4 lg:grid-cols-4 lg:gap-6">
-            {STATS.map((stat, index) => (
+            {STAT_CARDS.map((stat, index) => (
               <Reveal
-                key={stat.value}
+                key={stat.id}
                 delay={index % 4}
                 className="flex flex-col items-center rounded-2xl border border-line bg-white px-4 py-6 text-center shadow-sm sm:px-6"
               >
@@ -437,7 +469,7 @@ export default function HowItWorks() {
                   {stat.icon}
                 </span>
                 <p className="mt-3 text-2xl font-extrabold tracking-tight text-ink sm:text-3xl">
-                  {stat.value}
+                  {stats ? statValues[stat.id] : <Skeleton className="mx-auto h-8 w-16" />}
                 </p>
                 <p className="mt-1 text-xs font-medium text-ink-muted sm:text-sm">
                   {stat.label}

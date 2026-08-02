@@ -1,10 +1,21 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import Reveal from "../../components/User/Reveal";
 import SectionHeading from "../../components/User/SectionHeading";
 import ServiceIcon from "../../components/User/ServiceIcon";
 import StarRating from "../../components/User/StarRating";
-import { POPULAR_SERVICES } from "../../data/services";
+import Skeleton from "../../components/ui/Skeleton";
+import { getOpenTasks, getTestimonials } from "../../api/publicApi";
+import { serviceDisplay } from "../../data/services";
+import { usePublicServices, usePublicStats } from "../../hooks/usePublicData";
+import {
+  NO_VALUE,
+  formatCount,
+  formatCountLabel,
+  formatPercent,
+  formatRating,
+  formatRupees,
+} from "../../utils/formatStats";
 import heroImage from "../../assets/images/hero-moving.jpg";
 import testimonialImage from "../../assets/images/testimonial.jpg";
 
@@ -57,39 +68,6 @@ const SAFETY_FEATURES = [
     label: "24/7 Support",
     description: "Our Kathmandu-based team is reachable any hour, any day.",
     icon: "support",
-  },
-];
-
-const STATS = [
-  { value: "12,500+", label: "Verified taskers" },
-  { value: "3,200+", label: "Services offered" },
-  { value: "50,000+", label: "Happy customers" },
-  { value: "98%", label: "Satisfaction rate" },
-];
-
-const POPULAR_SEARCHES = ["Cleaning", "Handyman", "Plumbing", "Moving"];
-
-const TESTIMONIALS = [
-  {
-    quote:
-      "SewaSathi made finding a reliable cleaner so easy. Professional, on time, and fairly priced — exactly what I needed in Kathmandu.",
-    author: "Sita Sharma",
-    role: "Homeowner, Lalitpur",
-    rating: 5,
-  },
-  {
-    quote:
-      "I booked a handyman for mounting my TV. The whole process took minutes and the work was flawless.",
-    author: "Rajesh Thapa",
-    role: "Apartment Resident, Kathmandu",
-    rating: 5,
-  },
-  {
-    quote:
-      "As a busy professional, having verified help for moving and cleaning has been a game changer.",
-    author: "Anita Gurung",
-    role: "Business Owner, Pokhara",
-    rating: 5,
   },
 ];
 
@@ -166,9 +144,27 @@ function ArrowIcon({ className = "h-4 w-4" }) {
   );
 }
 
+/** How many services the bento grid shows: two wide cards plus six compact ones. */
+const FEATURED_COUNT = 2;
+const COMPACT_COUNT = 6;
+
 function Home() {
   const [query, setQuery] = useState("");
   const navigate = useNavigate();
+
+  const { stats } = usePublicStats();
+  const { services, loading: servicesLoading } = usePublicServices();
+  const [testimonials, setTestimonials] = useState([]);
+  const [openTasks, setOpenTasks] = useState([]);
+
+  useEffect(() => {
+    getTestimonials(3)
+      .then(setTestimonials)
+      .catch(() => setTestimonials([]));
+    getOpenTasks(3)
+      .then(setOpenTasks)
+      .catch(() => setOpenTasks([]));
+  }, []);
 
   const handleSearch = (e) => {
     e.preventDefault();
@@ -176,8 +172,28 @@ function Home() {
     navigate(trimmed ? `/services?search=${encodeURIComponent(trimmed)}` : "/services");
   };
 
-  const featuredServices = POPULAR_SERVICES.filter((s) => s.featured);
-  const compactServices = POPULAR_SERVICES.filter((s) => !s.featured);
+  // The grid used to be split by a hand-set `featured` flag on two services.
+  // It now follows real demand, so the wide cards are genuinely the most booked.
+  const byPopularity = useMemo(
+    () => [...services].sort((a, b) => b.taskCount - a.taskCount),
+    [services],
+  );
+  const featuredServices = byPopularity.slice(0, FEATURED_COUNT);
+  const compactServices = byPopularity.slice(
+    FEATURED_COUNT,
+    FEATURED_COUNT + COMPACT_COUNT,
+  );
+  const popularSearches = byPopularity.slice(0, 4).map((service) => service.name);
+
+  // Every tile is counted from the database, including when the count is zero.
+  // Satisfaction is null until somebody reviews something, and renders as a dash
+  // rather than as 0% — an unreviewed platform is not an unsatisfactory one.
+  const statTiles = [
+    { value: formatCount(stats?.verifiedWorkers), label: "Verified taskers" },
+    { value: formatCount(stats?.categoriesOffered), label: "Services offered" },
+    { value: formatCount(stats?.customers), label: "Customers" },
+    { value: formatPercent(stats?.satisfactionRate), label: "Satisfaction rate" },
+  ];
 
   return (
     <div className="flex-1 bg-white">
@@ -202,7 +218,12 @@ function Home() {
                 >
                   <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
                 </svg>
-                4.8 average rating · Trusted by 50,000+ across Nepal
+                {stats?.reviewCount > 0
+                  ? `${formatRating(stats.ratingAverage)} average rating · ${formatCountLabel(
+                      stats.reviewCount,
+                      "review",
+                    )} across Nepal`
+                  : "Verified local professionals across Nepal"}
               </span>
 
               <h1 className="mt-6 text-[2.75rem] font-extrabold leading-[1.05] tracking-tight text-ink sm:text-6xl lg:text-[4rem]">
@@ -254,7 +275,7 @@ function Home() {
 
               <div className="mt-5 flex flex-wrap items-center gap-2">
                 <span className="text-sm text-ink-muted">Popular:</span>
-                {POPULAR_SEARCHES.map((term) => (
+                {popularSearches.map((term) => (
                   <button
                     key={term}
                     type="button"
@@ -278,14 +299,19 @@ function Home() {
                 <div className="absolute inset-0 bg-gradient-to-t from-slate-900/20 via-transparent to-transparent" />
               </div>
 
-              {/* Floating anchor — top left */}
+              {/* Floating anchor — top left. The stars follow the real average, so
+                  they can show four filled as easily as five. */}
               <div className="absolute -left-3 top-6 rounded-2xl border border-line-soft bg-white px-4 py-3 shadow-xl shadow-e2 sm:-left-6">
                 <div className="flex items-center gap-2">
-                  <StarRating rating={5} className="h-4 w-4" />
-                  <span className="text-sm font-bold text-ink">4.8</span>
+                  <StarRating rating={stats?.ratingAverage ?? 0} className="h-4 w-4" />
+                  <span className="text-sm font-bold text-ink">
+                    {formatRating(stats?.ratingAverage)}
+                  </span>
                 </div>
                 <p className="mt-0.5 text-xs font-medium text-ink-muted">
-                  from 12,000+ reviews
+                  {stats?.reviewCount > 0
+                    ? `from ${formatCountLabel(stats.reviewCount, "review")}`
+                    : "no reviews yet"}
                 </p>
               </div>
 
@@ -297,7 +323,7 @@ function Home() {
                   </span>
                   <div>
                     <p className="text-sm font-semibold text-ink">
-                      Over 10,000+ professionals
+                      {formatCountLabel(stats?.verifiedWorkers, "professional")}
                     </p>
                     <p className="mt-0.5 text-sm text-ink-muted">
                       ready to help you today
@@ -310,14 +336,14 @@ function Home() {
 
           {/* Stat band — closes the hero */}
           <div className="grid grid-cols-2 gap-y-8 border-t border-line/70 py-10 sm:grid-cols-4 sm:divide-x sm:divide-line lg:py-12">
-            {STATS.map((stat, index) => (
+            {statTiles.map((stat, index) => (
               <Reveal
                 key={stat.label}
                 delay={index % 4}
                 className="px-2 text-center sm:px-6"
               >
                 <p className="text-3xl font-extrabold tracking-tight text-ink sm:text-4xl">
-                  {stat.value}
+                  {stats ? stat.value : <Skeleton className="mx-auto h-9 w-20" />}
                 </p>
                 <p className="mt-1 text-sm text-ink-muted">{stat.label}</p>
               </Reveal>
@@ -350,6 +376,16 @@ function Home() {
           </div>
 
           <div className="mt-12 grid gap-5 sm:grid-cols-2 lg:grid-cols-6">
+            {servicesLoading && (
+              <>
+                <Skeleton className="h-60 sm:col-span-2 lg:col-span-3" />
+                <Skeleton className="h-60 sm:col-span-2 lg:col-span-3" />
+                {Array.from({ length: COMPACT_COUNT }).map((_, index) => (
+                  <Skeleton key={index} className="h-48 lg:col-span-2" />
+                ))}
+              </>
+            )}
+
             {/* Two featured cards — half width each on lg */}
             {featuredServices.map((service, index) => (
               <Reveal
@@ -361,30 +397,35 @@ function Home() {
               >
                 <div className="flex items-start justify-between gap-4">
                   <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-brand/10 text-brand transition group-hover:bg-brand group-hover:text-white">
-                    <ServiceIcon name={service.icon} className="h-7 w-7" />
+                    <ServiceIcon name={serviceDisplay(service.name).icon} className="h-7 w-7" />
                   </span>
-                  <span className="rounded-full bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-700">
-                    Most booked
-                  </span>
+                  {/* Only claim "most booked" when something has actually been booked. */}
+                  {service.taskCount > 0 && (
+                    <span className="rounded-full bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-700">
+                      Most booked
+                    </span>
+                  )}
                 </div>
 
                 <h3 className="mt-5 text-xl font-semibold text-ink transition group-hover:text-brand">
                   {service.name}
                 </h3>
                 <p className="mt-2 flex-1 text-sm leading-relaxed text-ink-muted">
-                  {service.description}
+                  {serviceDisplay(service.name).description}
                 </p>
 
                 <div className="mt-5 flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-line-soft pt-4">
-                  <span className="inline-flex items-center gap-1.5 text-xs font-medium text-ink-muted">
-                    <StarRating rating={5} className="h-3.5 w-3.5" />
-                    <span className="font-semibold text-ink">
-                      {service.rating}
+                  {service.ratingCount > 0 && (
+                    <span className="inline-flex items-center gap-1.5 text-xs font-medium text-ink-muted">
+                      <StarRating rating={service.ratingAverage} className="h-3.5 w-3.5" />
+                      <span className="font-semibold text-ink">
+                        {formatRating(service.ratingAverage)}
+                      </span>
+                      · {formatCountLabel(service.ratingCount, "review")}
                     </span>
-                    · {service.reviews} reviews
-                  </span>
+                  )}
                   <span className="text-xs font-medium text-ink-muted">
-                    {service.workers} pros available
+                    {formatCountLabel(service.workerCount, "pro")} available
                   </span>
                 </div>
               </Reveal>
@@ -400,13 +441,13 @@ function Home() {
                 className="group flex flex-col rounded-2xl border border-line bg-white p-6 shadow-sm transition duration-300 hover:-translate-y-1 hover:border-brand/30 hover:shadow-lg hover:shadow-brand/10 lg:col-span-2"
               >
                 <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-brand/10 text-brand transition group-hover:bg-brand group-hover:text-white">
-                  <ServiceIcon name={service.icon} className="h-5 w-5" />
+                  <ServiceIcon name={serviceDisplay(service.name).icon} className="h-5 w-5" />
                 </span>
                 <h3 className="mt-4 text-lg font-semibold text-ink transition group-hover:text-brand">
                   {service.name}
                 </h3>
                 <p className="mt-2 flex-1 text-sm leading-relaxed text-ink-muted">
-                  {service.description}
+                  {serviceDisplay(service.name).description}
                 </p>
                 <span className="mt-4 inline-flex items-center gap-1 text-sm font-medium text-brand opacity-0 transition group-hover:opacity-100">
                   Book now
@@ -528,8 +569,10 @@ function Home() {
       </section>
 
       {/* ---------------------------------------------------------------- */}
-      {/* Testimonials */}
+      {/* Testimonials — real reviews only, so the section disappears until  */}
+      {/* there are some. The three it used to show were invented.          */}
       {/* ---------------------------------------------------------------- */}
+      {testimonials.length > 0 && (
       <section className="bg-white py-20 lg:py-28">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="grid items-center gap-12 lg:grid-cols-12 lg:gap-16">
@@ -545,12 +588,12 @@ function Home() {
               <div className="absolute -bottom-5 left-5 right-5 rounded-2xl border border-line-soft bg-white p-4 shadow-xl shadow-e2 sm:right-auto sm:max-w-[17rem]">
                 <div className="flex items-center gap-3">
                   <p className="text-3xl font-extrabold tracking-tight text-ink">
-                    4.8
+                    {formatRating(stats?.ratingAverage)}
                   </p>
                   <div>
-                    <StarRating rating={5} className="h-4 w-4" />
+                    <StarRating rating={stats?.ratingAverage ?? 0} className="h-4 w-4" />
                     <p className="mt-1 text-xs font-medium text-ink-muted">
-                      from 12,000+ verified reviews
+                      from {formatCountLabel(stats?.reviewCount, "verified review")}
                     </p>
                   </div>
                 </div>
@@ -561,13 +604,13 @@ function Home() {
               <SectionHeading
                 align="left"
                 eyebrow="What our customers say"
-                title="Trusted by thousands across Nepal"
+                title="In our customers' own words"
               />
 
               <div className="mt-8 space-y-4">
-                {TESTIMONIALS.map((item, index) => (
+                {testimonials.map((item, index) => (
                   <Reveal
-                    key={item.author}
+                    key={`${item.author}-${item.createdAt}`}
                     delay={index % 4}
                     className="rounded-2xl border border-line bg-white p-6 shadow-sm transition duration-300 hover:border-brand/30 hover:shadow-md"
                   >
@@ -588,7 +631,9 @@ function Home() {
                         <p className="text-sm font-semibold text-ink">
                           {item.author}
                         </p>
-                        <p className="text-xs text-ink-muted">{item.role}</p>
+                        {item.location && (
+                          <p className="text-xs text-ink-muted">{item.location}</p>
+                        )}
                       </div>
                     </footer>
                   </Reveal>
@@ -598,6 +643,7 @@ function Home() {
           </div>
         </div>
       </section>
+      )}
 
       {/* ---------------------------------------------------------------- */}
       {/* Become a tasker — the second audience */}
@@ -614,7 +660,12 @@ function Home() {
                   Earn on your schedule
                 </h2>
                 <p className="mt-4 text-lg leading-relaxed text-ink-muted">
-                  Join 12,500+ taskers already building a business on SewaSathi.
+                  {stats?.verifiedWorkers > 0
+                    ? `Join ${formatCountLabel(
+                        stats.verifiedWorkers,
+                        "tasker",
+                      )} already building a business on SewaSathi.`
+                    : "Build a business on SewaSathi."}{" "}
                   You choose the jobs, the hours, and the price.
                 </p>
               </Reveal>
@@ -658,42 +709,53 @@ function Home() {
               </Reveal>
             </div>
 
-            {/* Composed earnings card — shows the product, no image asset needed */}
+            {/* Work actually waiting on the platform right now.
+                This card used to show a mocked-up earnings statement — "Rs 18,400
+                this week", "next payout in 2 days" — figures that belong to one
+                worker's account and mean nothing to a visitor who has none. The
+                open tasks below are real and are the honest version of the same
+                pitch: here is work you could pick up. */}
             <Reveal delay={1} className="relative">
               <div className="rounded-3xl border border-line bg-white p-6 shadow-2xl shadow-emerald-900/5 sm:p-8">
                 <div className="flex items-start justify-between gap-4">
                   <div>
                     <p className="text-xs font-medium uppercase tracking-wide text-ink-faint">
-                      This week
+                      Open right now
                     </p>
                     <p className="mt-1.5 text-4xl font-extrabold tracking-tight text-ink">
-                      Rs 18,400
+                      {formatCount(stats?.openTasks)}
                     </p>
                   </div>
                   <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700">
                     <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-                    100% completion
+                    {formatCountLabel(stats?.categoriesOffered, "category", "categories")}
                   </span>
                 </div>
 
                 <div className="mt-6 space-y-3 border-t border-line-soft pt-6">
-                  {[
-                    { name: "Home Cleaning", meta: "Lalitpur · 3 hrs", amount: "Rs 4,200", icon: "cleaning" },
-                    { name: "Furniture Assembly", meta: "Baneshwor · 2 hrs", amount: "Rs 3,600", icon: "furniture" },
-                    { name: "TV Mounting", meta: "Patan · 1 hr", amount: "Rs 2,100", icon: "mounting" },
-                  ].map((job) => (
-                    <div key={job.name} className="flex items-center gap-3">
+                  {openTasks.length === 0 && (
+                    <p className="py-4 text-sm text-ink-muted">
+                      No tasks are waiting at this moment — new ones are posted daily.
+                    </p>
+                  )}
+                  {openTasks.map((job, index) => (
+                    <div key={`${job.title}-${index}`} className="flex items-center gap-3">
                       <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600">
-                        <ServiceIcon name={job.icon} className="h-5 w-5" />
+                        <ServiceIcon
+                          name={serviceDisplay(job.category).icon}
+                          className="h-5 w-5"
+                        />
                       </span>
                       <div className="min-w-0 flex-1">
                         <p className="truncate text-sm font-semibold text-ink">
-                          {job.name}
+                          {job.title}
                         </p>
-                        <p className="text-xs text-ink-muted">{job.meta}</p>
+                        <p className="text-xs text-ink-muted">
+                          {[job.city, job.category].filter(Boolean).join(" · ")}
+                        </p>
                       </div>
                       <p className="shrink-0 text-sm font-bold text-emerald-600">
-                        {job.amount}
+                        {job.budget ? formatRupees(job.budget) : NO_VALUE}
                       </p>
                     </div>
                   ))}
@@ -701,10 +763,10 @@ function Home() {
 
                 <div className="mt-6 flex items-center justify-between rounded-xl bg-surface-muted px-4 py-3">
                   <span className="text-xs font-medium text-ink-muted">
-                    Next payout
+                    Tasks completed to date
                   </span>
                   <span className="text-sm font-semibold text-ink">
-                    In 2 days
+                    {formatCount(stats?.tasksCompleted)}
                   </span>
                 </div>
               </div>
@@ -749,32 +811,35 @@ function Home() {
                 </Link>
               </div>
 
-              <div className="mt-10 flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
-                <div className="flex -space-x-3">
-                  {TESTIMONIALS.map((item, i) => (
-                    <span
-                      key={item.author}
-                      className={`flex h-10 w-10 items-center justify-center rounded-full border-2 border-white text-xs font-bold ${
-                        AVATAR_PALETTE[i % AVATAR_PALETTE.length]
-                      }`}
-                      style={{ zIndex: TESTIMONIALS.length - i }}
-                      aria-hidden="true"
-                    >
-                      {initialsOf(item.author)}
-                    </span>
-                  ))}
-                  <span
-                    className="flex h-10 w-10 items-center justify-center rounded-full border-2 border-white bg-white/20 text-xs font-bold text-white backdrop-blur"
-                    aria-hidden="true"
-                  >
-                    50k
-                  </span>
+              {/* The avatar stack is drawn from the same real reviewers quoted
+                  above, so it is empty until there are some. */}
+              {stats?.customers > 0 && (
+                <div className="mt-10 flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
+                  {testimonials.length > 0 && (
+                    <div className="flex -space-x-3">
+                      {testimonials.map((item, i) => (
+                        <span
+                          key={`${item.author}-${item.createdAt}`}
+                          className={`flex h-10 w-10 items-center justify-center rounded-full border-2 border-white text-xs font-bold ${
+                            AVATAR_PALETTE[i % AVATAR_PALETTE.length]
+                          }`}
+                          style={{ zIndex: testimonials.length - i }}
+                          aria-hidden="true"
+                        >
+                          {initialsOf(item.author)}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                  <p className="text-sm font-medium text-white/90">
+                    Join{" "}
+                    <span className="font-semibold text-white">
+                      {formatCount(stats.customers)}
+                    </span>{" "}
+                    {stats.customers === 1 ? "customer" : "customers"} on SewaSathi
+                  </p>
                 </div>
-                <p className="text-sm font-medium text-white/90">
-                  Join <span className="font-semibold text-white">50,000+</span>{" "}
-                  satisfied users
-                </p>
-              </div>
+              )}
             </div>
           </Reveal>
         </div>

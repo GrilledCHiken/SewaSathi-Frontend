@@ -1,6 +1,7 @@
 package com.sewasathi.repository;
 
 import com.sewasathi.dto.report.WorkerPerformanceRow;
+import com.sewasathi.dto.response.WorkerSkillRow;
 import com.sewasathi.entity.WorkerProfile;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -20,6 +21,22 @@ public interface WorkerProfileRepository extends JpaRepository<WorkerProfile, Lo
     Optional<WorkerProfile> findByPoliceClearanceUrlOrCitizenshipDocUrl(String policeUrl, String citizenshipUrl);
 
     Optional<WorkerProfile> findByProfilePhotoUrl(String profilePhotoUrl);
+
+    /**
+     * The skills and rates of workers a customer could actually hire, for the public catalogue.
+     *
+     * <p>Same visibility rule as {@code WorkerService.listAvailableWorkers}: approved and not
+     * suspended. Only two columns are selected because the caller is an anonymous endpoint and
+     * has no business loading identity document URLs.
+     */
+    @Query("""
+            select new com.sewasathi.dto.response.WorkerSkillRow(wp.skills, wp.hourlyRate)
+            from WorkerProfile wp join wp.user u
+            where u.role = com.sewasathi.entity.Role.WORKER
+              and u.status = com.sewasathi.entity.ApprovalStatus.APPROVED
+              and u.suspended = false
+            """)
+    List<WorkerSkillRow> availableWorkerSkills();
 
     /**
      * Per-worker performance for the report in {@link com.sewasathi.service.ReportService}

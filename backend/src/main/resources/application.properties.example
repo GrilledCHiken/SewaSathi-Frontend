@@ -39,6 +39,15 @@ app.admin.bootstrap.password=Admin@123
 app.admin.bootstrap.full-name=Site Administrator
 app.admin.bootstrap.phone=9800000000
 
+# Support details published by GET /api/public/contact-info and shown on the Contact page.
+# Optional - ContactProperties falls back to these same values when the keys are absent.
+app.contact.support-email=support@sewasathi.com
+app.contact.phone=+977 1-444-5555
+app.contact.phone-href=+97714445555
+app.contact.address=Kathmandu, Nepal
+app.contact.hours=Mon-Fri, 9 AM - 6 PM NPT
+app.contact.careers-email=careers@sewasathi.com
+
 # Directory for rotated log files (see logback-spring.xml).
 app.log-dir=logs
 

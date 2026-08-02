@@ -1,28 +1,48 @@
-﻿import { useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import Reveal from '../../components/User/Reveal'
 import ServiceIcon from '../../components/User/ServiceIcon'
-import { ALL_SERVICES, FILTER_TAGS, POPULAR_SERVICES } from '../../data/services'
+import { SkeletonCard } from '../../components/ui/Skeleton'
+import { serviceDisplay } from '../../data/services'
+import { usePublicServices } from '../../hooks/usePublicData'
+import { formatCount, formatRating, formatRupees } from '../../utils/formatStats'
+
+/** How many category chips the "Popular:" row offers. */
+const TAG_COUNT = 5
 
 function Services() {
   const [searchParams] = useSearchParams()
   const [search, setSearch] = useState(() => searchParams.get('search') || '')
   const [activeTag, setActiveTag] = useState('All')
+  const { services, loading } = usePublicServices()
+
+  // Ranked by real demand, so the chips and the "most popular" row follow what
+  // people actually book. Ties keep the catalogue's own order, which means a
+  // platform with no bookings yet still shows a sensible, stable list.
+  const byPopularity = useMemo(
+    () => [...services].sort((a, b) => b.taskCount - a.taskCount),
+    [services],
+  )
+
+  const filterTags = useMemo(
+    () => byPopularity.slice(0, TAG_COUNT).map((service) => service.name),
+    [byPopularity],
+  )
 
   const filteredServices = useMemo(() => {
     const query = search.toLowerCase()
 
-    return ALL_SERVICES.filter((service) => {
+    return services.filter((service) => {
       const matchesTag =
-        activeTag === 'All' || service.category.toLowerCase() === activeTag.toLowerCase()
+        activeTag === 'All' || service.name.toLowerCase() === activeTag.toLowerCase()
       const matchesSearch =
         !query ||
         service.name.toLowerCase().includes(query) ||
-        service.category.toLowerCase().includes(query)
+        serviceDisplay(service.name).description.toLowerCase().includes(query)
 
       return matchesTag && matchesSearch
     })
-  }, [search, activeTag])
+  }, [services, search, activeTag])
 
   return (
     <div className="bg-white">
@@ -68,7 +88,7 @@ function Services() {
 
             <div className="flex flex-wrap items-center justify-center gap-2 text-sm">
               <span className="text-ink-muted">Popular:</span>
-              {FILTER_TAGS.map((tag) => (
+              {filterTags.map((tag) => (
                 <button
                   key={tag}
                   type="button"
@@ -107,25 +127,32 @@ function Services() {
                 Most Popular Services
               </h2>
               <p className="mt-1 text-sm text-ink-muted">
-                Trusted by thousands of customers across Nepal
+                Ranked by what customers are booking right now
               </p>
             </div>
           </div>
 
           <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            {POPULAR_SERVICES.slice(0, 4).map((service, index) => (
-              <Reveal
-                key={service.name}
-                delay={index % 4}
-                className="flex flex-col rounded-2xl border border-line bg-white p-4 shadow-sm transition hover:-translate-y-1 hover:border-brand/30 hover:shadow-lg hover:shadow-brand/10"
-              >
-                <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-brand/10 text-brand">
-                  <ServiceIcon name={service.icon} className="h-5 w-5" />
-                </span>
-                <h3 className="mt-4 text-sm font-semibold text-ink">{service.name}</h3>
-                <p className="mt-1 text-xs text-ink-muted">{service.description}</p>
-              </Reveal>
-            ))}
+            {loading
+              ? Array.from({ length: 4 }).map((_, index) => (
+                  <SkeletonCard key={index} lines={1} />
+                ))
+              : byPopularity.slice(0, 4).map((service, index) => {
+                  const display = serviceDisplay(service.name)
+                  return (
+                    <Reveal
+                      key={service.name}
+                      delay={index % 4}
+                      className="flex flex-col rounded-2xl border border-line bg-white p-4 shadow-sm transition hover:-translate-y-1 hover:border-brand/30 hover:shadow-lg hover:shadow-brand/10"
+                    >
+                      <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-brand/10 text-brand">
+                        <ServiceIcon name={display.icon} className="h-5 w-5" />
+                      </span>
+                      <h3 className="mt-4 text-sm font-semibold text-ink">{service.name}</h3>
+                      <p className="mt-1 text-xs text-ink-muted">{display.description}</p>
+                    </Reveal>
+                  )
+                })}
           </div>
         </div>
       </section>
@@ -137,7 +164,9 @@ function Services() {
             <div>
               <h2 className="text-xl font-semibold text-ink sm:text-2xl">All Services</h2>
               <p className="mt-1 text-sm text-ink-muted">
-                {filteredServices.length} services matched your search
+                {loading
+                  ? 'Loading services...'
+                  : `${filteredServices.length} services matched your search`}
               </p>
             </div>
             <button
@@ -149,63 +178,91 @@ function Services() {
           </div>
 
           <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {filteredServices.map((service, index) => (
-              <Reveal
-                key={service.name}
-                delay={index % 4}
-                className="flex h-full flex-col rounded-2xl border border-line bg-white p-5 text-sm shadow-sm transition hover:-translate-y-1 hover:border-brand/30 hover:shadow-lg hover:shadow-brand/10"
-              >
-                <div className="flex items-start justify-between gap-3">
-                  <div className="flex items-center gap-3">
-                    <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-brand/10 text-brand">
-                      <ServiceIcon name={service.icon} className="h-5 w-5" />
-                    </span>
-                    <div>
-                      <h3 className="text-sm font-semibold text-ink">{service.name}</h3>
-                      <p className="mt-0.5 text-xs text-ink-muted">{service.category}</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-1 text-xs text-amber-500">
-                    <svg
-                      className="h-4 w-4"
-                      viewBox="0 0 20 20"
-                      fill="currentColor"
-                      aria-hidden="true"
+            {loading
+              ? Array.from({ length: 6 }).map((_, index) => <SkeletonCard key={index} />)
+              : filteredServices.map((service, index) => {
+                  const display = serviceDisplay(service.name)
+                  return (
+                    <Reveal
+                      key={service.name}
+                      delay={index % 4}
+                      className="flex h-full flex-col rounded-2xl border border-line bg-white p-5 text-sm shadow-sm transition hover:-translate-y-1 hover:border-brand/30 hover:shadow-lg hover:shadow-brand/10"
                     >
-                      <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                    </svg>
-                    <span className="font-semibold text-ink">
-                      {service.rating.toFixed(1)}
-                    </span>
-                    <span className="text-ink-faint">({service.reviews})</span>
-                  </div>
-                </div>
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="flex items-center gap-3">
+                          <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-brand/10 text-brand">
+                            <ServiceIcon name={display.icon} className="h-5 w-5" />
+                          </span>
+                          <div>
+                            <h3 className="text-sm font-semibold text-ink">{service.name}</h3>
+                            <p className="mt-0.5 text-xs text-ink-muted">
+                              {display.description}
+                            </p>
+                          </div>
+                        </div>
+                        {/* A category nobody has reviewed has no score. Saying so beats
+                            printing a zero that reads as a bad one. */}
+                        {service.ratingCount > 0 ? (
+                          <div className="flex shrink-0 items-center gap-1 text-xs text-amber-500">
+                            <svg
+                              className="h-4 w-4"
+                              viewBox="0 0 20 20"
+                              fill="currentColor"
+                              aria-hidden="true"
+                            >
+                              <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                            </svg>
+                            <span className="font-semibold text-ink">
+                              {formatRating(service.ratingAverage)}
+                            </span>
+                            <span className="text-ink-faint">
+                              ({formatCount(service.ratingCount)})
+                            </span>
+                          </div>
+                        ) : (
+                          <span className="shrink-0 text-xs text-ink-faint">No reviews yet</span>
+                        )}
+                      </div>
 
-                <ul className="mt-4 space-y-1 text-xs text-ink-muted">
-                  <li>
-                    <span className="font-medium text-ink-body">
-                      {service.tasks.toLocaleString()}
-                    </span>{' '}
-                    tasks completed
-                  </li>
-                  <li>
-                    <span className="font-medium text-ink-body">{service.workers}</span>{' '}
-                    verified workers
-                  </li>
-                </ul>
+                      <ul className="mt-4 space-y-1 text-xs text-ink-muted">
+                        <li>
+                          <span className="font-medium text-ink-body">
+                            {formatCount(service.completedCount)}
+                          </span>{' '}
+                          tasks completed
+                        </li>
+                        <li>
+                          <span className="font-medium text-ink-body">
+                            {formatCount(service.workerCount)}
+                          </span>{' '}
+                          verified workers
+                        </li>
+                      </ul>
 
-                <div className="mt-4 flex items-center justify-between pt-2 text-xs text-ink-muted">
-                  <span>Starting from NPR 1,000</span>
-                  <button
-                    type="button"
-                    className="inline-flex items-center justify-center rounded-full border border-line px-3 py-1.5 text-xs font-medium text-ink-body transition hover:border-brand/40 hover:bg-brand/5 hover:text-brand"
-                  >
-                    Book Now
-                  </button>
-                </div>
-              </Reveal>
-            ))}
+                      <div className="mt-4 flex items-center justify-between pt-2 text-xs text-ink-muted">
+                        {/* The cheapest rate a worker actually advertises for this skill. */}
+                        <span>
+                          {service.startingRate
+                            ? `Starting from ${formatRupees(service.startingRate)}/hr`
+                            : 'Rate on request'}
+                        </span>
+                        <button
+                          type="button"
+                          className="inline-flex items-center justify-center rounded-full border border-line px-3 py-1.5 text-xs font-medium text-ink-body transition hover:border-brand/40 hover:bg-brand/5 hover:text-brand"
+                        >
+                          Book Now
+                        </button>
+                      </div>
+                    </Reveal>
+                  )
+                })}
           </div>
+
+          {!loading && filteredServices.length === 0 && (
+            <p className="mt-8 text-center text-sm text-ink-muted">
+              No services matched your search. Try a different term, or post a custom task below.
+            </p>
+          )}
         </div>
       </section>
 

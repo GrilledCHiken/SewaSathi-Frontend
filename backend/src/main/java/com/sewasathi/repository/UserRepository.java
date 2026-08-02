@@ -26,6 +26,15 @@ public interface UserRepository extends JpaRepository<User, Long> {
             Role role, LocalDateTime from, LocalDateTime to);
 
     long countByRoleAndStatus(Role role, ApprovalStatus status);
+
+    /**
+     * How many workers the public pages may count as verified. The conditions match
+     * {@code findByRoleAndStatusAndSuspendedFalseOrderByCreatedAtDesc}, which is what
+     * {@code WorkerService.listAvailableWorkers} browses, so the headline figure can never
+     * claim more professionals than a customer would actually find.
+     */
+    long countByRoleAndStatusAndSuspendedFalse(Role role, ApprovalStatus status);
+
     List<User> findByRoleAndStatusOrderByCreatedAtAsc(Role role, ApprovalStatus status);
     List<User> findByRoleAndStatusAndSuspendedFalseOrderByCreatedAtDesc(Role role, ApprovalStatus status);
 }

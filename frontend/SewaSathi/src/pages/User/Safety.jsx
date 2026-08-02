@@ -1,10 +1,18 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import Reveal from "../../components/User/Reveal";
+import Skeleton from "../../components/ui/Skeleton";
+import { usePublicStats } from "../../hooks/usePublicData";
+import { formatCount, formatPercent } from "../../utils/formatStats";
 
-const STATS = [
+// Icons and labels only. The figures come from GET /api/public/stats — these four
+// used to be hardcoded, and two of them disagreed with the same numbers on other
+// pages: "3,200+" appeared here as customer reviews and on Home as services
+// offered, and the satisfaction rate was 98% here against 90% on How It Works.
+// Each now has exactly one source, so they cannot drift apart again.
+const STAT_CARDS = [
   {
-    value: "12,500+",
+    id: "workers",
     label: "Verified Professionals",
     iconBg: "bg-sky-100",
     iconText: "text-sky-600",
@@ -18,7 +26,7 @@ const STATS = [
     ),
   },
   {
-    value: "3,200+",
+    id: "reviews",
     label: "Customer Reviews",
     iconBg: "bg-emerald-100",
     iconText: "text-emerald-600",
@@ -29,7 +37,7 @@ const STATS = [
     ),
   },
   {
-    value: "45+",
+    id: "cities",
     label: "Cities Covered",
     iconBg: "bg-amber-100",
     iconText: "text-amber-600",
@@ -41,7 +49,7 @@ const STATS = [
     ),
   },
   {
-    value: "98%",
+    id: "satisfaction",
     label: "Satisfaction Rate",
     iconBg: "bg-sky-100",
     iconText: "text-sky-600",
@@ -291,6 +299,15 @@ function SafetyAccordion() {
 }
 
 export default function Safety() {
+  const { stats } = usePublicStats();
+
+  const statValues = {
+    workers: formatCount(stats?.verifiedWorkers),
+    reviews: formatCount(stats?.reviewCount),
+    cities: formatCount(stats?.citiesCovered),
+    satisfaction: formatPercent(stats?.satisfactionRate),
+  };
+
   return (
     <div className="flex-1 bg-white">
       {/* Hero */}
@@ -318,7 +335,7 @@ export default function Safety() {
       <section className="border-b border-line-soft bg-white py-10 sm:py-12">
         <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-2 gap-6 lg:grid-cols-4 lg:gap-8">
-            {STATS.map((stat, index) => (
+            {STAT_CARDS.map((stat, index) => (
               <Reveal key={stat.label} delay={index % 4} className="flex flex-col items-center text-center">
                 <span
                   className={`flex h-12 w-12 items-center justify-center rounded-2xl ${stat.iconBg} ${stat.iconText}`}
@@ -326,7 +343,7 @@ export default function Safety() {
                   {stat.icon}
                 </span>
                 <p className="mt-3 text-2xl font-extrabold tracking-tight text-ink sm:text-3xl">
-                  {stat.value}
+                  {stats ? statValues[stat.id] : <Skeleton className="mx-auto h-8 w-16" />}
                 </p>
                 <p className="mt-1 text-xs font-medium text-ink-muted sm:text-sm">
                   {stat.label}

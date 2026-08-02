@@ -2,6 +2,7 @@ package com.sewasathi.repository;
 
 import com.sewasathi.dto.report.TaskSummaryRow;
 import com.sewasathi.dto.response.AnalyticsBreakdownRow;
+import com.sewasathi.dto.response.CategoryStatsRow;
 import com.sewasathi.entity.Task;
 import com.sewasathi.entity.TaskStatus;
 import org.springframework.data.domain.Limit;
@@ -62,6 +63,37 @@ public interface TaskRepository extends JpaRepository<Task, Long> {
             @Param("from") LocalDateTime from,
             @Param("to") LocalDateTime to,
             Limit limit);
+
+    /** Tasks that reached a given outcome, over the platform's whole history. */
+    long countByStatus(TaskStatus status);
+
+    /** The newest still-unclaimed tasks, for the public "work available" panel. */
+    List<Task> findByStatusOrderByCreatedAtDesc(TaskStatus status, Limit limit);
+
+    /**
+     * Task volume per service category over the whole history, for the public catalogue.
+     *
+     * <p>Unlike {@link #topCategories}, this is neither windowed nor truncated: the marketing
+     * pages describe the platform as it stands, and every category the catalogue lists needs a
+     * figure. Categories nobody has used simply do not come back, and the service fills them in.
+     */
+    @Query("""
+            select new com.sewasathi.dto.response.CategoryStatsRow(
+                t.category,
+                count(t),
+                sum(case when t.status = com.sewasathi.entity.TaskStatus.COMPLETED then 1L else 0L end))
+            from Task t
+            group by t.category
+            """)
+    List<CategoryStatsRow> categoryStats();
+
+    /** The distinct cities tasks have actually been posted in - the real "cities covered". */
+    @Query("""
+            select distinct t.city from Task t
+            where t.city is not null and trim(t.city) <> ''
+            order by t.city asc
+            """)
+    List<String> distinctCities();
 
     /** The cities with the most tasks in a window, ranked the same way as the categories. */
     @Query("""
