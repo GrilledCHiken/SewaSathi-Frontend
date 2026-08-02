@@ -4,67 +4,91 @@ import { toast } from "react-toastify";
 import Reveal from "../../components/User/Reveal";
 import { submitContactMessage } from "../../api/contactApi";
 import { INPUT_BASE } from "../../components/ui/Field";
+import { useContactInfo, usePublicStats } from "../../hooks/usePublicData";
+import { formatCount, formatNameList } from "../../utils/formatStats";
 
-const CONTACT_CARDS = [
-  {
-    title: "Email Us",
-    highlight: "support@sewasathi.com",
-    href: "mailto:support@sewasathi.com",
-    description:
-      "For general inquiries, support, and feedback. We reply within 2 hours.",
-    iconBg: "bg-emerald-100",
-    iconText: "text-emerald-600",
-    icon: (
-      <svg className="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-        <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
-        <path d="m22 6-10 7L2 6" />
-      </svg>
-    ),
-  },
-  {
-    title: "Call Us",
-    highlight: "+977 1-444-5555",
-    href: "tel:+97714445555",
-    description:
-      "Mon–Fri, 9 AM – 6 PM NPT. For urgent matters, please use the app SOS button.",
-    iconBg: "bg-sky-100",
-    iconText: "text-sky-600",
-    icon: (
-      <svg className="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-        <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z" />
-      </svg>
-    ),
-  },
-  {
-    title: "Visit Us",
-    highlight: "Kathmandu, Nepal",
-    href: "#visit",
-    description:
-      "Our headquarters is in Thamel, Kathmandu. Drop by during business hours — we'd love to meet you!",
-    iconBg: "bg-amber-100",
-    iconText: "text-amber-600",
-    icon: (
-      <svg className="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-        <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
-        <circle cx="12" cy="10" r="3" />
-      </svg>
-    ),
-  },
-  {
-    title: "Live Chat",
-    highlight: "In-App Messaging",
-    href: "/login",
-    description:
-      "The fastest way to get help. Available on your customer or worker dashboard.",
-    iconBg: "bg-rose-100",
-    iconText: "text-rose-600",
-    icon: (
-      <svg className="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-      </svg>
-    ),
-  },
-];
+/**
+ * Shown until GET /api/public/contact-info answers.
+ *
+ * These match the server's own defaults in ContactProperties, so the page reads
+ * correctly from the first paint and simply confirms itself a moment later. The
+ * support address and number used to be written out in four separate places on
+ * this page — the cards plus three FAQ answers — and could drift apart. Now
+ * there is one source and everything below reads from it.
+ */
+const DEFAULT_CONTACT = {
+  supportEmail: "support@sewasathi.com",
+  phone: "+977 1-444-5555",
+  phoneHref: "+97714445555",
+  address: "Kathmandu, Nepal",
+  hours: "Mon-Fri, 9 AM - 6 PM NPT",
+  careersEmail: "careers@sewasathi.com",
+};
+
+function buildContactCards(info) {
+  return [
+    {
+      title: "Email Us",
+      highlight: info.supportEmail,
+      href: `mailto:${info.supportEmail}`,
+      description:
+        "For general inquiries, support, and feedback. We reply within 2 hours.",
+      iconBg: "bg-emerald-100",
+      iconText: "text-emerald-600",
+      icon: (
+        <svg className="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+          <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
+          <path d="m22 6-10 7L2 6" />
+        </svg>
+      ),
+    },
+    {
+      title: "Call Us",
+      highlight: info.phone,
+      href: `tel:${info.phoneHref}`,
+      description: `${info.hours}. For urgent matters, please use the app SOS button.`,
+      iconBg: "bg-sky-100",
+      iconText: "text-sky-600",
+      icon: (
+        <svg className="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+          <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z" />
+        </svg>
+      ),
+    },
+    {
+      title: "Visit Us",
+      highlight: info.address,
+      // Opens a map rather than the dead "#visit" anchor this used to point at.
+      href: `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(info.address)}`,
+      external: true,
+      description: `Drop by during business hours (${info.hours}) — we'd love to meet you!`,
+      iconBg: "bg-amber-100",
+      iconText: "text-amber-600",
+      icon: (
+        <svg className="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+          <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
+          <circle cx="12" cy="10" r="3" />
+        </svg>
+      ),
+    },
+    {
+      title: "Live Chat",
+      highlight: "In-App Messaging",
+      href: "/login",
+      // A route, not a URL: rendered as a <Link> so it does not reload the app.
+      internal: true,
+      description:
+        "The fastest way to get help. Available on your customer or worker dashboard.",
+      iconBg: "bg-rose-100",
+      iconText: "text-rose-600",
+      icon: (
+        <svg className="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+          <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+        </svg>
+      ),
+    },
+  ];
+}
 
 const SUBJECT_OPTIONS = [
   "General inquiry",
@@ -76,57 +100,89 @@ const SUBJECT_OPTIONS = [
   "Other",
 ];
 
-const FAQS = [
-  {
-    q: "How do I reach customer support?",
-    a: (
-      <>
-        Email us at{" "}
-        <a
-          href="mailto:support@sewasathi.com"
-          className="font-medium text-brand hover:underline"
-        >
-          support@sewasathi.com
-        </a>{" "}
-        or call +977 1-444-5555 during business hours (Mon–Fri, 9 AM – 6 PM
-        NPT). For the fastest response, use in-app messaging from your
-        dashboard.
-      </>
-    ),
-  },
-  {
-    q: "What areas does SewaSathi currently serve?",
-    a: "SewaSathi is available in 45+ cities across Nepal, including Kathmandu Valley, Pokhara, Biratnagar, Butwal, and many more. We're expanding to new areas regularly — check the app for service availability in your location.",
-  },
-  {
-    q: "How can I become a verified worker?",
-    a: "Sign up as a service provider, complete your profile, and submit verification documents. Our team reviews applications within 24–48 hours. Once approved, you'll receive a verified badge and can start accepting tasks.",
-  },
-  {
-    q: "How do payments work?",
-    a: "Payments are processed securely through eSewa and Khalti. Funds are held in escrow until the customer confirms the task is complete. Workers receive payment after approval, minus a small platform fee.",
-  },
-  {
-    q: "What if I have a dispute with a worker or customer?",
-    a: "Contact our support team within 48 hours of the issue. We'll review messages, task details, and evidence from both parties to reach a fair resolution, which may include refunds or account actions when needed.",
-  },
-  {
-    q: "Is SewaSathi hiring?",
-    a: "We're always looking for passionate people to join our team in Kathmandu. Send your CV to careers@sewasathi.com or check our About page for open positions.",
-  },
-];
+/**
+ * The answers stay as written copy — they describe process, not data — but every
+ * contact detail and every figure inside them comes from the same live source as
+ * the cards above.
+ */
+function buildFaqs(info, stats) {
+  return [
+    {
+      q: "How do I reach customer support?",
+      a: (
+        <>
+          Email us at{" "}
+          <a
+            href={`mailto:${info.supportEmail}`}
+            className="font-medium text-brand hover:underline"
+          >
+            {info.supportEmail}
+          </a>{" "}
+          or call {info.phone} during business hours ({info.hours}). For the
+          fastest response, use in-app messaging from your dashboard.
+        </>
+      ),
+    },
+    {
+      q: "What areas does SewaSathi currently serve?",
+      // Was "45+ cities ... Kathmandu Valley, Pokhara, Biratnagar, Butwal" — a
+      // stock list. These are the cities tasks have actually been posted in.
+      a: describeCoverage(stats),
+    },
+    {
+      q: "How can I become a verified worker?",
+      a: "Sign up as a service provider, complete your profile, and submit verification documents. Our team reviews applications within 24–48 hours. Once approved, you'll receive a verified badge and can start accepting tasks.",
+    },
+    {
+      q: "How do payments work?",
+      a: "Payments are processed securely through eSewa and Khalti. Funds are held in escrow until the customer confirms the task is complete. Workers receive payment after approval, minus a small platform fee.",
+    },
+    {
+      q: "What if I have a dispute with a worker or customer?",
+      a: "Contact our support team within 48 hours of the issue. We'll review messages, task details, and evidence from both parties to reach a fair resolution, which may include refunds or account actions when needed.",
+    },
+    {
+      q: "Is SewaSathi hiring?",
+      a: (
+        <>
+          We&apos;re always looking for passionate people to join our team in
+          Kathmandu. Send your CV to{" "}
+          <a
+            href={`mailto:${info.careersEmail}`}
+            className="font-medium text-brand hover:underline"
+          >
+            {info.careersEmail}
+          </a>{" "}
+          or check our About page for open positions.
+        </>
+      ),
+    },
+  ];
+}
+
+/** Names the real service areas, and says so plainly when there are none yet. */
+function describeCoverage(stats) {
+  if (!stats || stats.citiesCovered === 0) {
+    return "SewaSathi covers Nepal, and we're adding service areas as workers and customers join. Post a task to see who is available near you.";
+  }
+
+  const cities = formatNameList(stats.cityNames);
+  return `SewaSathi has served ${formatCount(stats.citiesCovered)} ${
+    stats.citiesCovered === 1 ? "city" : "cities"
+  } across Nepal, including ${cities}. We're expanding to new areas regularly — post a task to check availability in your location.`;
+}
 
 const MAX_MESSAGE_LENGTH = 500;
 
 /* Shared with every other form in the app; see ui/Field.jsx. */
 const inputClassName = `${INPUT_BASE} px-4 py-3`;
 
-function ContactAccordion() {
+function ContactAccordion({ faqs }) {
   const [openIndex, setOpenIndex] = useState(0);
 
   return (
     <div className="space-y-3">
-      {FAQS.map((item, idx) => {
+      {faqs.map((item, idx) => {
         const open = openIndex === idx;
         return (
           <div
@@ -179,6 +235,12 @@ export default function Contact() {
   const [submitted, setSubmitted] = useState(false);
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
+
+  const { contactInfo } = useContactInfo();
+  const { stats } = usePublicStats();
+  const info = contactInfo ?? DEFAULT_CONTACT;
+  const contactCards = buildContactCards(info);
+  const faqs = buildFaqs(info, stats);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -250,7 +312,7 @@ export default function Contact() {
       <section className="py-8 sm:py-10">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            {CONTACT_CARDS.map((card, index) => (
+            {contactCards.map((card, index) => (
               <Reveal
                 key={card.title}
                 as="article"
@@ -265,12 +327,24 @@ export default function Contact() {
                 <h2 className="mt-4 text-lg font-bold text-ink">
                   {card.title}
                 </h2>
-                <a
-                  href={card.href}
-                  className="mt-1 text-sm font-semibold text-brand hover:underline"
-                >
-                  {card.highlight}
-                </a>
+                {card.internal ? (
+                  <Link
+                    to={card.href}
+                    className="mt-1 text-sm font-semibold text-brand hover:underline"
+                  >
+                    {card.highlight}
+                  </Link>
+                ) : (
+                  <a
+                    href={card.href}
+                    className="mt-1 text-sm font-semibold text-brand hover:underline"
+                    {...(card.external
+                      ? { target: "_blank", rel: "noreferrer" }
+                      : {})}
+                  >
+                    {card.highlight}
+                  </a>
+                )}
                 <p className="mt-3 flex-1 text-sm leading-relaxed text-ink-muted">
                   {card.description}
                 </p>
@@ -440,7 +514,7 @@ export default function Contact() {
               </p>
 
               <div className="mt-6">
-                <ContactAccordion />
+                <ContactAccordion faqs={faqs} />
               </div>
             </div>
           </div>

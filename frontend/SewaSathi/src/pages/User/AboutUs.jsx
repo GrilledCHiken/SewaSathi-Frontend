@@ -1,5 +1,8 @@
 import { Link } from "react-router-dom";
 import Reveal from "../../components/User/Reveal";
+import Skeleton from "../../components/ui/Skeleton";
+import { usePublicStats } from "../../hooks/usePublicData";
+import { formatCount, formatPercent } from "../../utils/formatStats";
 import missionImage from "../../assets/images/hero-moving.jpg";
 
 const CORE_VALUES = [
@@ -57,100 +60,27 @@ const CORE_VALUES = [
   },
 ];
 
-const TIMELINE = [
-  {
-    year: "2021",
-    title: "Founded in Kathmandu",
-    description:
-      "SewaSathi was born from a simple idea: make it easy for Nepalis to find trusted local help for everyday tasks.",
-    icon: (
-      <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-        <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
-      </svg>
-    ),
-  },
-  {
-    year: "2022",
-    title: "First 1,000 Tasks Completed",
-    description:
-      "Our community grew quickly as customers and workers discovered a safer way to connect across the valley.",
-    icon: (
-      <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-        <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
-        <path d="M22 4L12 14.01l-3-3" />
-      </svg>
-    ),
-  },
-  {
-    year: "2023",
-    title: "Expanded to 20+ Cities",
-    description:
-      "We brought verified local services to Pokhara, Biratnagar, Butwal, and dozens more communities nationwide.",
-    icon: (
-      <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-        <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
-        <circle cx="12" cy="10" r="3" />
-      </svg>
-    ),
-  },
-  {
-    year: "2024",
-    title: "eSewa & Khalti Integration",
-    description:
-      "Secure payments through Nepal's most trusted digital wallets made transactions seamless for everyone.",
-    icon: (
-      <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-        <rect x="1" y="4" width="22" height="16" rx="2" />
-        <path d="M1 10h22" />
-      </svg>
-    ),
-  },
-  {
-    year: "2025",
-    title: "12,500+ Verified Workers",
-    description:
-      "Our rigorous verification program set a new standard for trust in Nepal's local services marketplace.",
-    icon: (
-      <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-        <path d="M9 12l2 2 4-4" />
-      </svg>
-    ),
-  },
-  {
-    year: "2026",
-    title: "Building Nepal's Future",
-    description:
-      "Today we're connecting thousands of Nepalis every month — and we're just getting started.",
-    icon: (
-      <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-        <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />
-      </svg>
-    ),
-  },
-];
-
 const TEAM = [
   {
-    name: "Anil Sharma",
+    name: "Aaryan Shrestha",
     role: "Founder & CEO",
-    bio: "Former tech entrepreneur passionate about solving everyday problems for Nepali households through technology.",
+    bio: "Tech entrepreneur passionate about solving everyday problems for Nepali households through technology.",
     gradient: "from-brand to-sky-400",
   },
   {
-    name: "Priya Gurung",
+    name: "Aaryan Shrestha",
     role: "Head of Operations",
     bio: "Operations expert with 8+ years building scalable service platforms across South Asia.",
     gradient: "from-emerald-500 to-teal-400",
   },
   {
-    name: "Rajesh Thapa",
+    name: "Aaryan Shrestha",
     role: "Head of Technology",
     bio: "Full-stack engineer focused on building secure, reliable systems that work for all of Nepal.",
     gradient: "from-amber-500 to-orange-400",
   },
   {
-    name: "Sita Karki",
+    name: "Aaryan Shrestha",
     role: "Head of Community",
     bio: "Community builder dedicated to growing a trusted network of workers and happy customers.",
     gradient: "from-rose-500 to-pink-400",
@@ -166,11 +96,12 @@ function initialsOf(name) {
     .toUpperCase();
 }
 
-const PLATFORM_STATS = [
-  { value: "45+", label: "Cities Served" },
-  { value: "12+", label: "Categories" },
-  { value: "12.5K+", label: "Users" },
-  { value: "98%", label: "Happy Customers" },
+/** Labels only — the figures are counted by GET /api/public/stats. */
+const PLATFORM_STAT_LABELS = [
+  { id: "cities", label: "Cities Served" },
+  { id: "categories", label: "Categories" },
+  { id: "users", label: "Users" },
+  { id: "satisfaction", label: "Happy Customers" },
 ];
 
 function SectionLabel({ children }) {
@@ -197,6 +128,18 @@ function SectionHeading({ title, subtitle }) {
 }
 
 export default function AboutUs() {
+  const { stats } = usePublicStats();
+
+  const statValues = {
+    cities: formatCount(stats?.citiesCovered),
+    categories: formatCount(stats?.categoriesOffered),
+    // Everyone with an account, workers and customers alike.
+    users: formatCount(
+      stats ? stats.customers + stats.verifiedWorkers : null,
+    ),
+    satisfaction: formatPercent(stats?.satisfactionRate),
+  };
+
   return (
     <div className="flex-1 bg-white">
       {/* Hero */}
@@ -317,44 +260,6 @@ export default function AboutUs() {
         </div>
       </section>
 
-      {/* Journey / Timeline */}
-      <section className="bg-surface-muted py-14 sm:py-16 lg:py-20">
-        <div className="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8">
-          <div className="text-center">
-            <SectionLabel>Our Journey</SectionLabel>
-            <h2 className="mt-3 text-3xl font-bold tracking-tight text-ink sm:text-4xl">
-              From idea to impact
-            </h2>
-          </div>
-
-          <div className="relative mt-12 sm:mt-14">
-            <div
-              className="absolute left-[19px] top-2 bottom-2 w-px bg-brand/25 sm:left-5"
-              aria-hidden="true"
-            />
-
-            <ul className="space-y-10 sm:space-y-12">
-              {TIMELINE.map((item) => (
-                <Reveal key={item.year} as="li" className="relative flex gap-5 sm:gap-6">
-                  <span className="relative z-10 flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-brand text-white shadow-md shadow-brand/30">
-                    {item.icon}
-                  </span>
-                  <div className="min-w-0 pt-0.5">
-                    <p className="text-sm font-semibold text-brand">{item.year}</p>
-                    <h3 className="mt-1 text-lg font-bold text-ink">
-                      {item.title}
-                    </h3>
-                    <p className="mt-2 text-sm leading-relaxed text-ink-muted">
-                      {item.description}
-                    </p>
-                  </div>
-                </Reveal>
-              ))}
-            </ul>
-          </div>
-        </div>
-      </section>
-
       {/* Team */}
       <section className="bg-white py-14 sm:py-16 lg:py-20">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
@@ -369,7 +274,9 @@ export default function AboutUs() {
           <div className="mt-10 grid gap-6 sm:mt-12 sm:grid-cols-2 lg:grid-cols-4">
             {TEAM.map((member, index) => (
               <Reveal
-                key={member.name}
+                // Keyed on the role, not the name: every member currently shares
+                // the same name, which made the keys collide.
+                key={member.role}
                 as="article"
                 delay={index % 4}
                 className="overflow-hidden rounded-2xl border border-line-soft bg-white shadow-sm transition hover:shadow-md"
@@ -404,10 +311,14 @@ export default function AboutUs() {
       <section className="bg-brand py-12 sm:py-14">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-2 gap-8 lg:grid-cols-4">
-            {PLATFORM_STATS.map((stat) => (
+            {PLATFORM_STAT_LABELS.map((stat) => (
               <div key={stat.label} className="text-center">
                 <p className="text-3xl font-extrabold tracking-tight text-white sm:text-4xl">
-                  {stat.value}
+                  {stats ? (
+                    statValues[stat.id]
+                  ) : (
+                    <Skeleton className="mx-auto h-9 w-20 bg-white/25" />
+                  )}
                 </p>
                 <p className="mt-2 text-xs font-semibold uppercase tracking-wider text-white/85 sm:text-sm">
                   {stat.label}

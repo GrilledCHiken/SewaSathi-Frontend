@@ -1,136 +1,87 @@
-// Shared service catalogue for the marketing pages (Home + Services).
+// Presentation details for the service catalogue — an icon and a line of copy
+// per category.
 //
-// POPULAR_SERVICES and ALL_SERVICES are intentionally two separate lists:
-// they differ in both membership (Handyman vs Gardening) and naming
-// ("Mounting" vs "Mounting & Installation"). Keep them separate so the two
-// pages stay independent.
+// This file used to hold the catalogue itself, including per-service ratings,
+// review counts, task counts and worker counts, all invented. Those figures now
+// come from GET /api/public/services, counted from the database, so what is left
+// here is only what a database cannot supply: which glyph to draw and how to
+// describe the work.
+//
+// The keys are the category names the backend publishes (ServiceCategories in
+// the API, SERVICE_CATEGORIES in utils/taskValidation.js). A category with no
+// entry here still renders — see serviceDisplay below.
 
-// The first two entries carry `featured` plus proof metrics — Home renders
-// them as the wide cards at the top of its bento grid.
-export const POPULAR_SERVICES = [
-  {
-    name: "Furniture Assembly",
+export const SERVICE_DISPLAY = {
+  "Furniture Assembly": {
+    icon: "furniture",
     description: "Expert assembly for beds, desks, shelves, and more.",
-    icon: "furniture",
-    featured: true,
-    rating: 4.9,
-    reviews: 420,
-    workers: 42,
   },
-  {
-    name: "Home Cleaning",
-    description: "Deep cleaning and regular upkeep for every room.",
-    icon: "cleaning",
-    featured: true,
-    rating: 4.8,
-    reviews: 610,
-    workers: 58,
-  },
-  {
-    name: "Mounting",
+  Mounting: {
+    icon: "mounting",
     description: "TVs, shelves, art, and fixtures mounted securely.",
-    icon: "mounting",
   },
-  {
-    name: "Moving Help",
-    description: "Loading, unloading, and heavy lifting assistance.",
-    icon: "moving",
-  },
-  {
-    name: "Plumbing",
-    description: "Leaks, fixtures, and pipe repairs done right.",
-    icon: "plumbing",
-  },
-  {
-    name: "Electrical",
-    description: "Wiring, outlets, and lighting installations.",
-    icon: "electrical",
-  },
-  {
-    name: "Handyman",
-    description: "General repairs and small home improvement tasks.",
-    icon: "handyman",
-  },
-  {
-    name: "Painting",
-    description: "Interior and exterior painting with a clean finish.",
-    icon: "painting",
-  },
-];
-
-export const ALL_SERVICES = [
-  {
-    name: "Furniture Assembly",
-    category: "Furniture",
-    rating: 4.9,
-    reviews: 420,
-    tasks: 1600,
-    workers: 42,
-    icon: "furniture",
-  },
-  {
-    name: "Home Cleaning",
-    category: "Cleaning",
-    rating: 4.8,
-    reviews: 610,
-    tasks: 2400,
-    workers: 58,
+  Cleaning: {
     icon: "cleaning",
+    description: "Deep cleaning and regular upkeep for every room.",
   },
-  {
-    name: "Mounting & Installation",
-    category: "Mounting",
-    rating: 4.9,
-    reviews: 330,
-    tasks: 1300,
-    workers: 37,
-    icon: "mounting",
-  },
-  {
-    name: "Moving Help",
-    category: "Moving",
-    rating: 4.7,
-    reviews: 280,
-    tasks: 1100,
-    workers: 29,
+  "Moving Help": {
     icon: "moving",
+    description: "Loading, unloading, and heavy lifting assistance.",
   },
-  {
-    name: "Gardening",
-    category: "Outdoor",
-    rating: 4.6,
-    reviews: 150,
-    tasks: 540,
-    workers: 18,
+  Gardening: {
     icon: "services",
+    description: "Planting, pruning, and keeping your garden in shape.",
   },
-  {
-    name: "Plumbing",
-    category: "Plumbing",
-    rating: 4.8,
-    reviews: 390,
-    tasks: 1500,
-    workers: 33,
-    icon: "plumbing",
+  "Delivery Help": {
+    icon: "moving",
+    description: "Pickups and drop-offs handled across the valley.",
   },
-  {
-    name: "Electrical Work",
-    category: "Electrical",
-    rating: 4.8,
-    reviews: 365,
-    tasks: 1400,
-    workers: 31,
-    icon: "electrical",
-  },
-  {
-    name: "Painting",
-    category: "Painting",
-    rating: 4.7,
-    reviews: 210,
-    tasks: 820,
-    workers: 24,
+  Painting: {
     icon: "painting",
+    description: "Interior and exterior painting with a clean finish.",
   },
-];
+  Electrician: {
+    icon: "electrical",
+    description: "Wiring, outlets, and lighting installations.",
+  },
+  Plumbing: {
+    icon: "plumbing",
+    description: "Leaks, fixtures, and pipe repairs done right.",
+  },
+  "Outdoor Help": {
+    icon: "services",
+    description: "Yard work, clearing, and jobs that belong outside.",
+  },
+  "Heavy Lifting": {
+    icon: "moving",
+    description: "An extra pair of hands for anything too heavy alone.",
+  },
+  "Home Repair": {
+    icon: "handyman",
+    description: "General repairs and small home improvement tasks.",
+  },
+  "Office Support": {
+    icon: "book",
+    description: "Setup, organising, and errands for your workplace.",
+  },
+  Other: {
+    icon: "handyman",
+    description: "Something else? Describe it and get matched.",
+  },
+};
 
-export const FILTER_TAGS = ["Cleaning", "Furniture", "Plumbing", "Moving", "Electrical"];
+/**
+ * Icon and copy for a category, with a working fallback.
+ *
+ * The catalogue is defined by the API, not by this file, so a category added on
+ * the server must still render here rather than crashing the grid. It gets the
+ * generic handyman glyph until someone writes it a line.
+ */
+export function serviceDisplay(name) {
+  return (
+    SERVICE_DISPLAY[name] ?? {
+      icon: "handyman",
+      description: "Book a verified professional for this task.",
+    }
+  );
+}

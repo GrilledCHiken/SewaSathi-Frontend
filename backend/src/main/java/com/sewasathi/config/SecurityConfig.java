@@ -214,6 +214,11 @@ public class SecurityConfig {
                         .requestMatchers("/api/notifications/**").authenticated()
                         .requestMatchers(HttpMethod.POST, "/api/contact").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/newsletter/subscribe").permitAll()
+                        // The marketing pages are served to visitors who have no account, so the
+                        // figures on them have to be readable without one. GET only, and
+                        // PublicController returns nothing but aggregates and anonymised rows -
+                        // it takes no id and cannot be pointed at an individual's record.
+                        .requestMatchers(HttpMethod.GET, "/api/public/**").permitAll()
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.POST, "/api/tasks").hasRole("CUSTOMER")
                         .requestMatchers(HttpMethod.GET, "/api/tasks/mine").hasRole("CUSTOMER")

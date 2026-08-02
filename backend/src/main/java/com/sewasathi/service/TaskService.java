@@ -29,12 +29,6 @@ public class TaskService {
             List.of(TaskStatus.OPEN, TaskStatus.REQUESTED, TaskStatus.ACCEPTED,
                     TaskStatus.ASSIGNED, TaskStatus.IN_PROGRESS);
 
-    /** Mirrors SERVICE_CATEGORIES in the frontend's utils/taskValidation.js. */
-    private static final Set<String> ALLOWED_CATEGORIES = Set.of(
-            "Furniture Assembly", "Mounting", "Cleaning", "Moving Help", "Gardening",
-            "Delivery Help", "Painting", "Electrician", "Plumbing", "Outdoor Help",
-            "Heavy Lifting", "Home Repair", "Office Support", "Other");
-
     private static final Set<String> ALLOWED_TIME_PREFERENCES =
             Set.of("Flexible", "Morning", "Afternoon", "Evening");
 
@@ -52,7 +46,7 @@ public class TaskService {
      * is what lets the form pin them under the input that caused them.
      */
     private void validateCreateRequest(CreateTaskRequest request) {
-        if (!ALLOWED_CATEGORIES.contains(request.getCategory().trim())) {
+        if (!ServiceCategories.ALLOWED.contains(request.getCategory().trim())) {
             throw new InvalidOperationException("category: Please select a category from the list.");
         }
 
