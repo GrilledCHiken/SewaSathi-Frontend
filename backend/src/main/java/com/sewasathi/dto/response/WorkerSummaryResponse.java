@@ -1,5 +1,6 @@
 package com.sewasathi.dto.response;
 
+import com.sewasathi.entity.PoliceClearanceStatus;
 import com.sewasathi.entity.User;
 import com.sewasathi.entity.WorkerProfile;
 import lombok.AllArgsConstructor;
@@ -27,6 +28,12 @@ public class WorkerSummaryResponse {
     private String citizenshipDocUrl;
     private String profilePhotoUrl;
     private LocalDateTime verificationSubmittedAt;
+    /** Police clearance validity, so a worker's own profile can show when it needs replacing. */
+    private LocalDateTime policeClearanceUploadedAt;
+    private LocalDateTime policeClearanceExpiresAt;
+    private PoliceClearanceStatus policeClearanceStatus;
+    private String pendingPoliceClearanceUrl;
+    private LocalDateTime pendingPoliceClearanceUploadedAt;
 
     public static WorkerSummaryResponse from(User user, WorkerProfile profile) {
         return new WorkerSummaryResponse(
@@ -45,7 +52,12 @@ public class WorkerSummaryResponse {
                 profile != null ? profile.getPoliceClearanceUrl() : null,
                 profile != null ? profile.getCitizenshipDocUrl() : null,
                 profile != null ? profile.getProfilePhotoUrl() : null,
-                profile != null ? profile.getVerificationSubmittedAt() : null
+                profile != null ? profile.getVerificationSubmittedAt() : null,
+                profile != null ? profile.getEffectiveClearanceUploadedAt() : null,
+                profile != null ? profile.getPoliceClearanceExpiresAt() : null,
+                profile != null ? profile.getPoliceClearanceStatus() : PoliceClearanceStatus.MISSING,
+                profile != null ? profile.getPendingPoliceClearanceUrl() : null,
+                profile != null ? profile.getPendingPoliceClearanceUploadedAt() : null
         );
     }
 }

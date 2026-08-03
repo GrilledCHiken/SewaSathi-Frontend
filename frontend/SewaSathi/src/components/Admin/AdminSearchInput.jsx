@@ -3,7 +3,7 @@ import { SearchIcon } from "../ui/icons";
 /**
  * The search box shared by the admin console's list pages.
  *
- * Both lists are already held in full in the browser, so searching is a local filter over
+ * Each list is already held in full in the browser, so searching is a local filter over
  * what is on screen rather than another request — results appear as the admin types.
  */
 export default function AdminSearchInput({ value, onChange, placeholder, className = "" }) {

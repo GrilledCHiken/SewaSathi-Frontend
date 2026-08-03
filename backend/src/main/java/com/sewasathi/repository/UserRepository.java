@@ -35,6 +35,9 @@ public interface UserRepository extends JpaRepository<User, Long> {
      */
     long countByRoleAndStatusAndSuspendedFalse(Role role, ApprovalStatus status);
 
+    /** Every account in a role - used to fan a notification out to all administrators. */
+    List<User> findByRole(Role role);
+
     List<User> findByRoleAndStatusOrderByCreatedAtAsc(Role role, ApprovalStatus status);
     List<User> findByRoleAndStatusAndSuspendedFalseOrderByCreatedAtDesc(Role role, ApprovalStatus status);
 }

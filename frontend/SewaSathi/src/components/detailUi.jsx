@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import DocumentViewerModal from "../DocumentViewerModal";
+import DocumentViewerModal from "./DocumentViewerModal";
 
 /**
  * Opens a worker's uploaded document in a viewer. Identity documents are no longer publicly
@@ -38,9 +38,24 @@ export function DocumentLink({ url, name, onOpenChange }) {
   );
 }
 
-/** One label/value row inside a details panel. Skipped entirely when empty. */
-export function DetailField({ label, value }) {
-  if (value == null || value === "") return null;
+/**
+ * One label/value row inside a details panel. Skipped entirely when empty.
+ *
+ * `empty` opts out of that: on your own profile a blank rate or bio has to keep its label,
+ * otherwise the field you came to fill in is the one field you cannot see. An admin reading
+ * someone else's record passes nothing and gets the original skip-when-empty behaviour.
+ */
+export function DetailField({ label, value, empty }) {
+  if (value == null || value === "") {
+    if (!empty) return null;
+
+    return (
+      <div>
+        <dt className="text-xs font-medium uppercase tracking-wide text-ink-faint">{label}</dt>
+        <dd className="mt-0.5 text-sm italic text-ink-faint">{empty}</dd>
+      </div>
+    );
+  }
 
   return (
     <div>

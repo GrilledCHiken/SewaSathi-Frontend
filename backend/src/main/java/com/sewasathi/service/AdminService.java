@@ -14,6 +14,7 @@ import com.sewasathi.entity.User;
 import com.sewasathi.entity.WorkerProfile;
 import com.sewasathi.exception.InvalidOperationException;
 import com.sewasathi.exception.ResourceNotFoundException;
+import com.sewasathi.repository.ContactMessageRepository;
 import com.sewasathi.repository.PaymentRepository;
 import com.sewasathi.repository.TaskRepository;
 import com.sewasathi.repository.UserRepository;
@@ -38,6 +39,8 @@ public class AdminService {
     private final WorkerProfileRepository workerProfileRepository;
     private final TaskRepository taskRepository;
     private final PaymentRepository paymentRepository;
+    private final ContactMessageRepository contactMessageRepository;
+    private final FileStorageService fileStorageService;
 
     /**
      * The live figures behind the analytics dashboard, all measured over the same window.
@@ -80,7 +83,11 @@ public class AdminService {
         // the headline figure permanently ahead of the directory it summarises.
         long totalUsers = totalCustomers + totalWorkers;
         long pendingVerifications = listPendingWorkers().size();
-        return new AdminOverviewResponse(totalUsers, totalWorkers, totalCustomers, pendingVerifications);
+        long pendingClearanceRenewals = listClearanceRenewals().size();
+        long newInquiries = contactMessageRepository.countByHandledFalse();
+        return new AdminOverviewResponse(
+                totalUsers, totalWorkers, totalCustomers, pendingVerifications,
+                pendingClearanceRenewals, newInquiries);
     }
 
     public List<PendingWorkerResponse> listPendingWorkers() {
@@ -90,6 +97,74 @@ public class AdminService {
                         .orElse(null))
                 .filter(response -> response != null && response.getVerificationSubmittedAt() != null)
                 .toList();
+    }
+
+    /**
+     * Workers who have handed in a replacement police clearance report, which the six-month
+     * renewal rule makes a recurring event rather than a one-off.
+     *
+     * <p>Unlike {@link #listPendingWorkers()} this is not a list of PENDING accounts: the people
+     * here are approved and working, and stay that way while their new report is looked at.
+     */
+    public List<PendingWorkerResponse> listClearanceRenewals() {
+        return workerProfileRepository
+                .findByPendingPoliceClearanceUrlIsNotNullOrderByPendingPoliceClearanceUploadedAtAsc()
+                .stream()
+                .map(profile -> PendingWorkerResponse.from(profile.getUser(), profile))
+                .toList();
+    }
+
+    /**
+     * Accepts a replacement police clearance report: the new file becomes the one on record and
+     * its upload date restarts the six-month window. The superseded file is deleted, since
+     * nothing references it any more and it is an identity document.
+     */
+    @Transactional
+    public UserResponse approveClearanceRenewal(Long userId) {
+        User user = getWorkerOrThrow(userId);
+        WorkerProfile profile = getRenewalOrThrow(user.getId());
+
+        String superseded = profile.getPoliceClearanceUrl();
+        profile.setPoliceClearanceUrl(profile.getPendingPoliceClearanceUrl());
+        profile.setPoliceClearanceUploadedAt(profile.getPendingPoliceClearanceUploadedAt());
+        clearRenewal(profile);
+
+        if (superseded != null) {
+            fileStorageService.delete(superseded);
+        }
+        return UserResponse.from(user);
+    }
+
+    /**
+     * Turns a replacement report down. The report already on record stands, expiry and all, so a
+     * worker whose renewal is rejected is back where they were and can upload another.
+     */
+    @Transactional
+    public UserResponse rejectClearanceRenewal(Long userId) {
+        User user = getWorkerOrThrow(userId);
+        WorkerProfile profile = getRenewalOrThrow(user.getId());
+
+        String rejected = profile.getPendingPoliceClearanceUrl();
+        clearRenewal(profile);
+
+        fileStorageService.delete(rejected);
+        return UserResponse.from(user);
+    }
+
+    private WorkerProfile getRenewalOrThrow(Long userId) {
+        WorkerProfile profile = workerProfileRepository.findByUserId(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("No worker profile for user " + userId));
+        if (profile.getPendingPoliceClearanceUrl() == null) {
+            throw new InvalidOperationException(
+                    "Worker " + userId + " has no police clearance renewal waiting for review");
+        }
+        return profile;
+    }
+
+    private void clearRenewal(WorkerProfile profile) {
+        profile.setPendingPoliceClearanceUrl(null);
+        profile.setPendingPoliceClearanceUploadedAt(null);
+        workerProfileRepository.save(profile);
     }
 
     /**

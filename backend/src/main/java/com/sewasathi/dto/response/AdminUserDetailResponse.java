@@ -1,6 +1,7 @@
 package com.sewasathi.dto.response;
 
 import com.sewasathi.entity.ApprovalStatus;
+import com.sewasathi.entity.PoliceClearanceStatus;
 import com.sewasathi.entity.Role;
 import com.sewasathi.entity.User;
 import com.sewasathi.entity.WorkerProfile;
@@ -66,6 +67,11 @@ public class AdminUserDetailResponse {
         private String citizenshipDocUrl;
         private String profilePhotoUrl;
         private LocalDateTime verificationSubmittedAt;
+        private LocalDateTime policeClearanceUploadedAt;
+        private LocalDateTime policeClearanceExpiresAt;
+        private PoliceClearanceStatus policeClearanceStatus;
+        private String pendingPoliceClearanceUrl;
+        private LocalDateTime pendingPoliceClearanceUploadedAt;
 
         static WorkerProfileDetail from(WorkerProfile profile) {
             return new WorkerProfileDetail(
@@ -81,7 +87,12 @@ public class AdminUserDetailResponse {
                     profile.getPoliceClearanceUrl(),
                     profile.getCitizenshipDocUrl(),
                     profile.getProfilePhotoUrl(),
-                    profile.getVerificationSubmittedAt()
+                    profile.getVerificationSubmittedAt(),
+                    profile.getEffectiveClearanceUploadedAt(),
+                    profile.getPoliceClearanceExpiresAt(),
+                    profile.getPoliceClearanceStatus(),
+                    profile.getPendingPoliceClearanceUrl(),
+                    profile.getPendingPoliceClearanceUploadedAt()
             );
         }
     }

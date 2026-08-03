@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import Avatar from "../Avatar";
-import { DetailField, DocumentLink } from "./detailUi";
+import { DetailField, DocumentLink } from "../detailUi";
 import { initialsOf } from "../tasks/taskUi";
 import { getUser } from "../../api/adminApi";
 
@@ -8,6 +8,15 @@ const STATUS_STYLES = {
   APPROVED: "bg-emerald-100 text-emerald-700",
   PENDING: "bg-amber-100 text-amber-700",
   REJECTED: "bg-red-100 text-red-700",
+};
+
+/** Plain-English readings of PoliceClearanceStatus, which the server computes from the dates. */
+const CLEARANCE_LABELS = {
+  VALID: "Valid",
+  EXPIRING_SOON: "Expiring soon",
+  EXPIRED: "Expired",
+  RENEWAL_PENDING: "Renewal awaiting review",
+  MISSING: "Not on file",
 };
 
 function formatDate(iso) {
@@ -190,6 +199,16 @@ export default function AdminUserDetailModal({ userId, onClose }) {
                       label="Verification submitted"
                       value={formatDate(profile.verificationSubmittedAt)}
                     />
+                    {/* A police clearance report only counts for six months, so when it runs
+                        out matters as much as whether one was ever handed in. */}
+                    <DetailField
+                      label="Police clearance"
+                      value={CLEARANCE_LABELS[profile.policeClearanceStatus]}
+                    />
+                    <DetailField
+                      label="Clearance expires"
+                      value={formatDate(profile.policeClearanceExpiresAt)}
+                    />
                   </dl>
 
                   {splitSkills(profile.skills).length > 0 && (
@@ -240,6 +259,11 @@ export default function AdminUserDetailModal({ userId, onClose }) {
                         <DocumentLink
                           url={profile.profilePhotoUrl}
                           name="Profile Photo"
+                          onOpenChange={handleDocumentOpenChange}
+                        />
+                        <DocumentLink
+                          url={profile.pendingPoliceClearanceUrl}
+                          name="Submitted Renewal"
                           onOpenChange={handleDocumentOpenChange}
                         />
                       </div>

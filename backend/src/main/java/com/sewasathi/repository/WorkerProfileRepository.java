@@ -20,6 +20,16 @@ public interface WorkerProfileRepository extends JpaRepository<WorkerProfile, Lo
      */
     Optional<WorkerProfile> findByPoliceClearanceUrlOrCitizenshipDocUrl(String policeUrl, String citizenshipUrl);
 
+    /**
+     * A police clearance renewal waiting on an admin. Lives in its own column, so it needs its own
+     * lookup or the worker who just uploaded it - and the admin reviewing it - would be told the
+     * file does not exist.
+     */
+    Optional<WorkerProfile> findByPendingPoliceClearanceUrl(String pendingPoliceClearanceUrl);
+
+    /** Workers who have handed in a replacement police clearance report nobody has reviewed yet. */
+    List<WorkerProfile> findByPendingPoliceClearanceUrlIsNotNullOrderByPendingPoliceClearanceUploadedAtAsc();
+
     Optional<WorkerProfile> findByProfilePhotoUrl(String profilePhotoUrl);
 
     /**

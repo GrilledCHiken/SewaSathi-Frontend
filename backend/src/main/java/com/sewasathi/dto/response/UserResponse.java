@@ -6,6 +6,8 @@ import com.sewasathi.entity.User;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 
+import java.time.LocalDateTime;
+
 @Getter
 @AllArgsConstructor
 public class UserResponse {
@@ -17,6 +19,8 @@ public class UserResponse {
     private ApprovalStatus status;
     private boolean suspended;
     private String avatarUrl;
+    /** Backs the "member since" line on My Profile; this is the only place the client can get it. */
+    private LocalDateTime createdAt;
 
     public static UserResponse from(User user) {
         return new UserResponse(
@@ -27,7 +31,8 @@ public class UserResponse {
                 user.getRole(),
                 user.getStatus(),
                 user.isSuspended(),
-                user.getAvatarUrl()
+                user.getAvatarUrl(),
+                user.getCreatedAt()
         );
     }
 }
