@@ -4,6 +4,7 @@ import { toast } from "react-toastify";
 import WorkerSidebar from "./WorkerSidebar";
 import WorkerVerification from "../../pages/Worker/WorkerVerification";
 import { useAuth } from "../../context/AuthContext";
+import { ChatProvider } from "../../context/ChatContext";
 import { getMyWorkerProfile } from "../../api/workerProfileApi";
 
 const STATUS_MESSAGES = {
@@ -74,17 +75,21 @@ function WorkerLayout() {
     );
   }
 
+  // Only reached once the worker is APPROVED — the unapproved branches above return early,
+  // and a worker who cannot take jobs has no conversations to connect for.
   return (
-    <div className="flex min-h-svh bg-surface-muted">
-      <WorkerSidebar
-        mobileOpen={mobileOpen}
-        onCloseMobile={() => setMobileOpen(false)}
-      />
+    <ChatProvider>
+      <div className="flex min-h-svh bg-surface-muted">
+        <WorkerSidebar
+          mobileOpen={mobileOpen}
+          onCloseMobile={() => setMobileOpen(false)}
+        />
 
-      <div className="flex min-w-0 flex-1 flex-col lg:pl-0">
-        <Outlet context={{ openMobileMenu: () => setMobileOpen(true) }} />
+        <div className="flex min-w-0 flex-1 flex-col lg:pl-0">
+          <Outlet context={{ openMobileMenu: () => setMobileOpen(true) }} />
+        </div>
       </div>
-    </div>
+    </ChatProvider>
   );
 }
 

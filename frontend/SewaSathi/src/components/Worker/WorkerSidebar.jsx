@@ -1,5 +1,7 @@
+import { useMemo } from "react";
 import { Link } from "react-router-dom";
 import SideNav from "../ui/SideNav";
+import { useChat } from "../../context/ChatContext";
 import { ChatIcon, ClipboardIcon, GridIcon, HelpIcon, SearchIcon } from "../ui/icons";
 
 /**
@@ -10,17 +12,29 @@ import { ChatIcon, ClipboardIcon, GridIcon, HelpIcon, SearchIcon } from "../ui/i
  * in the header, not from here.
  */
 
+const MESSAGES_ROUTE = "/worker/messages";
+
 const NAV_ITEMS = [
   { label: "Overview", to: "/worker", end: true, icon: <GridIcon /> },
   { label: "Browse Tasks", to: "/worker/tasks", icon: <SearchIcon /> },
   { label: "My Jobs", to: "/worker/jobs", icon: <ClipboardIcon /> },
-  { label: "Messages", to: "/worker/messages", icon: <ChatIcon /> },
+  { label: "Messages", to: MESSAGES_ROUTE, icon: <ChatIcon /> },
 ];
 
 function WorkerSidebar({ mobileOpen, onCloseMobile }) {
+  // useChat returns null outside a ChatProvider — an unapproved worker never gets one.
+  const totalUnread = useChat()?.totalUnread ?? 0;
+  const items = useMemo(
+    () =>
+      NAV_ITEMS.map((item) =>
+        item.to === MESSAGES_ROUTE ? { ...item, badge: totalUnread } : item,
+      ),
+    [totalUnread],
+  );
+
   return (
     <SideNav
-      items={NAV_ITEMS}
+      items={items}
       subtitle="Worker Dashboard"
       accent="emerald"
       ariaLabel="Worker"

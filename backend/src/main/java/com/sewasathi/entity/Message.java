@@ -6,6 +6,7 @@ import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.Index;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
@@ -19,7 +20,8 @@ import org.hibernate.annotations.CreationTimestamp;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "messages")
+@Table(name = "messages", indexes = {
+        @Index(name = "idx_message_task_sender_read", columnList = "task_id, sender_id, read_at")})
 @Getter
 @Setter
 @NoArgsConstructor
@@ -55,6 +57,11 @@ public class Message {
     @Builder.Default
     @Column(nullable = false)
     private boolean deleted = false;
+
+    // Null until the other party opens the thread. Chat is one-to-one, so the reader is
+    // always the participant who is not sender_id - no per-recipient row is needed.
+    @Column(name = "read_at")
+    private LocalDateTime readAt;
 
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)

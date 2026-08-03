@@ -19,6 +19,8 @@ public class MessageResponse {
     private TaskPartyResponse sender;
     private LocalDateTime createdAt;
     private boolean deleted;
+    /** When the other party opened the thread, or null while the message is still unread. */
+    private LocalDateTime readAt;
 
     public static MessageResponse from(Message message) {
         // A deleted message keeps its place in the thread but never ships its body.
@@ -33,7 +35,8 @@ public class MessageResponse {
                     null,
                     TaskPartyResponse.from(message.getSender()),
                     message.getCreatedAt(),
-                    true
+                    true,
+                    null
             );
         }
         return new MessageResponse(
@@ -46,7 +49,8 @@ public class MessageResponse {
                 message.getAttachmentType(),
                 TaskPartyResponse.from(message.getSender()),
                 message.getCreatedAt(),
-                false
+                false,
+                message.getReadAt()
         );
     }
 }

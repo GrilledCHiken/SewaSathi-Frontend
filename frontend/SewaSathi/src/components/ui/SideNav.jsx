@@ -16,7 +16,8 @@ import Brandmark from "./Brandmark";
  * as an unstyled admin template.
  *
  * Nav items keep their exact previous shape — `{ label, to, end?, icon }` — so
- * each panel's array moves across unchanged.
+ * each panel's array moves across unchanged. `badge` is optional and only drawn
+ * when it is a positive number, so panels without counts stay untouched.
  */
 
 /* Full literal class strings — the marker classes are written out as
@@ -123,6 +124,17 @@ export default function SideNav({
                     {item.icon}
                   </span>
                   <span className="truncate">{item.label}</span>
+                  {/* Optional count, currently only unread messages. Rendered here rather
+                      than folded into `label` so it keeps its own colour against the navy
+                      rail and is announced as a count, not as part of the destination. */}
+                  {item.badge > 0 && (
+                    <span
+                      className="ml-auto flex h-[18px] min-w-[18px] shrink-0 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white"
+                      aria-label={`${item.badge} unread`}
+                    >
+                      {item.badge > 9 ? "9+" : item.badge}
+                    </span>
+                  )}
                 </>
               )}
             </NavLink>

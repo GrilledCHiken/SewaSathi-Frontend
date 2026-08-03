@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { toast } from "react-toastify";
 import { useAuth } from "../../context/AuthContext";
-import useChatSocket from "../../hooks/useChatSocket";
+import { useChat } from "../../context/ChatContext";
 import AuthedImage from "../AuthedImage";
 import DocumentViewerModal from "../DocumentViewerModal";
 import { downloadFile } from "../../api/fileApi";
@@ -90,11 +90,12 @@ function previewOf(lastMessage) {
   return lastMessage.attachmentName ? `📎 ${lastMessage.attachmentName}` : "";
 }
 
-function ConversationItem({ conversation, active, onSelect }) {
+function ConversationItem({ conversation, active, unread, onSelect }) {
   const palette = paletteFor(conversation.otherParty?.id);
   const initials = initialsOf(conversation.otherParty?.fullName);
   const lastMessage = conversation.lastMessage;
   const preview = previewOf(lastMessage);
+  const hasUnread = unread > 0;
 
   return (
     <button
@@ -116,7 +117,12 @@ function ConversationItem({ conversation, active, onSelect }) {
             {conversation.otherParty?.fullName}
           </span>
           {lastMessage && (
-            <span className="shrink-0 text-xs text-ink-muted">
+            <span
+              className={[
+                "shrink-0 text-xs",
+                hasUnread ? "font-semibold text-brand-dark" : "text-ink-muted",
+              ].join(" ")}
+            >
               {formatTime(lastMessage.createdAt)}
             </span>
           )}
@@ -125,14 +131,30 @@ function ConversationItem({ conversation, active, onSelect }) {
           {conversation.latestCategory} · {conversation.latestTaskTitle}
           {conversation.taskCount > 1 && ` · ${conversation.taskCount} jobs`}
         </p>
-        <p
-          className={[
-            "mt-0.5 truncate text-sm",
-            lastMessage?.deleted ? "italic text-ink-faint" : "text-ink-muted",
-          ].join(" ")}
-        >
-          {preview}
-        </p>
+        {/* The preview shares its row with the count so an unread thread reads as one
+            unit — darker, heavier text next to the number saying how much of it is new. */}
+        <div className="mt-0.5 flex items-center justify-between gap-2">
+          <p
+            className={[
+              "truncate text-sm",
+              lastMessage?.deleted
+                ? "italic text-ink-faint"
+                : hasUnread
+                  ? "font-semibold text-ink"
+                  : "text-ink-muted",
+            ].join(" ")}
+          >
+            {preview}
+          </p>
+          {hasUnread && (
+            <span
+              className="flex h-[18px] min-w-[18px] shrink-0 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white"
+              aria-label={`${unread} unread ${unread === 1 ? "message" : "messages"}`}
+            >
+              {unread > 9 ? "9+" : unread}
+            </span>
+          )}
+        </div>
       </div>
     </button>
   );
@@ -190,6 +212,43 @@ function AttachmentBubble({ message }) {
   );
 }
 
+/**
+ * Shown under your own bubbles only. There is no delivery acknowledgement anywhere in this
+ * system, so the two honest states are "the server stored it" and "they opened the thread" —
+ * hence Sent and Seen, rather than borrowing the three-tick vocabulary of apps that really do
+ * track handset delivery.
+ */
+function ReadReceipt({ readAt }) {
+  const seen = Boolean(readAt);
+  return (
+    <span
+      className={seen ? "text-white" : "text-white/70"}
+      title={seen ? `Seen at ${formatTime(readAt)}` : "Sent"}
+    >
+      <span className="sr-only">{seen ? "Seen" : "Sent"}</span>
+      <svg
+        className="h-3.5 w-4"
+        viewBox="0 0 20 14"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        aria-hidden="true"
+      >
+        {seen ? (
+          <>
+            <path d="M1 7.5 4.5 11 11 3" />
+            <path d="M7.5 7.5 11 11 18 3" />
+          </>
+        ) : (
+          <path d="M4 7.5 8 11 15.5 3" />
+        )}
+      </svg>
+    </span>
+  );
+}
+
 function MessageBubble({ message, isSelf, otherInitials, otherPalette, selfInitials, onDelete }) {
   const [confirming, setConfirming] = useState(false);
   // You can only take back your own messages, and only once.
@@ -232,11 +291,12 @@ function MessageBubble({ message, isSelf, otherInitials, otherPalette, selfIniti
         )}
         <p
           className={[
-            "mt-1 text-right text-xs",
+            "mt-1 flex items-center justify-end gap-1 text-xs",
             isSelf && !message.deleted ? "text-white/70" : "text-ink-muted",
           ].join(" ")}
         >
-          {formatTime(message.createdAt)}
+          <span>{formatTime(message.createdAt)}</span>
+          {isSelf && !message.deleted && <ReadReceipt readAt={message.readAt} />}
         </p>
       </div>
 
@@ -282,7 +342,15 @@ function MessageBubble({ message, isSelf, otherInitials, otherPalette, selfIniti
 
 export default function ChatPage({ renderHeader }) {
   const { user } = useAuth();
-  const { connected, subscribeToConversation, sendMessage } = useChatSocket();
+  const {
+    connected,
+    subscribeToConversation,
+    sendMessage,
+    unreadByKey,
+    onChatEvent,
+    markConversationRead,
+    setActiveConversation,
+  } = useChat();
   // Task pages link here as /messages?taskId=123 to open the thread with that
   // task's other party — the thread itself spans every task shared with them.
   const [searchParams] = useSearchParams();
@@ -341,12 +409,39 @@ export default function ChatPage({ renderHeader }) {
     });
   }, []);
 
+  /** Flips your own bubbles to "Seen" when the other side reports catching up. */
+  const applyReadReceipt = useCallback(
+    (conversationKey, receipt) => {
+      if (receipt.readerId === user?.id) return;
+      setThread((prev) => {
+        if (prev.key !== conversationKey) return prev;
+        if (!prev.items.some((m) => m.sender?.id === user?.id && !m.readAt)) return prev;
+        return {
+          key: prev.key,
+          items: prev.items.map((m) =>
+            m.sender?.id === user?.id && !m.readAt ? { ...m, readAt: receipt.readAt } : m,
+          ),
+        };
+      });
+    },
+    [user?.id],
+  );
+
   useEffect(() => {
     if (!selectedKey) return undefined;
     let stale = false;
+
+    // The provider needs to know which thread is on screen so a message arriving here is
+    // read on sight rather than badged.
+    setActiveConversation(selectedKey);
+
     getMessageHistory(selectedKey)
       .then((items) => {
-        if (!stale) setThread({ key: selectedKey, items });
+        if (stale) return;
+        setThread({ key: selectedKey, items });
+        // Only once the thread is actually rendered — this is also what tells the sender
+        // their messages have been seen.
+        markConversationRead(selectedKey);
       })
       .catch(() => {
         if (stale) return;
@@ -354,14 +449,42 @@ export default function ChatPage({ renderHeader }) {
         setThread({ key: selectedKey, items: EMPTY_MESSAGES });
       });
 
-    const unsubscribe = subscribeToConversation(selectedKey, (incoming) => {
-      applyMessage(selectedKey, incoming);
+    const unsubscribe = subscribeToConversation(selectedKey, (event) => {
+      if (event.type === "READ") {
+        applyReadReceipt(selectedKey, event.read);
+        return;
+      }
+      // Marking it read is the provider's job — it sees the same message on the personal
+      // stream and knows this thread is the active one.
+      applyMessage(selectedKey, event.message);
     });
 
     return () => {
       stale = true;
+      setActiveConversation(null);
       unsubscribe?.();
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedKey]);
+
+  // Only the open thread is subscribed to its topic, so previews and ordering for every other
+  // conversation come off the personal stream — otherwise a row could show an unread badge
+  // next to the message that was already there.
+  useEffect(
+    () =>
+      onChatEvent((event) => {
+        if (event.type !== "MESSAGE") return;
+        applyMessage(event.conversationKey, event.message);
+      }),
+    [onChatEvent, applyMessage],
+  );
+
+  // Coming back to the tab counts as reading whatever piled up while it sat in the background.
+  useEffect(() => {
+    if (!selectedKey) return undefined;
+    const onFocus = () => markConversationRead(selectedKey);
+    window.addEventListener("focus", onFocus);
+    return () => window.removeEventListener("focus", onFocus);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedKey]);
 
@@ -503,6 +626,7 @@ export default function ChatPage({ renderHeader }) {
                     <ConversationItem
                       conversation={conv}
                       active={conv.conversationKey === selectedKey}
+                      unread={unreadByKey[conv.conversationKey] || 0}
                       onSelect={handleSelectConversation}
                     />
                   </li>
