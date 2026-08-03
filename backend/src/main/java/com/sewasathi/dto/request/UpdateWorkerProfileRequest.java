@@ -20,6 +20,12 @@ public class UpdateWorkerProfileRequest {
     @Size(max = 120)
     private String location;
 
+    @Size(max = 255)
+    private String address;
+
+    @Size(max = 50)
+    private String yearsOfExperience;
+
     @Size(max = 1000)
     private String bio;
 }

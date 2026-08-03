@@ -1,5 +1,5 @@
 import SideNav from "../ui/SideNav";
-import { GridIcon, ShieldIcon, UsersIcon } from "../ui/icons";
+import { GridIcon, MailIcon, ShieldIcon, UsersIcon } from "../ui/icons";
 
 /**
  * Admin side rail. Same shell as the customer and worker rails, with the
@@ -30,6 +30,7 @@ const NAV_ITEMS = [
   { label: "Analytics", to: "/admin/analytics", icon: <AnalyticsIcon /> },
   { label: "Verification Queue", to: "/admin/verifications", icon: <ShieldIcon /> },
   { label: "User Management", to: "/admin/users", icon: <UsersIcon /> },
+  { label: "Inquiries", to: "/admin/inquiries", icon: <MailIcon /> },
 ];
 
 function AdminSidebar({ mobileOpen, onCloseMobile }) {

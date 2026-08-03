@@ -1,21 +1,39 @@
 import { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { toast } from "react-toastify";
 import AdminHeader from "../../components/Admin/AdminHeader";
 import AdminSearchInput from "../../components/Admin/AdminSearchInput";
-import { DetailField, DocumentLink } from "../../components/Admin/detailUi";
-import { approveWorker, listPendingWorkers, rejectWorker } from "../../api/adminApi";
+import { DetailField, DocumentLink } from "../../components/detailUi";
+import SegmentedControl from "../../components/ui/SegmentedControl";
+import {
+  approveClearanceRenewal,
+  approveWorker,
+  listClearanceRenewals,
+  listPendingWorkers,
+  rejectClearanceRenewal,
+  rejectWorker,
+} from "../../api/adminApi";
+import { formatDate } from "../../utils/dates";
 
-function formatDate(iso) {
-  if (!iso) return "";
-  return new Date(iso).toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  });
-}
+const TABS = [
+  { value: "applications", label: "New applications" },
+  { value: "renewals", label: "Clearance renewals" },
+];
 
+/**
+ * Two queues, because there are two reasons a worker's documents land on an admin's desk.
+ *
+ * "New applications" are PENDING accounts waiting to be let in at all. "Clearance renewals" are
+ * approved workers replacing a police clearance report, which only counts for six months — they
+ * keep working throughout, so approving one swaps the document on file rather than the account's
+ * standing. Same reviewing motion, very different consequences, hence the split.
+ */
 export default function AdminVerificationQueue() {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const tab = searchParams.get("tab") === "renewals" ? "renewals" : "applications";
+
   const [workers, setWorkers] = useState([]);
+  const [renewals, setRenewals] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [actioningId, setActioningId] = useState(null);
@@ -23,30 +41,49 @@ export default function AdminVerificationQueue() {
   const [expandedIds, setExpandedIds] = useState(() => new Set());
 
   useEffect(() => {
-    listPendingWorkers()
-      .then(setWorkers)
+    Promise.all([listPendingWorkers(), listClearanceRenewals()])
+      .then(([pending, pendingRenewals]) => {
+        setWorkers(pending);
+        setRenewals(pendingRenewals);
+      })
       .catch(() => toast.error("Could not load the verification queue."))
       .finally(() => setLoading(false));
   }, []);
+
+  const rows = tab === "renewals" ? renewals : workers;
 
   // The whole queue is fetched once, so searching filters the cards already in hand.
   // Skills and city are searchable too: finding "the electricians in Lalitpur" is as common
   // a reason to search this page as looking up one applicant by name.
   const query = search.trim().toLowerCase();
-  const visibleWorkers = useMemo(() => {
-    if (!query) return workers;
-    return workers.filter((worker) =>
+  const visibleRows = useMemo(() => {
+    if (!query) return rows;
+    return rows.filter((worker) =>
       [worker.fullName, worker.email, worker.phone, worker.location, worker.skills].some(
         (field) => field?.toLowerCase().includes(query),
       ),
     );
-  }, [workers, query]);
+  }, [rows, query]);
+
+  const selectTab = (next) => {
+    setSearchParams(next === "renewals" ? { tab: "renewals" } : {}, { replace: true });
+    setExpandedIds(new Set());
+  };
 
   const toggleDetails = (id) => {
     setExpandedIds((prev) => {
       const next = new Set(prev);
       if (next.has(id)) next.delete(id);
       else next.add(id);
+      return next;
+    });
+  };
+
+  const forget = (id) => {
+    setExpandedIds((prev) => {
+      if (!prev.has(id)) return prev;
+      const next = new Set(prev);
+      next.delete(id);
       return next;
     });
   };
@@ -62,18 +99,34 @@ export default function AdminVerificationQueue() {
         toast.success("Worker rejected.");
       }
       setWorkers((prev) => prev.filter((w) => w.id !== id));
-      setExpandedIds((prev) => {
-        if (!prev.has(id)) return prev;
-        const next = new Set(prev);
-        next.delete(id);
-        return next;
-      });
+      forget(id);
     } catch {
       toast.error("That action failed. Please try again.");
     } finally {
       setActioningId(null);
     }
   };
+
+  const handleRenewalAction = async (id, action) => {
+    setActioningId(id);
+    try {
+      if (action === "approve") {
+        await approveClearanceRenewal(id);
+        toast.success("New report accepted. It is valid for the next six months.");
+      } else {
+        await rejectClearanceRenewal(id);
+        toast.success("Renewal rejected. The previous report still stands.");
+      }
+      setRenewals((prev) => prev.filter((w) => w.id !== id));
+      forget(id);
+    } catch {
+      toast.error("That action failed. Please try again.");
+    } finally {
+      setActioningId(null);
+    }
+  };
+
+  const isRenewals = tab === "renewals";
 
   return (
     <div className="flex min-h-svh flex-1 flex-col">
@@ -84,12 +137,14 @@ export default function AdminVerificationQueue() {
           <div>
             <h2 className="text-xl font-bold text-slate-900 sm:text-2xl">Verification Queue</h2>
             <p className="mt-1 text-sm text-slate-600 sm:text-base">
-              Review worker signups and approve or reject their accounts.
+              {isRenewals
+                ? "Approved workers replacing their police clearance report, which expires every six months."
+                : "Review worker signups and approve or reject their accounts."}
             </p>
           </div>
 
           {/* Nothing to search when the queue is empty, so the box stays out of the way. */}
-          {!loading && workers.length > 0 && (
+          {!loading && rows.length > 0 && (
             <AdminSearchInput
               value={search}
               onChange={setSearch}
@@ -99,17 +154,30 @@ export default function AdminVerificationQueue() {
           )}
         </div>
 
+        <SegmentedControl
+          className="mt-4"
+          options={TABS}
+          value={tab}
+          onChange={selectTab}
+          counts={{ applications: workers.length, renewals: renewals.length }}
+          ariaLabel="Queue"
+        />
+
         {loading ? (
           <p className="mt-6 text-sm text-slate-500">Loading...</p>
-        ) : visibleWorkers.length === 0 ? (
+        ) : visibleRows.length === 0 ? (
           <div className="mt-6 rounded-2xl border border-dashed border-slate-300 bg-white p-10 text-center">
             <p className="text-sm font-medium text-slate-600">
-              {query ? `No pending workers match "${search.trim()}".` : "No pending verifications."}
+              {query
+                ? `No workers match "${search.trim()}".`
+                : isRenewals
+                  ? "No clearance renewals waiting."
+                  : "No pending verifications."}
             </p>
           </div>
         ) : (
           <ul className="mt-6 space-y-4">
-            {visibleWorkers.map((worker) => (
+            {visibleRows.map((worker) => (
               <li
                 key={worker.id}
                 className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-sm"
@@ -118,12 +186,20 @@ export default function AdminVerificationQueue() {
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-2">
                       <h3 className="font-semibold text-slate-900">{worker.fullName}</h3>
-                      <span className="rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-semibold text-amber-700">
-                        Pending
+                      <span
+                        className={
+                          isRenewals
+                            ? "rounded-full bg-sky-100 px-2.5 py-0.5 text-xs font-semibold text-sky-700"
+                            : "rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-semibold text-amber-700"
+                        }
+                      >
+                        {isRenewals ? "Renewal" : "Pending"}
                       </span>
                     </div>
                     <p className="mt-1 text-xs text-slate-400">
-                      Verification submitted {formatDate(worker.verificationSubmittedAt)}
+                      {isRenewals
+                        ? `New report submitted ${formatDate(worker.pendingPoliceClearanceUploadedAt)}`
+                        : `Verification submitted ${formatDate(worker.verificationSubmittedAt)}`}
                     </p>
                   </div>
 
@@ -140,7 +216,11 @@ export default function AdminVerificationQueue() {
                     <button
                       type="button"
                       disabled={actioningId === worker.id}
-                      onClick={() => handleAction(worker.id, "approve")}
+                      onClick={() =>
+                        isRenewals
+                          ? handleRenewalAction(worker.id, "approve")
+                          : handleAction(worker.id, "approve")
+                      }
                       className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-60"
                     >
                       Approve
@@ -148,7 +228,11 @@ export default function AdminVerificationQueue() {
                     <button
                       type="button"
                       disabled={actioningId === worker.id}
-                      onClick={() => handleAction(worker.id, "reject")}
+                      onClick={() =>
+                        isRenewals
+                          ? handleRenewalAction(worker.id, "reject")
+                          : handleAction(worker.id, "reject")
+                      }
                       className="rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
                     >
                       Reject
@@ -209,16 +293,51 @@ export default function AdminVerificationQueue() {
                       These are identity documents behind an authenticated endpoint, so they
                       are fetched with the admin's token rather than linked to directly.
                     */}
-                    <div className="mt-4">
-                      <p className="text-xs font-medium uppercase tracking-wide text-slate-400">
-                        Documents
-                      </p>
-                      <div className="mt-1.5 flex flex-wrap gap-3">
-                        <DocumentLink url={worker.policeClearanceUrl} name="Police Clearance Report" />
-                        <DocumentLink url={worker.citizenshipDocUrl} name="Citizenship / ID" />
-                        <DocumentLink url={worker.profilePhotoUrl} name="Profile Photo" />
+                    {isRenewals ? (
+                      <div className="mt-4 grid gap-4 sm:grid-cols-2">
+                        <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+                          <p className="text-xs font-medium uppercase tracking-wide text-slate-400">
+                            On file now
+                          </p>
+                          <p className="mt-1 text-xs text-slate-500">
+                            Uploaded {formatDate(worker.policeClearanceUploadedAt) || "—"} · expires{" "}
+                            {formatDate(worker.policeClearanceExpiresAt) || "—"}
+                          </p>
+                          <div className="mt-1.5">
+                            <DocumentLink
+                              url={worker.policeClearanceUrl}
+                              name="current report"
+                            />
+                          </div>
+                        </div>
+
+                        <div className="rounded-xl border border-sky-200 bg-sky-50 p-3">
+                          <p className="text-xs font-medium uppercase tracking-wide text-sky-500">
+                            Submitted for review
+                          </p>
+                          <p className="mt-1 text-xs text-slate-500">
+                            Uploaded {formatDate(worker.pendingPoliceClearanceUploadedAt)}
+                          </p>
+                          <div className="mt-1.5">
+                            <DocumentLink
+                              url={worker.pendingPoliceClearanceUrl}
+                              name="new report"
+                            />
+                          </div>
+                        </div>
                       </div>
-                    </div>
+                    ) : (
+                      <div className="mt-4">
+                        <p className="text-xs font-medium uppercase tracking-wide text-slate-400">
+                          Documents
+                        </p>
+                        <div className="mt-1.5 flex flex-wrap gap-3">
+                          <DocumentLink url={worker.policeClearanceUrl} name="Police Clearance Report" />
+                          <DocumentLink url={worker.citizenshipDocUrl} name="Citizenship / ID" />
+                          <DocumentLink url={worker.profilePhotoUrl} name="Profile Photo" />
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
               </li>

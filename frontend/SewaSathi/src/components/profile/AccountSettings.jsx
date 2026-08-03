@@ -16,9 +16,11 @@ import {
 } from "../../utils/validation";
 import Avatar from "../Avatar";
 import PasswordChecklist from "../PasswordChecklist";
+import { DetailField } from "../detailUi";
 import Badge from "../ui/Badge";
 import Button from "../ui/Button";
 import { INPUT_BASE } from "../ui/Field";
+import EditableCard from "./EditableCard";
 
 /** Matches what the backend accepts for an avatar, so a rejection happens before the upload. */
 const ACCEPTED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/gif", "image/webp"];
@@ -43,18 +45,6 @@ const STATUS_TONES = {
   REJECTED: "danger",
 };
 
-function Card({ title, description, children }) {
-  return (
-    <section className="rounded-card border border-line bg-surface p-5 shadow-e1 sm:p-6">
-      <h2 className="text-base font-bold text-ink">{title}</h2>
-      {description && (
-        <p className="mt-1 text-sm leading-relaxed text-ink-muted">{description}</p>
-      )}
-      <div className="mt-5">{children}</div>
-    </section>
-  );
-}
-
 function FieldError({ message }) {
   if (!message) return null;
   return <p className="mt-1.5 text-xs font-medium text-danger">{message}</p>;
@@ -67,6 +57,10 @@ function FieldError({ message }) {
  * Kept as a component rather than a page so the worker's profile screen can stack its
  * professional fields (skills, rate, service area) underneath the same account controls
  * instead of splitting a worker's identity across two routes.
+ *
+ * Each card reads before it writes — see EditableCard. The form state below is only ever
+ * live while a card is open, and it is reseeded from the session on the way in and on
+ * cancel, so nothing typed and abandoned survives.
  */
 export default function AccountSettings({ accent = "brand" }) {
   const { user, applyUserUpdate, logoutCustomer } = useAuth();
@@ -131,9 +125,16 @@ export default function AccountSettings({ accent = "brand" }) {
     }
   };
 
-  const handleDetailsSubmit = async (e) => {
-    e.preventDefault();
+  /** Refills the details form from the session — on the way into edit mode, and on cancel. */
+  const resetDetails = () => {
+    setDetails({
+      fullName: user?.fullName || user?.name || "",
+      phone: user?.phone || "",
+    });
+    setDetailErrors({});
+  };
 
+  const saveDetails = async () => {
     const fullName = details.fullName.trim();
     const errors = {};
     if (fullName.length < 2) {
@@ -145,22 +146,28 @@ export default function AccountSettings({ accent = "brand" }) {
       errors.phone = "Enter a valid 10-digit mobile number starting with 97 or 98.";
     }
     setDetailErrors(errors);
-    if (Object.keys(errors).length > 0) return;
+    // Staying open keeps the errors that were just rendered in front of the person fixing them.
+    if (Object.keys(errors).length > 0) return false;
 
     setSavingDetails(true);
     try {
       applyUserUpdate(await updateMyProfile({ fullName, phone: details.phone }));
       toast.success("Profile details saved.");
+      return true;
     } catch (err) {
       toast.error(err.response?.data?.message || "Could not save your details.");
+      return false;
     } finally {
       setSavingDetails(false);
     }
   };
 
-  const handlePasswordSubmit = async (e) => {
-    e.preventDefault();
+  const resetPasswords = () => {
+    setPasswords({ currentPassword: "", newPassword: "", confirmPassword: "" });
+    setPasswordErrors({});
+  };
 
+  const savePassword = async () => {
     const errors = {};
     if (!passwords.currentPassword) {
       errors.currentPassword = "Enter your current password.";
@@ -172,7 +179,7 @@ export default function AccountSettings({ accent = "brand" }) {
       errors.confirmPassword = "Passwords do not match.";
     }
     setPasswordErrors(errors);
-    if (Object.keys(errors).length > 0) return;
+    if (Object.keys(errors).length > 0) return false;
 
     setSavingPassword(true);
     try {
@@ -186,29 +193,58 @@ export default function AccountSettings({ accent = "brand" }) {
       toast.success("Password changed. Please sign in again.");
       await logoutCustomer();
       navigate("/login", { replace: true });
+      return true;
     } catch (err) {
       toast.error(err.response?.data?.message || "Could not change your password.");
       setSavingPassword(false);
+      return false;
     }
   };
 
   const initials = user?.initials || "";
   const statusTone = STATUS_TONES[user?.status] ?? "neutral";
+  const roleLabel =
+    user?.role === "CUSTOMER" ? "Customer" : user?.role === "WORKER" ? "Worker" : "Admin";
+
+  const avatar = (
+    <Avatar
+      storedUrl={user?.avatarUrl}
+      initials={initials}
+      className="h-20 w-20 text-xl"
+      fallbackClassName={theme.avatar}
+      alt="Your profile photo"
+    />
+  );
+
+  const emailNote = (
+    <p className="mt-1.5 text-xs text-ink-muted">
+      Your email is how you sign in, so it cannot be changed here. Contact support if you need
+      it updated.
+    </p>
+  );
 
   return (
     <div className="space-y-4">
-      <Card
+      <EditableCard
         title="Profile photo"
         description="Shown next to your name across SewaSathi. JPEG, PNG, GIF, or WebP, up to 5 MB."
+        accent={accent}
+        editLabel={user?.avatarUrl ? "Change" : "Add photo"}
+        view={
+          <div className="flex flex-wrap items-center gap-5">
+            {avatar}
+            <p className="text-sm text-ink-muted">
+              {user?.avatarUrl
+                ? "This is the photo people see when they work with you."
+                : "No photo uploaded yet — your initials are shown instead."}
+            </p>
+          </div>
+        }
       >
+        {/* No `onSave`: picking a file uploads it straight away, so this card's footer is a
+            Done button rather than Cancel/Save. */}
         <div className="flex flex-wrap items-center gap-5">
-          <Avatar
-            storedUrl={user?.avatarUrl}
-            initials={initials}
-            className="h-20 w-20 text-xl"
-            fallbackClassName={theme.avatar}
-            alt="Your profile photo"
-          />
+          {avatar}
 
           <div className="flex flex-wrap items-center gap-2.5">
             <input
@@ -226,160 +262,184 @@ export default function AccountSettings({ accent = "brand" }) {
               {photoBusy ? "Working…" : user?.avatarUrl ? "Change photo" : "Upload photo"}
             </Button>
             {user?.avatarUrl && (
-              <Button
-                variant="secondary"
-                onClick={handlePhotoRemove}
-                disabled={photoBusy}
-              >
+              <Button variant="secondary" onClick={handlePhotoRemove} disabled={photoBusy}>
                 Remove
               </Button>
             )}
           </div>
         </div>
-      </Card>
+      </EditableCard>
 
-      <Card title="Account details" description="Your name and number as they appear to everyone you work with.">
-        <form onSubmit={handleDetailsSubmit}>
-          <div className="grid gap-5 sm:grid-cols-2">
-            <div>
-              <label htmlFor="profileFullName" className="mb-1.5 block text-sm font-semibold text-ink">
-                Full name
-              </label>
-              <input
-                id="profileFullName"
-                type="text"
-                value={details.fullName}
-                onChange={(e) => setDetails((d) => ({ ...d, fullName: e.target.value }))}
-                maxLength={MAX_FULL_NAME_LENGTH}
-                autoComplete="name"
-                className={inputClassName}
+      <EditableCard
+        title="Account details"
+        description="Your name and number as they appear to everyone you work with."
+        accent={accent}
+        onOpen={resetDetails}
+        onCancel={resetDetails}
+        onSave={saveDetails}
+        saving={savingDetails}
+        saveLabel={savingDetails ? "Saving…" : "Save changes"}
+        view={
+          <>
+            <dl className="grid gap-x-6 gap-y-4 sm:grid-cols-2">
+              <DetailField
+                label="Full name"
+                value={user?.fullName || user?.name}
+                empty="Not set"
               />
-              <FieldError message={detailErrors.fullName} />
-            </div>
+              <DetailField label="Mobile number" value={user?.phone} empty="Not set" />
+              <div className="sm:col-span-2">
+                <dt className="text-xs font-medium uppercase tracking-wide text-ink-faint">
+                  Email
+                </dt>
+                <dd className="mt-0.5 text-sm text-ink-body">
+                  {user?.email || "—"}
+                  {emailNote}
+                </dd>
+              </div>
+            </dl>
 
-            <div>
-              <label htmlFor="profilePhone" className="mb-1.5 block text-sm font-semibold text-ink">
-                Mobile number
-              </label>
-              <input
-                id="profilePhone"
-                type="tel"
-                inputMode="numeric"
-                value={details.phone}
-                onChange={(e) => setDetails((d) => ({ ...d, phone: sanitizePhone(e.target.value) }))}
-                placeholder="98XXXXXXXX"
-                autoComplete="tel"
-                className={inputClassName}
-              />
-              <FieldError message={detailErrors.phone} />
-            </div>
-
-            <div className="sm:col-span-2">
-              <label htmlFor="profileEmail" className="mb-1.5 block text-sm font-semibold text-ink">
-                Email
-              </label>
-              <input
-                id="profileEmail"
-                type="email"
-                value={user?.email || ""}
-                readOnly
-                disabled
-                className={`${inputClassName} cursor-not-allowed`}
-              />
-              <p className="mt-1.5 text-xs text-ink-muted">
-                Your email is how you sign in, so it cannot be changed here. Contact support if
-                you need it updated.
-              </p>
-            </div>
-          </div>
-
-          <div className="mt-5 flex flex-wrap items-center gap-2 border-t border-line-soft pt-5">
-            <Badge tone="neutral" size="md">
-              {user?.role === "CUSTOMER" ? "Customer" : user?.role === "WORKER" ? "Worker" : "Admin"}
-            </Badge>
-            {user?.status && (
-              <Badge tone={statusTone} size="md">
-                {user.status.charAt(0) + user.status.slice(1).toLowerCase()}
+            <div className="mt-5 flex flex-wrap items-center gap-2 border-t border-line-soft pt-5">
+              <Badge tone="neutral" size="md">
+                {roleLabel}
               </Badge>
-            )}
-
-            <Button
-              type="submit"
-              variant={theme.button}
-              className="ml-auto"
-              loading={savingDetails}
-            >
-              {savingDetails ? "Saving…" : "Save changes"}
-            </Button>
+              {user?.status && (
+                <Badge tone={statusTone} size="md">
+                  {user.status.charAt(0) + user.status.slice(1).toLowerCase()}
+                </Badge>
+              )}
+            </div>
+          </>
+        }
+      >
+        <div className="grid gap-5 sm:grid-cols-2">
+          <div>
+            <label htmlFor="profileFullName" className="mb-1.5 block text-sm font-semibold text-ink">
+              Full name
+            </label>
+            <input
+              id="profileFullName"
+              type="text"
+              value={details.fullName}
+              onChange={(e) => setDetails((d) => ({ ...d, fullName: e.target.value }))}
+              maxLength={MAX_FULL_NAME_LENGTH}
+              autoComplete="name"
+              aria-invalid={Boolean(detailErrors.fullName)}
+              className={inputClassName}
+            />
+            <FieldError message={detailErrors.fullName} />
           </div>
-        </form>
-      </Card>
 
-      <Card
+          <div>
+            <label htmlFor="profilePhone" className="mb-1.5 block text-sm font-semibold text-ink">
+              Mobile number
+            </label>
+            <input
+              id="profilePhone"
+              type="tel"
+              inputMode="numeric"
+              value={details.phone}
+              onChange={(e) => setDetails((d) => ({ ...d, phone: sanitizePhone(e.target.value) }))}
+              placeholder="98XXXXXXXX"
+              autoComplete="tel"
+              aria-invalid={Boolean(detailErrors.phone)}
+              className={inputClassName}
+            />
+            <FieldError message={detailErrors.phone} />
+          </div>
+
+          <div className="sm:col-span-2">
+            <label htmlFor="profileEmail" className="mb-1.5 block text-sm font-semibold text-ink">
+              Email
+            </label>
+            <input
+              id="profileEmail"
+              type="email"
+              value={user?.email || ""}
+              readOnly
+              disabled
+              className={`${inputClassName} cursor-not-allowed`}
+            />
+            {emailNote}
+          </div>
+        </div>
+      </EditableCard>
+
+      <EditableCard
         title="Password"
         description="Changing your password signs you out on every device, including this one."
+        accent={accent}
+        editLabel="Change password"
+        saveLabel={savingPassword ? "Changing…" : "Change password"}
+        onOpen={resetPasswords}
+        onCancel={resetPasswords}
+        onSave={savePassword}
+        saving={savingPassword}
+        view={
+          <p className="text-sm text-ink-muted">
+            Your password is hidden. You will need your current one to set a new one.
+          </p>
+        }
       >
-        <form onSubmit={handlePasswordSubmit}>
-          <div className="grid gap-5 sm:grid-cols-2">
-            <div className="sm:col-span-2">
-              <label htmlFor="currentPassword" className="mb-1.5 block text-sm font-semibold text-ink">
-                Current password
-              </label>
-              <input
-                id="currentPassword"
-                type="password"
-                value={passwords.currentPassword}
-                onChange={(e) => setPasswords((p) => ({ ...p, currentPassword: e.target.value }))}
-                autoComplete="current-password"
-                className={inputClassName}
-              />
-              <FieldError message={passwordErrors.currentPassword} />
-            </div>
-
-            <div>
-              <label htmlFor="newPassword" className="mb-1.5 block text-sm font-semibold text-ink">
-                New password
-              </label>
-              <input
-                id="newPassword"
-                type="password"
-                value={passwords.newPassword}
-                onChange={(e) => setPasswords((p) => ({ ...p, newPassword: e.target.value }))}
-                autoComplete="new-password"
-                className={inputClassName}
-              />
-              <FieldError message={passwordErrors.newPassword} />
-            </div>
-
-            <div>
-              <label htmlFor="confirmNewPassword" className="mb-1.5 block text-sm font-semibold text-ink">
-                Confirm new password
-              </label>
-              <input
-                id="confirmNewPassword"
-                type="password"
-                value={passwords.confirmPassword}
-                onChange={(e) => setPasswords((p) => ({ ...p, confirmPassword: e.target.value }))}
-                autoComplete="new-password"
-                className={inputClassName}
-              />
-              <FieldError message={passwordErrors.confirmPassword} />
-            </div>
+        <div className="grid gap-5 sm:grid-cols-2">
+          <div className="sm:col-span-2">
+            <label htmlFor="currentPassword" className="mb-1.5 block text-sm font-semibold text-ink">
+              Current password
+            </label>
+            <input
+              id="currentPassword"
+              type="password"
+              value={passwords.currentPassword}
+              onChange={(e) => setPasswords((p) => ({ ...p, currentPassword: e.target.value }))}
+              autoComplete="current-password"
+              aria-invalid={Boolean(passwordErrors.currentPassword)}
+              className={inputClassName}
+            />
+            <FieldError message={passwordErrors.currentPassword} />
           </div>
 
-          <PasswordChecklist
-            value={passwords.newPassword}
-            accent={theme.checklist}
-            show={passwords.newPassword.length > 0}
-          />
-
-          <div className="mt-6 flex justify-end border-t border-line-soft pt-5">
-            <Button type="submit" variant={theme.button} loading={savingPassword}>
-              {savingPassword ? "Changing…" : "Change password"}
-            </Button>
+          <div>
+            <label htmlFor="newPassword" className="mb-1.5 block text-sm font-semibold text-ink">
+              New password
+            </label>
+            <input
+              id="newPassword"
+              type="password"
+              value={passwords.newPassword}
+              onChange={(e) => setPasswords((p) => ({ ...p, newPassword: e.target.value }))}
+              autoComplete="new-password"
+              aria-invalid={Boolean(passwordErrors.newPassword)}
+              className={inputClassName}
+            />
+            <FieldError message={passwordErrors.newPassword} />
           </div>
-        </form>
-      </Card>
+
+          <div>
+            <label
+              htmlFor="confirmNewPassword"
+              className="mb-1.5 block text-sm font-semibold text-ink"
+            >
+              Confirm new password
+            </label>
+            <input
+              id="confirmNewPassword"
+              type="password"
+              value={passwords.confirmPassword}
+              onChange={(e) => setPasswords((p) => ({ ...p, confirmPassword: e.target.value }))}
+              autoComplete="new-password"
+              aria-invalid={Boolean(passwordErrors.confirmPassword)}
+              className={inputClassName}
+            />
+            <FieldError message={passwordErrors.confirmPassword} />
+          </div>
+        </div>
+
+        <PasswordChecklist
+          value={passwords.newPassword}
+          accent={theme.checklist}
+          show={passwords.newPassword.length > 0}
+        />
+      </EditableCard>
     </div>
   );
 }

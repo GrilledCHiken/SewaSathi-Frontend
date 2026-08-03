@@ -68,8 +68,12 @@ public class FileAccessService {
             throw notFound(filename);
         }
 
+        // A police clearance renewal sits in its own column until an admin acts on it, but it is
+        // the same kind of document and answers to the same rule.
         WorkerProfile identityDoc = workerProfileRepository
-                .findByPoliceClearanceUrlOrCitizenshipDocUrl(url, url).orElse(null);
+                .findByPoliceClearanceUrlOrCitizenshipDocUrl(url, url)
+                .or(() -> workerProfileRepository.findByPendingPoliceClearanceUrl(url))
+                .orElse(null);
         if (identityDoc != null) {
             if (identityDoc.getUser().getId().equals(requester.getId())) {
                 return;

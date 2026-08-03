@@ -4,12 +4,14 @@ import com.sewasathi.dto.response.AdminAnalyticsResponse;
 import com.sewasathi.dto.response.AdminOverviewResponse;
 import com.sewasathi.dto.response.AdminUserDetailResponse;
 import com.sewasathi.dto.response.AdminUserResponse;
+import com.sewasathi.dto.response.ContactMessageResponse;
 import com.sewasathi.dto.response.ErrorResponse;
 import com.sewasathi.dto.response.PendingWorkerResponse;
 import com.sewasathi.dto.response.UserResponse;
 import com.sewasathi.entity.ApprovalStatus;
 import com.sewasathi.entity.Role;
 import com.sewasathi.service.AdminService;
+import com.sewasathi.service.ContactService;
 import com.sewasathi.service.ReportService;
 import com.sewasathi.service.ReportType;
 import lombok.RequiredArgsConstructor;
@@ -39,6 +41,7 @@ public class AdminController {
 
     private final AdminService adminService;
     private final ReportService reportService;
+    private final ContactService contactService;
 
     @GetMapping("/overview")
     public AdminOverviewResponse overview() {
@@ -72,6 +75,26 @@ public class AdminController {
         return adminService.rejectWorker(id);
     }
 
+    /**
+     * Replacement police clearance reports awaiting review, which the six-month renewal rule
+     * makes a standing queue. Separate from {@link #pendingWorkers()} because these workers are
+     * already approved and keep working while their new report is checked.
+     */
+    @GetMapping("/workers/clearance-renewals")
+    public List<PendingWorkerResponse> clearanceRenewals() {
+        return adminService.listClearanceRenewals();
+    }
+
+    @PatchMapping("/workers/{id}/clearance/approve")
+    public UserResponse approveClearanceRenewal(@PathVariable Long id) {
+        return adminService.approveClearanceRenewal(id);
+    }
+
+    @PatchMapping("/workers/{id}/clearance/reject")
+    public UserResponse rejectClearanceRenewal(@PathVariable Long id) {
+        return adminService.rejectClearanceRenewal(id);
+    }
+
     @GetMapping("/users")
     public List<AdminUserResponse> users(
             @RequestParam(required = false) Role role,
@@ -94,6 +117,25 @@ public class AdminController {
     @PatchMapping("/users/{id}/unsuspend")
     public AdminUserResponse unsuspendUser(@PathVariable Long id) {
         return adminService.unsuspendUser(id);
+    }
+
+    /**
+     * The Contact Us inbox. Omitting {@code handled} returns everything; passing it narrows to
+     * the outstanding inquiries or the dealt-with ones.
+     */
+    @GetMapping("/inquiries")
+    public List<ContactMessageResponse> inquiries(@RequestParam(required = false) Boolean handled) {
+        return contactService.list(handled);
+    }
+
+    @PatchMapping("/inquiries/{id}/resolve")
+    public ContactMessageResponse resolveInquiry(@PathVariable Long id) {
+        return contactService.setHandled(id, true);
+    }
+
+    @PatchMapping("/inquiries/{id}/reopen")
+    public ContactMessageResponse reopenInquiry(@PathVariable Long id) {
+        return contactService.setHandled(id, false);
     }
 
     /** The reports the SPA can offer, so its Analytics page is not a hardcoded list. */

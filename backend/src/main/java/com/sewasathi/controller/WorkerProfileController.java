@@ -84,4 +84,24 @@ public class WorkerProfileController {
                 profilePhotoFile != null ? profilePhotoFile.url() : null
         );
     }
+
+    /**
+     * Files a replacement police clearance report, which has to be renewed every six months.
+     *
+     * <p>Separate from {@code /verification} because that endpoint demands the citizenship document
+     * as well and resets the whole submission; a worker renewing a report only has the one new file
+     * to hand in, and stays approved while an admin reviews it.
+     */
+    @PostMapping(value = "/police-clearance", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public WorkerSummaryResponse renewPoliceClearance(
+            @AuthenticationPrincipal UserPrincipal principal,
+            @RequestParam(value = "policeClearance", required = false) MultipartFile policeClearance
+    ) {
+        if (policeClearance == null || policeClearance.isEmpty()) {
+            throw new InvalidOperationException("Choose the police clearance report you want to upload");
+        }
+
+        FileStorageService.StoredFile stored = fileStorageService.store(policeClearance);
+        return workerService.submitPoliceClearanceRenewal(principal.getUsername(), stored.url());
+    }
 }

@@ -33,6 +33,9 @@ class WorkerServiceTest {
     @Mock
     private WorkerProfileRepository workerProfileRepository;
 
+    @Mock
+    private FileStorageService fileStorageService;
+
     private WorkerService workerService;
 
     private User worker;
@@ -40,7 +43,7 @@ class WorkerServiceTest {
 
     @BeforeEach
     void setUp() {
-        workerService = new WorkerService(userRepository, workerProfileRepository);
+        workerService = new WorkerService(userRepository, workerProfileRepository, fileStorageService);
         worker = User.builder()
                 .id(5L).email("worker@example.com").fullName("Worker One")
                 .phone("9800000005").role(Role.WORKER).status(ApprovalStatus.APPROVED).suspended(false)

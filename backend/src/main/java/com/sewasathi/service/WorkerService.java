@@ -25,6 +25,7 @@ public class WorkerService {
 
     private final UserRepository userRepository;
     private final WorkerProfileRepository workerProfileRepository;
+    private final FileStorageService fileStorageService;
 
     public List<WorkerSummaryResponse> listAvailableWorkers(String skill, String location, BigDecimal minRate, BigDecimal maxRate, String query) {
         List<User> workers = userRepository.findByRoleAndStatusAndSuspendedFalseOrderByCreatedAtDesc(
@@ -61,8 +62,46 @@ public class WorkerService {
         profile.setSkills(request.getSkills() != null ? request.getSkills().trim() : null);
         profile.setHourlyRate(request.getHourlyRate());
         profile.setLocation(request.getLocation() != null ? request.getLocation().trim() : null);
+        profile.setAddress(request.getAddress() != null ? request.getAddress().trim() : null);
+        profile.setYearsOfExperience(
+                request.getYearsOfExperience() != null ? request.getYearsOfExperience().trim() : null);
         profile.setBio(request.getBio() != null ? request.getBio().trim() : null);
         profile = workerProfileRepository.save(profile);
+
+        return WorkerSummaryResponse.from(user, profile);
+    }
+
+    /**
+     * Files a replacement police clearance report for review.
+     *
+     * <p>A report is only good for six months, so a working worker has to hand in a fresh one
+     * periodically. The new file is parked in the profile's pending columns rather than replacing
+     * what is on record: the worker keeps their approval and keeps taking jobs while an admin looks
+     * at it, and {@code AdminService.approveClearanceRenewal} is the only thing that promotes it and
+     * restarts the clock.
+     */
+    @Transactional
+    public WorkerSummaryResponse submitPoliceClearanceRenewal(String email, String storedUrl) {
+        User user = getWorkerUser(email);
+        WorkerProfile profile = getProfileOrThrow(user.getId());
+
+        if (!StringUtils.hasText(profile.getPoliceClearanceUrl())) {
+            // Nothing to renew. This worker never finished verification, and that form - which
+            // collects the citizenship document too - is where they belong.
+            throw new InvalidOperationException(
+                    "Submit your verification documents before renewing your police clearance report");
+        }
+
+        // Uploading twice before an admin gets to either one would leave the first file orphaned.
+        String superseded = profile.getPendingPoliceClearanceUrl();
+
+        profile.setPendingPoliceClearanceUrl(storedUrl);
+        profile.setPendingPoliceClearanceUploadedAt(LocalDateTime.now());
+        profile = workerProfileRepository.save(profile);
+
+        if (StringUtils.hasText(superseded)) {
+            fileStorageService.delete(superseded);
+        }
 
         return WorkerSummaryResponse.from(user, profile);
     }
@@ -107,6 +146,8 @@ public class WorkerService {
         profile.setHourlyRate(hourlyRate);
         profile.setBio(bio != null ? bio.trim() : null);
         profile.setPoliceClearanceUrl(policeClearanceUrl);
+        // Starts the six-month renewal window for the report just handed in.
+        profile.setPoliceClearanceUploadedAt(LocalDateTime.now());
         profile.setCitizenshipDocUrl(citizenshipDocUrl);
         if (StringUtils.hasText(profilePhotoUrl)) {
             profile.setProfilePhotoUrl(profilePhotoUrl);

@@ -44,6 +44,7 @@ const AdminOverview = lazy(() => import("./pages/Admin/AdminOverview"));
 const AdminVerificationQueue = lazy(() => import("./pages/Admin/AdminVerificationQueue"));
 const AdminUserManagement = lazy(() => import("./pages/Admin/AdminUserManagement"));
 const AdminAnalytics = lazy(() => import("./pages/Admin/AdminAnalytics"));
+const AdminInquiries = lazy(() => import("./pages/Admin/AdminInquiries"));
 
 const WorkerLayout = lazy(() => import("./components/Worker/WorkerLayout"));
 const WorkerOverview = lazy(() => import("./pages/Worker/WorkerOverview"));
@@ -211,6 +212,7 @@ function App() {
           <Route index element={<AdminOverview />} />
           <Route path="verifications" element={<AdminVerificationQueue />} />
           <Route path="users" element={<AdminUserManagement />} />
+          <Route path="inquiries" element={<AdminInquiries />} />
           <Route path="analytics" element={<AdminAnalytics />} />
           <Route path="profile" element={<MyProfile />} />
         </Route>

@@ -26,6 +26,22 @@ export async function rejectWorker(id) {
   return data;
 }
 
+/** Replacement police clearance reports waiting on a decision. These workers stay approved. */
+export async function listClearanceRenewals() {
+  const { data } = await httpClient.get("/admin/workers/clearance-renewals");
+  return data;
+}
+
+export async function approveClearanceRenewal(id) {
+  const { data } = await httpClient.patch(`/admin/workers/${id}/clearance/approve`);
+  return data;
+}
+
+export async function rejectClearanceRenewal(id) {
+  const { data } = await httpClient.patch(`/admin/workers/${id}/clearance/reject`);
+  return data;
+}
+
 export async function listUsers(filters = {}) {
   const { data } = await httpClient.get("/admin/users", { params: filters });
   return data;
@@ -44,6 +60,22 @@ export async function suspendUser(id) {
 
 export async function unsuspendUser(id) {
   const { data } = await httpClient.patch(`/admin/users/${id}/unsuspend`);
+  return data;
+}
+
+/** The Contact Us inbox. Omit `handled` for everything, or pass true/false to narrow. */
+export async function listInquiries(filters = {}) {
+  const { data } = await httpClient.get("/admin/inquiries", { params: filters });
+  return data;
+}
+
+export async function resolveInquiry(id) {
+  const { data } = await httpClient.patch(`/admin/inquiries/${id}/resolve`);
+  return data;
+}
+
+export async function reopenInquiry(id) {
+  const { data } = await httpClient.patch(`/admin/inquiries/${id}/reopen`);
   return data;
 }
 

@@ -1,5 +1,6 @@
 import { useOutletContext } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
+import NotificationBell from "../NotificationBell";
 import UserMenu from "../UserMenu";
 import { MenuIcon } from "../ui/icons";
 
@@ -32,6 +33,9 @@ function AdminHeader({ title = "Admin Dashboard" }) {
         </div>
 
         <div className="flex flex-1 items-center justify-end gap-3 sm:ml-auto">
+          {/* The customer and worker headers have always carried the bell; the admin one now
+              does too, because a contact-form inquiry has no other way to announce itself. */}
+          <NotificationBell />
           <UserMenu initials={user?.initials || "AD"} displayName={displayId} avatarClassName="bg-brand" />
         </div>
       </div>
