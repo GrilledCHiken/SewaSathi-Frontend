@@ -75,6 +75,7 @@ export default function KhaltiCallback() {
 
   const retryTaskId = payment?.task?.id;
   const settled = payment?.status === "COMPLETED";
+  const isBalance = payment?.type === "BALANCE";
 
   return (
     <PageShell
@@ -91,7 +92,7 @@ export default function KhaltiCallback() {
             tone="rose"
             icon={<CrossIcon />}
             title="Payment was not completed"
-            body="Nothing has been charged and your task is still waiting for its advance. You can try again whenever you're ready."
+            body="Nothing has been charged and your task is still waiting on its payment. You can try again whenever you're ready."
           >
             {retryTaskId && (
               <Button as={Link} to={`/dashboard/checkout/${retryTaskId}`}>
@@ -122,16 +123,29 @@ export default function KhaltiCallback() {
           <ResultCard
             tone="emerald"
             icon={<CheckIcon />}
-            title="Payment confirmed!"
+            title={isBalance ? "Paid in full!" : "Payment confirmed!"}
             body={
               <>
                 <p>
-                  Your {formatMoney(payment.amount)} advance is paid and{" "}
-                  <span className="font-semibold text-ink">
-                    {payment.task?.title}
-                  </span>{" "}
-                  is now assigned to{" "}
-                  {payment.task?.assignedWorker?.fullName || "your worker"}.
+                  {isBalance ? (
+                    <>
+                      Your {formatMoney(payment.amount)} final payment is in and{" "}
+                      <span className="font-semibold text-ink">
+                        {payment.task?.title}
+                      </span>{" "}
+                      is fully settled with{" "}
+                      {payment.task?.assignedWorker?.fullName || "your worker"}.
+                    </>
+                  ) : (
+                    <>
+                      Your {formatMoney(payment.amount)} advance is paid and{" "}
+                      <span className="font-semibold text-ink">
+                        {payment.task?.title}
+                      </span>{" "}
+                      is now assigned to{" "}
+                      {payment.task?.assignedWorker?.fullName || "your worker"}.
+                    </>
+                  )}
                 </p>
                 {payment.refId && (
                   <p className="mt-2 text-xs text-ink-muted">

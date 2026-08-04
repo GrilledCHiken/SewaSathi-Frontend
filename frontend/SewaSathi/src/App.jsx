@@ -50,6 +50,7 @@ const WorkerLayout = lazy(() => import("./components/Worker/WorkerLayout"));
 const WorkerOverview = lazy(() => import("./pages/Worker/WorkerOverview"));
 const WorkerBrowseTasks = lazy(() => import("./pages/Worker/WorkerBrowseTasks"));
 const WorkerMyJobs = lazy(() => import("./pages/Worker/WorkerMyJobs"));
+const WorkerEarnings = lazy(() => import("./pages/Worker/WorkerEarnings"));
 const WorkerMessages = lazy(() => import("./pages/Worker/WorkerMessages"));
 const WorkerProfileEdit = lazy(() => import("./pages/Worker/WorkerProfileEdit"));
 
@@ -227,6 +228,7 @@ function App() {
           <Route index element={<WorkerOverview />} />
           <Route path="tasks" element={<WorkerBrowseTasks />} />
           <Route path="jobs" element={<WorkerMyJobs />} />
+          <Route path="earnings" element={<WorkerEarnings />} />
           <Route path="messages" element={<WorkerMessages />} />
           <Route path="profile" element={<WorkerProfileEdit />} />
         </Route>

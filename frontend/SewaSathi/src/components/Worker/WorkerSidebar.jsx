@@ -2,7 +2,14 @@ import { useMemo } from "react";
 import { Link } from "react-router-dom";
 import SideNav from "../ui/SideNav";
 import { useChat } from "../../context/ChatContext";
-import { ChatIcon, ClipboardIcon, GridIcon, HelpIcon, SearchIcon } from "../ui/icons";
+import {
+  CardIcon,
+  ChatIcon,
+  ClipboardIcon,
+  GridIcon,
+  HelpIcon,
+  SearchIcon,
+} from "../ui/icons";
 
 /**
  * Worker side rail. Same shell as the customer and admin rails, distinguished
@@ -18,6 +25,7 @@ const NAV_ITEMS = [
   { label: "Overview", to: "/worker", end: true, icon: <GridIcon /> },
   { label: "Browse Tasks", to: "/worker/tasks", icon: <SearchIcon /> },
   { label: "My Jobs", to: "/worker/jobs", icon: <ClipboardIcon /> },
+  { label: "Earnings", to: "/worker/earnings", icon: <CardIcon /> },
   { label: "Messages", to: MESSAGES_ROUTE, icon: <ChatIcon /> },
 ];
 

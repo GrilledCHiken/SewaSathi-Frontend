@@ -19,6 +19,11 @@ import {
   listMyJobs,
   startTask,
 } from "../../api/workerTaskApi";
+import { getMyEarnings } from "../../api/workerEarningsApi";
+import {
+  confirmCashPayment,
+  rejectCashPayment,
+} from "../../api/workerPaymentApi";
 
 const STATUS_FILTERS = [
   { key: "all", label: "All" },
@@ -26,10 +31,21 @@ const STATUS_FILTERS = [
   { key: "accepted", label: "accepted" },
   { key: "assigned", label: "assigned" },
   { key: "in progress", label: "in progress" },
+  { key: "awaiting payment", label: "awaiting payment" },
   { key: "completed", label: "completed" },
 ];
 
-function JobActions({ status, onAccept, onDecline, onStart, onComplete, working }) {
+function JobActions({
+  status,
+  cashDeclared,
+  onAccept,
+  onDecline,
+  onStart,
+  onComplete,
+  onConfirmCash,
+  onRejectCash,
+  working,
+}) {
   // A customer hired this worker by name. It isn't their job until they say yes,
   // and declining puts the task back on the open list for someone else.
   if (status === "requested") {
@@ -87,18 +103,63 @@ function JobActions({ status, onAccept, onDecline, onStart, onComplete, working 
       </button>
     );
   }
+  // The work is done but the money is not in. A gateway payment settles itself and this
+  // row simply turns `completed` on the next load; cash is the case that needs the worker
+  // to say whether it actually arrived, because nothing else can know.
+  if (status === "awaiting payment") {
+    if (!cashDeclared) {
+      return (
+        <span className="rounded-full border border-orange-200 bg-orange-50 px-3.5 py-1.5 text-xs font-semibold text-orange-700">
+          Awaiting final payment
+        </span>
+      );
+    }
+    return (
+      <>
+        <button
+          type="button"
+          onClick={onRejectCash}
+          disabled={working}
+          className="rounded-full border border-slate-300 px-3.5 py-1.5 text-xs font-semibold text-slate-600 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+        >
+          Not received
+        </button>
+        <button
+          type="button"
+          onClick={onConfirmCash}
+          disabled={working}
+          className="rounded-full bg-emerald-600 px-3.5 py-1.5 text-xs font-semibold text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-60"
+        >
+          {working ? "Saving..." : "Confirm cash received"}
+        </button>
+      </>
+    );
+  }
   return null;
 }
 
 export default function WorkerMyJobs() {
   const [jobs, setJobs] = useState([]);
+  const [cashDeclaredIds, setCashDeclaredIds] = useState(new Set());
   const [loading, setLoading] = useState(true);
   const [workingId, setWorkingId] = useState(null);
   const [activeFilter, setActiveFilter] = useState("all");
 
+  /* A task never says how its balance is being paid, so the earnings payload comes along
+     to answer the one question this page needs: is there a cash claim on this job waiting
+     for me? Reusing that endpoint keeps the worker off `/payments`, which is customer-only. */
   useEffect(() => {
-    listMyJobs()
-      .then(setJobs)
+    Promise.all([listMyJobs(), getMyEarnings()])
+      .then(([jobData, earnings]) => {
+        setJobs(jobData);
+        setCashDeclaredIds(
+          new Set(
+            (earnings.jobs || [])
+              .filter((job) => job.cashDeclared)
+              .map((job) => job.taskId),
+          ),
+        );
+      })
       .catch(() => toast.error("Could not load your jobs."))
       .finally(() => setLoading(false));
   }, []);
@@ -144,9 +205,40 @@ export default function WorkerMyJobs() {
     try {
       const updated = await completeTask(id);
       setJobs((prev) => prev.map((j) => (j.id === id ? updated : j)));
-      toast.success("Task marked complete!");
+      toast.success("Work marked done. The job closes once the customer settles up.");
     } catch (err) {
       toast.error(err.response?.data?.message || "Could not complete this task.");
+    } finally {
+      setWorkingId(null);
+    }
+  };
+
+  /* Both answers come back as the payment, which carries the task it settled — so the row
+     can be replaced from the response rather than refetched. Confirming closes the job;
+     rejecting only clears the claim, leaving the task awaiting payment. */
+  const handleCashAnswer = async (id, received) => {
+    setWorkingId(id);
+    try {
+      const payment = received
+        ? await confirmCashPayment(id)
+        : await rejectCashPayment(id);
+      if (payment.task) {
+        setJobs((prev) => prev.map((j) => (j.id === id ? payment.task : j)));
+      }
+      setCashDeclaredIds((prev) => {
+        const next = new Set(prev);
+        next.delete(id);
+        return next;
+      });
+      toast.success(
+        received
+          ? "Cash confirmed. That job is paid in full."
+          : "Recorded. The customer has been asked to pay again.",
+      );
+    } catch (err) {
+      toast.error(
+        err.response?.data?.message || "Could not record your answer.",
+      );
     } finally {
       setWorkingId(null);
     }
@@ -177,7 +269,7 @@ export default function WorkerMyJobs() {
             </h2>
             <p className="mt-1 text-sm text-slate-600 sm:text-base">
               Requests waiting on you, plus the tasks you&apos;ve accepted, are in
-              progress, or have completed.
+              progress, or have finished.
             </p>
           </div>
 
@@ -228,10 +320,13 @@ export default function WorkerMyJobs() {
                     actions={
                       <JobActions
                         status={formatStatus(job.status)}
+                        cashDeclared={cashDeclaredIds.has(job.id)}
                         onAccept={() => handleRespond(job.id, "accept")}
                         onDecline={() => handleRespond(job.id, "decline")}
                         onStart={() => handleStart(job.id)}
                         onComplete={() => handleComplete(job.id)}
+                        onConfirmCash={() => handleCashAnswer(job.id, true)}
+                        onRejectCash={() => handleCashAnswer(job.id, false)}
                         working={workingId === job.id}
                       />
                     }

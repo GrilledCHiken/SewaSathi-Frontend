@@ -8,16 +8,21 @@ import TaskFilterBar from "../components/tasks/TaskFilterBar";
 import TaskListSkeleton from "../components/tasks/TaskListSkeleton";
 import {
   ADVANCE_PERCENT_LABEL,
+  BALANCE_PERCENT_LABEL,
   CHAT_LOCKED_HINT,
   INBOX_ICON,
   SEARCH_ICON,
   advanceFor,
+  balanceDue,
+  cashDeclared,
   chatUnlocked,
   formatLocation,
   formatMoney,
   formatStatus,
+  remainingAfter,
 } from "../components/tasks/taskUi";
 import { cancelTask, listMyTasks } from "../api/taskApi";
+import { listMyPayments } from "../api/paymentApi";
 import { listReviewableTasks } from "../api/reviewApi";
 import PageShell, { PageHeader } from "../components/ui/PageShell";
 import Alert from "../components/ui/Alert";
@@ -31,6 +36,7 @@ const STATUS_FILTERS = [
   { key: "accepted", label: "accepted" },
   { key: "assigned", label: "assigned" },
   { key: "in progress", label: "in progress" },
+  { key: "awaiting payment", label: "awaiting payment" },
   { key: "completed", label: "completed" },
   { key: "cancelled", label: "cancelled" },
 ];
@@ -64,7 +70,29 @@ function LockedMessageButton() {
   );
 }
 
-function TaskActions({ task, status, canReview, onCancel, canceling }) {
+function BalanceNotice({ count }) {
+  return (
+    <Alert tone="info" className="mb-4" role="status">
+      <span className="font-semibold">
+        {count === 1
+          ? "A worker finished your task."
+          : `${count} of your tasks have been finished.`}
+      </span>{" "}
+      Pay the remaining {BALANCE_PERCENT_LABEL} to close the job out — by eSewa, Khalti
+      or cash in hand.
+    </Alert>
+  );
+}
+
+function TaskActions({
+  task,
+  status,
+  canReview,
+  owesBalance,
+  awaitingCash,
+  onCancel,
+  canceling,
+}) {
   switch (status) {
     // Hired directly but not answered yet. Deliberately no Pay button - the
     // backend refuses an advance until the worker has said yes.
@@ -109,21 +137,55 @@ function TaskActions({ task, status, canReview, onCancel, canceling }) {
           Message
         </Button>
       ) : null;
+    // The work is done and the balance is what is left to settle. It takes the primary
+    // slot the way the advance does on `accepted` - except when the customer has already
+    // said they paid cash, where the only honest thing to show is who we are waiting on.
+    case "awaiting payment":
+      return (
+        <>
+          {awaitingCash ? (
+            <span className="rounded-full border border-warning/30 bg-warning-soft px-3.5 py-1.5 text-xs font-semibold text-warning-ink">
+              Worker confirming your cash
+            </span>
+          ) : (
+            owesBalance && (
+              <Button as={Link} to={`/dashboard/checkout/${task.id}`} size="xs">
+                Pay Balance
+              </Button>
+            )
+          )}
+          {task.assignedWorker && (
+            <Button
+              as={Link}
+              to={`/dashboard/messages?taskId=${task.id}`}
+              size="xs"
+              variant="secondary"
+            >
+              Message
+            </Button>
+          )}
+        </>
+      );
+    // Settled and closed. Nothing is owed, so reviewing is all that is left.
     case "completed":
-      return canReview ? (
-        <Button
-          as={Link}
-          to={`/dashboard/reviews?taskId=${task.id}`}
-          size="xs"
-          variant="secondary"
-          className="border-brand text-brand"
-        >
-          Leave Review
-        </Button>
-      ) : (
-        <span className="rounded-full border border-line bg-surface px-3.5 py-1.5 text-xs font-semibold text-ink-faint">
-          Reviewed
-        </span>
+      return (
+        <>
+          {canReview ? (
+            <Button
+              as={Link}
+              to={`/dashboard/reviews?taskId=${task.id}`}
+              size="xs"
+              variant="secondary"
+              className="border-brand text-brand"
+            >
+              Leave Review
+            </Button>
+          ) : (
+            <span className="rounded-full border border-line bg-surface px-3.5 py-1.5 text-xs font-semibold text-ink-faint">
+              Reviewed
+            </span>
+          )}
+        </>
       );
     case "open":
       return (
@@ -144,17 +206,22 @@ function TaskActions({ task, status, canReview, onCancel, canceling }) {
 
 export default function CustomerMyTask() {
   const [tasks, setTasks] = useState([]);
+  const [payments, setPayments] = useState([]);
   const [reviewableTaskIds, setReviewableTaskIds] = useState(new Set());
   const [loading, setLoading] = useState(true);
   const [cancelingId, setCancelingId] = useState(null);
   const [activeFilter, setActiveFilter] = useState("all");
   const [taskSearch, setTaskSearch] = useState("");
 
+  // Payments come along for one reason: an `awaiting payment` task looks the same whether
+  // the customer still owes the balance or has already declared it paid in cash, and only
+  // the payment rows tell those two apart.
   useEffect(() => {
-    Promise.all([listMyTasks(), listReviewableTasks()])
-      .then(([taskData, reviewable]) => {
+    Promise.all([listMyTasks(), listReviewableTasks(), listMyPayments()])
+      .then(([taskData, reviewable, paymentData]) => {
         setTasks(taskData);
         setReviewableTaskIds(new Set(reviewable.map((t) => t.id)));
+        setPayments(paymentData);
       })
       .catch(() => toast.error("Could not load your tasks."))
       .finally(() => setLoading(false));
@@ -199,6 +266,24 @@ export default function CustomerMyTask() {
   const hasNoTasksAtAll = tasks.length === 0;
   const awaitingAdvance = counts.accepted || 0;
 
+  const balanceDueIds = useMemo(
+    () =>
+      new Set(
+        tasks.filter((task) => balanceDue(task, payments)).map((task) => task.id),
+      ),
+    [tasks, payments],
+  );
+
+  // Cash the customer says they handed over, sitting with the worker to confirm. Disjoint
+  // from `balanceDueIds` by construction — `balanceDue` excludes a declared claim.
+  const awaitingCashIds = useMemo(
+    () =>
+      new Set(
+        tasks.filter((task) => cashDeclared(task, payments)).map((task) => task.id),
+      ),
+    [tasks, payments],
+  );
+
   return (
     <PageShell
       header={<DashboardHeader title="My Tasks" searchPlaceholder="Search workers..." />}
@@ -221,6 +306,7 @@ export default function CustomerMyTask() {
       </div>
 
       {awaitingAdvance > 0 && <AdvanceNotice count={awaitingAdvance} />}
+      {balanceDueIds.size > 0 && <BalanceNotice count={balanceDueIds.size} />}
 
       <TaskFilterBar
         filters={STATUS_FILTERS}
@@ -278,7 +364,11 @@ export default function CustomerMyTask() {
                             ? "Hasn't answered your request yet"
                             : status === "accepted"
                               ? "Awaiting your advance payment"
-                              : "Assigned worker",
+                              : status === "awaiting payment"
+                                ? awaitingCashIds.has(task.id)
+                                  ? "Confirming the cash you paid"
+                                  : "Finished — awaiting your final payment"
+                                : "Assigned worker",
                         person: task.assignedWorker,
                         emptyLabel:
                           status === "open"
@@ -300,13 +390,24 @@ export default function CustomerMyTask() {
                                 value: formatMoney(advanceFor(task.budget)),
                               },
                             ]
-                          : []
+                          : status === "awaiting payment"
+                            ? [
+                                {
+                                  label: awaitingCashIds.has(task.id)
+                                    ? "Cash paid, awaiting confirmation"
+                                    : `Balance due (${BALANCE_PERCENT_LABEL})`,
+                                  value: formatMoney(remainingAfter(task.budget)),
+                                },
+                              ]
+                            : []
                       }
                       actions={
                         <TaskActions
                           task={task}
                           status={status}
                           canReview={reviewableTaskIds.has(task.id)}
+                          owesBalance={balanceDueIds.has(task.id)}
+                          awaitingCash={awaitingCashIds.has(task.id)}
                           onCancel={() => handleCancel(task.id)}
                           canceling={cancelingId === task.id}
                         />

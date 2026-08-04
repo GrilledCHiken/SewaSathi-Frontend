@@ -23,6 +23,14 @@ public interface TaskRepository extends JpaRepository<Task, Long> {
     List<Task> findByAssignedWorkerIdOrderByCreatedAtDesc(Long workerId);
     List<Task> findByAssignedWorkerIdAndStatusOrderByCreatedAtDesc(Long workerId, TaskStatus status);
 
+    /**
+     * The worker's finished jobs, both settled and not. Earnings span
+     * {@link TaskStatus#AWAITING_PAYMENT} as well as {@link TaskStatus#COMPLETED} - the
+     * unsettled ones are exactly the money the page exists to chase.
+     */
+    List<Task> findByAssignedWorkerIdAndStatusInOrderByCreatedAtDesc(
+            Long workerId, List<TaskStatus> statuses);
+
     List<Task> findByStatusOrderByCreatedAtDesc(TaskStatus status);
 
     long countByCustomerIdAndStatusIn(Long customerId, List<TaskStatus> statuses);

@@ -494,7 +494,7 @@ export default function CustomerPostTask() {
 
                   <p className="mt-3 text-xs leading-relaxed text-ink-faint">
                     You only pay the advance once a worker accepts. The balance
-                    is due when the task is marked complete.
+                    is due when they finish, by eSewa, Khalti or cash in hand.
                   </p>
                 </div>
 

@@ -4,7 +4,10 @@ import { toast } from "react-toastify";
 import DashboardHeader from "../components/User/DashboardHeader";
 import {
   ADVANCE_RATE,
+  BALANCE_PERCENT_LABEL,
   advanceFor,
+  balanceDue,
+  cashDeclared,
   formatMoney,
   formatStatus,
   initialsOf,
@@ -12,7 +15,12 @@ import {
   remainingAfter,
 } from "../components/tasks/taskUi";
 import { getTask } from "../api/taskApi";
-import { initiateAdvancePayment } from "../api/paymentApi";
+import {
+  declareCashBalance,
+  initiateAdvancePayment,
+  initiateBalancePayment,
+  listMyPayments,
+} from "../api/paymentApi";
 import PageShell, { PageHeader } from "../components/ui/PageShell";
 import Card, { Panel } from "../components/ui/Card";
 import Alert from "../components/ui/Alert";
@@ -62,6 +70,22 @@ const METHODS = [
         <code className="font-semibold">1111</code> and OTP{" "}
         <code className="font-semibold">987654</code>.
       </>
+    ),
+  },
+  {
+    id: "CASH",
+    name: "Cash in hand",
+    blurb: "Hand the money to your worker in person",
+    available: true,
+    // Balance only. The advance has to clear a real gateway before a booking is confirmed —
+    // there is nobody standing in front of the customer to hand cash to at that point.
+    balanceOnly: true,
+    icon: (
+      <svg className="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        <rect x="2" y="6" width="20" height="12" rx="2" />
+        <circle cx="12" cy="12" r="2.5" />
+        <path d="M6 12h.01M18 12h.01" />
+      </svg>
     ),
   },
 ];
@@ -136,26 +160,82 @@ function redirectToGateway({ formUrl, fields, redirectUrl }) {
   form.submit();
 }
 
+/**
+ * Checkout, for either instalment.
+ *
+ * <p>A task is paid in two legs — the {@code advance} that confirms the booking, and the
+ * {@code balance} owed once the worker has finished. One route serves both, and which one is
+ * due is read off the data rather than passed in the URL: `accepted` means the advance,
+ * `awaiting payment` means the balance. That is why the eSewa failure redirect can keep
+ * pointing straight back here without knowing which leg failed.
+ *
+ * <p>The balance can also be paid in cash, which is not a checkout at all — nothing is
+ * redirected to, and the claim has to wait on the worker's word before the job closes. That
+ * case takes over the whole page with a waiting notice rather than a pay button.
+ */
 export default function CustomerCheckout() {
   const { taskId } = useParams();
   const [task, setTask] = useState(null);
+  const [payments, setPayments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [method, setMethod] = useState("ESEWA");
   const [paying, setPaying] = useState(false);
 
   useEffect(() => {
-    getTask(taskId)
-      .then(setTask)
+    Promise.all([getTask(taskId), listMyPayments()])
+      .then(([taskData, paymentData]) => {
+        setTask(taskData);
+        setPayments(paymentData);
+      })
       .catch((err) =>
         toast.error(err.response?.data?.message || "Could not load this task."),
       )
       .finally(() => setLoading(false));
   }, [taskId]);
 
+  const status = formatStatus(task?.status);
+  // Nothing is due unless one of these two says so, which is what the notices below explain.
+  // A declared-but-unconfirmed cash payment counts as nothing due: the money has changed
+  // hands, so showing a Pay button again would invite paying twice.
+  const awaitingCashConfirmation = task ? cashDeclared(task, payments) : false;
+  const mode = !task
+    ? null
+    : status === "accepted"
+      ? "advance"
+      : balanceDue(task, payments)
+        ? "balance"
+        : null;
+
+  // Cash is only ever an option on the closing leg, and the selection has to be forced back
+  // to a gateway if it somehow survives into an advance — `method` outlives a mode change.
+  const methods = METHODS.filter(
+    (option) => mode === "balance" || !option.balanceOnly,
+  );
+  const selected =
+    methods.find((option) => option.id === method) ?? methods[0];
+  const payingCash = selected.id === "CASH";
+  const dueNow =
+    mode === "balance" ? remainingAfter(task?.budget) : advanceFor(task?.budget);
+  const worker = task?.assignedWorker;
+  const palette = paletteFor(worker?.id);
+
   const handlePay = async () => {
     setPaying(true);
     try {
-      const initiation = await initiateAdvancePayment(Number(taskId), method);
+      if (payingCash) {
+        // No gateway, no redirect: this records a claim and stays put, so the page can
+        // switch straight to telling the customer who they are now waiting on.
+        const payment = await declareCashBalance(Number(taskId));
+        setPayments((prev) => [payment, ...prev]);
+        toast.success(
+          `Cash payment recorded. ${worker?.fullName || "Your worker"} needs to confirm it.`,
+        );
+        setPaying(false);
+        return;
+      }
+      const initiate =
+        mode === "balance" ? initiateBalancePayment : initiateAdvancePayment;
+      const initiation = await initiate(Number(taskId), selected.id);
       redirectToGateway(initiation);
     } catch (err) {
       toast.error(
@@ -165,12 +245,10 @@ export default function CustomerCheckout() {
     }
   };
 
-  const status = formatStatus(task?.status);
-  const gateway = METHODS.find((option) => option.id === method);
-  const advance = advanceFor(task?.budget);
-  const worker = task?.assignedWorker;
-  const palette = paletteFor(worker?.id);
+  // "Confirmed" here means the advance has landed and nothing more is owed yet. A completed
+  // task with its balance settled is a separate, terminal case.
   const confirmed = status === "assigned" || status === "in progress";
+  const paidInFull = status === "completed";
 
   const header = <DashboardHeader title="Checkout" searchPlaceholder="Search workers..." />;
 
@@ -188,8 +266,12 @@ export default function CustomerCheckout() {
     <PageShell header={header} width="lg">
       <PageHeader
         back={<div className="mb-2">{backLink}</div>}
-        title="Confirm Your Task"
-        description={`Pay a ${ADVANCE_PERCENT} advance to lock in your worker.`}
+        title={mode === "balance" ? "Settle Your Task" : "Confirm Your Task"}
+        description={
+          mode === "balance"
+            ? `Your worker has finished. Pay the remaining ${BALANCE_PERCENT_LABEL} to close the job out.`
+            : `Pay a ${ADVANCE_PERCENT} advance to lock in your worker.`
+        }
       />
 
       <div className="mt-6">
@@ -206,21 +288,31 @@ export default function CustomerCheckout() {
               Back to My Tasks
             </Button>
           </Notice>
-        ) : status !== "accepted" ? (
+        ) : !mode ? (
           <Notice
-            tone={confirmed ? "success" : "neutral"}
+            tone={confirmed || paidInFull ? "success" : "neutral"}
             title={
-              confirmed
-                ? "This task is already confirmed"
-                : "No advance is due on this task"
+              awaitingCashConfirmation
+                ? "Waiting on your worker"
+                : paidInFull
+                  ? "This task is paid in full"
+                  : confirmed
+                    ? "This task is already confirmed"
+                    : "Nothing is due on this task"
             }
             body={
-              confirmed
-                ? "The advance has been paid. You can message your worker any time."
-                : `This task is ${status}. An advance is only due once a worker accepts it.`
+              awaitingCashConfirmation
+                ? `You've marked ${formatMoney(remainingAfter(task.budget))} as paid in cash. ${
+                    worker?.fullName || "Your worker"
+                  } needs to confirm they received it, and the job closes as soon as they do.`
+                : paidInFull
+                  ? "Both the advance and the balance have been paid. Nothing more is owed on this job."
+                  : confirmed
+                    ? "The advance has been paid. The balance falls due once your worker finishes the job."
+                    : `This task is ${status}. An advance is only due once a worker accepts it.`
             }
           >
-            {confirmed && (
+            {(confirmed || paidInFull || awaitingCashConfirmation) && (
               <Button as={Link} to={`/dashboard/messages?taskId=${task.id}`}>
                 Message worker
               </Button>
@@ -236,10 +328,10 @@ export default function CustomerCheckout() {
             <div className="space-y-6 lg:col-span-3">
               <Panel title="Payment method" padding="lg">
                 <div className="grid gap-3">
-                  {METHODS.map((option) => (
+                  {methods.map((option) => (
                     <RadioCard
                       key={option.id}
-                      selected={method === option.id}
+                      selected={selected.id === option.id}
                       unavailable={!option.available}
                       onSelect={() => setMethod(option.id)}
                       icon={option.icon}
@@ -249,10 +341,18 @@ export default function CustomerCheckout() {
                   ))}
                 </div>
 
-                <Alert tone="info" title="Demo payment" className="mt-5">
-                  This runs on {gateway.name}&apos;s test sandbox, so no real money
-                  is charged. Sign in there with {gateway.sandbox}
-                </Alert>
+                {payingCash ? (
+                  <Alert tone="warning" title="Confirmed by your worker" className="mt-5">
+                    Hand the money over in person, then record it here. The job stays
+                    open until {worker?.fullName || "your worker"} confirms they
+                    received it — so only mark it paid once you&apos;ve actually paid.
+                  </Alert>
+                ) : (
+                  <Alert tone="info" title="Demo payment" className="mt-5">
+                    This runs on {selected.name}&apos;s test sandbox, so no real money
+                    is charged. Sign in there with {selected.sandbox}
+                  </Alert>
+                )}
               </Panel>
             </div>
 
@@ -276,7 +376,9 @@ export default function CustomerCheckout() {
                           {worker.fullName}
                         </p>
                         <p className="truncate text-xs text-ink-muted">
-                          Accepted your task
+                          {mode === "balance"
+                            ? "Finished your task"
+                            : "Accepted your task"}
                         </p>
                       </div>
                     </div>
@@ -286,20 +388,32 @@ export default function CustomerCheckout() {
                       the largest thing on the panel. */}
                   <div className="mt-5 rounded-card bg-brand-50 p-4 text-center">
                     <p className="text-xs font-semibold uppercase tracking-wider text-brand-700">
-                      Due now ({ADVANCE_PERCENT} advance)
+                      Due now (
+                      {mode === "balance"
+                        ? `${BALANCE_PERCENT_LABEL} balance`
+                        : `${ADVANCE_PERCENT} advance`}
+                      )
                     </p>
                     <p className="mt-1 text-4xl font-extrabold tracking-tight tabular-nums text-brand-700">
-                      {formatMoney(advance)}
+                      {formatMoney(dueNow)}
                     </p>
                   </div>
 
                   <div className="mt-4 divide-y divide-line-soft border-t border-line-soft pt-2">
                     <SummaryRow label="Task total" value={formatMoney(task.budget)} />
-                    <SummaryRow
-                      label="Remaining after completion"
-                      value={formatMoney(remainingAfter(task.budget))}
-                      muted
-                    />
+                    {mode === "balance" ? (
+                      <SummaryRow
+                        label="Advance already paid"
+                        value={formatMoney(advanceFor(task.budget))}
+                        muted
+                      />
+                    ) : (
+                      <SummaryRow
+                        label="Remaining after completion"
+                        value={formatMoney(remainingAfter(task.budget))}
+                        muted
+                      />
+                    )}
                   </div>
 
                   <Button
@@ -309,14 +423,19 @@ export default function CustomerCheckout() {
                     onClick={handlePay}
                     loading={paying}
                   >
-                    {paying
-                      ? `Redirecting to ${gateway.name}...`
-                      : `Pay with ${gateway.name}`}
+                    {payingCash
+                      ? paying
+                        ? "Recording..."
+                        : `I paid ${formatMoney(dueNow)} in cash`
+                      : paying
+                        ? `Redirecting to ${selected.name}...`
+                        : `Pay with ${selected.name}`}
                   </Button>
 
                   <p className="mt-3 text-xs leading-relaxed text-ink-faint">
-                    You&apos;ll be taken to {gateway.name} to authorise the payment,
-                    then brought straight back here.
+                    {payingCash
+                      ? `${worker?.fullName || "Your worker"} will be asked to confirm they received it. The job closes once they do.`
+                      : `You'll be taken to ${selected.name} to authorise the payment, then brought straight back here.`}
                   </p>
                 </Panel>
               </div>

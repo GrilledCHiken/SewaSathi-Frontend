@@ -2,10 +2,19 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { toast } from "react-toastify";
 import WorkerHeader from "../../components/Worker/WorkerHeader";
+import { formatMoney } from "../../components/tasks/taskUi";
 import { listMyJobs, listOpenTasks } from "../../api/workerTaskApi";
 import { getMyWorkerProfile } from "../../api/workerProfileApi";
+import { getMyEarnings } from "../../api/workerEarningsApi";
 
-const ACTIVE_STATUSES = ["ACCEPTED", "ASSIGNED", "IN_PROGRESS"];
+// AWAITING_PAYMENT is still active: the work is done but the job is not closed until the
+// customer settles up, and on cash that needs an answer from this worker.
+const ACTIVE_STATUSES = [
+  "ACCEPTED",
+  "ASSIGNED",
+  "IN_PROGRESS",
+  "AWAITING_PAYMENT",
+];
 
 function SearchIcon() {
   return (
@@ -50,15 +59,22 @@ export default function WorkerOverview() {
   const [activeCount, setActiveCount] = useState(0);
   const [completedCount, setCompletedCount] = useState(0);
   const [profileIncomplete, setProfileIncomplete] = useState(false);
+  const [earnings, setEarnings] = useState(null);
 
   useEffect(() => {
-    Promise.all([listOpenTasks(), listMyJobs(), getMyWorkerProfile()])
-      .then(([openTasks, myJobs, profile]) => {
+    Promise.all([
+      listOpenTasks(),
+      listMyJobs(),
+      getMyWorkerProfile(),
+      getMyEarnings(),
+    ])
+      .then(([openTasks, myJobs, profile, earningsData]) => {
         setOpenCount(openTasks.length);
         setRequestedCount(myJobs.filter((t) => t.status === "REQUESTED").length);
         setActiveCount(myJobs.filter((t) => ACTIVE_STATUSES.includes(t.status)).length);
         setCompletedCount(myJobs.filter((t) => t.status === "COMPLETED").length);
         setProfileIncomplete(!profile.skills || !profile.location || !profile.hourlyRate);
+        setEarnings(earningsData);
       })
       .catch(() => toast.error("Could not load your overview."))
       .finally(() => setLoading(false));
@@ -131,6 +147,55 @@ export default function WorkerOverview() {
                   Complete Profile
                 </Link>
               </div>
+            )}
+
+            {/* Money gets its own full-width card rather than a fifth tile in the grid
+                below: it is the headline number on this page, and it is a currency
+                figure sitting among four plain counts. */}
+            {earnings && (
+              <Link
+                to="/worker/earnings"
+                className="mt-6 flex flex-col gap-4 rounded-2xl border border-emerald-200 bg-emerald-50/60 p-5 transition hover:border-emerald-300 hover:shadow-md sm:flex-row sm:items-center sm:justify-between sm:p-6"
+              >
+                <div>
+                  <p className="text-sm font-semibold text-emerald-800">
+                    Lifetime Earnings
+                  </p>
+                  <p className="mt-1 text-3xl font-extrabold tracking-tight tabular-nums text-emerald-900 sm:text-4xl">
+                    {formatMoney(earnings.lifetimeEarned)}
+                  </p>
+                  <p className="mt-1 text-sm text-emerald-700">
+                    {formatMoney(earnings.received)} received across{" "}
+                    {earnings.jobsCompleted} completed job
+                    {earnings.jobsCompleted === 1 ? "" : "s"}
+                  </p>
+                </div>
+
+                {/* A cash claim outranks the outstanding total: that one is somebody
+                    else's move, this one is waiting on the worker reading it. */}
+                {earnings.jobsAwaitingCashConfirmation > 0 ? (
+                  <div className="shrink-0 rounded-xl border border-orange-300 bg-orange-50 px-4 py-3 text-right ring-2 ring-orange-200">
+                    <p className="text-lg font-bold tabular-nums text-orange-800">
+                      {earnings.jobsAwaitingCashConfirmation}
+                    </p>
+                    <p className="text-xs font-medium text-orange-700">
+                      cash payment
+                      {earnings.jobsAwaitingCashConfirmation === 1 ? "" : "s"} to confirm
+                    </p>
+                  </div>
+                ) : (
+                  Number(earnings.outstanding) > 0 && (
+                    <div className="shrink-0 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-right">
+                      <p className="text-lg font-bold tabular-nums text-amber-800">
+                        {formatMoney(earnings.outstanding)}
+                      </p>
+                      <p className="text-xs font-medium text-amber-700">
+                        awaiting final payment
+                      </p>
+                    </div>
+                  )
+                )}
+              </Link>
             )}
 
             <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">

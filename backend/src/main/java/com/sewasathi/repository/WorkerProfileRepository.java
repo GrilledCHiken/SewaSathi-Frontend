@@ -55,12 +55,18 @@ public interface WorkerProfileRepository extends JpaRepository<WorkerProfile, Lo
      * <p>Earnings come from a correlated subquery rather than another join. Joining payments
      * alongside the profile would repeat the profile row once per payment, and every counter
      * selected from it would be multiplied by the number of payments.
+     *
+     * <p>The subquery counts advances only. It sums {@code taskTotal}, the budget snapshot,
+     * which both legs of a task carry - so without the type filter every task the customer
+     * paid off in full would contribute its value twice.
      */
     @Query("""
             select new com.sewasathi.dto.report.WorkerPerformanceRow(
                 u.fullName, u.email, wp.location, wp.tasksCompleted, wp.ratingAverage, wp.ratingCount,
                 (select coalesce(sum(p.taskTotal), 0) from Payment p
-                    where p.task.assignedWorker = u and p.status = com.sewasathi.entity.PaymentStatus.COMPLETED))
+                    where p.task.assignedWorker = u
+                      and p.status = com.sewasathi.entity.PaymentStatus.COMPLETED
+                      and p.type = com.sewasathi.entity.PaymentType.ADVANCE))
             from WorkerProfile wp join wp.user u
             where u.role = com.sewasathi.entity.Role.WORKER
               and u.status = com.sewasathi.entity.ApprovalStatus.APPROVED

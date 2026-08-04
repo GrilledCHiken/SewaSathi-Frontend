@@ -5,6 +5,7 @@ import com.sewasathi.dto.response.PaymentResponse;
 import com.sewasathi.entity.Payment;
 import com.sewasathi.entity.PaymentProvider;
 import com.sewasathi.entity.PaymentStatus;
+import com.sewasathi.entity.PaymentType;
 import com.sewasathi.entity.Task;
 import com.sewasathi.entity.TaskStatus;
 import com.sewasathi.entity.User;
@@ -29,11 +30,19 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Collects the advance a customer owes to confirm a task.
+ * Collects the two instalments a customer owes on a task.
  *
  * <p>A task a worker has accepted sits in {@link TaskStatus#ACCEPTED} until the
- * advance clears; only then does it become {@link TaskStatus#ASSIGNED} and the
- * worker gain the ability to start it.
+ * {@link PaymentType#ADVANCE} clears; only then does it become {@link TaskStatus#ASSIGNED}
+ * and the worker gain the ability to start it. The {@link PaymentType#BALANCE} falls due
+ * at the other end, once the worker has finished the work and left the task
+ * {@link TaskStatus#AWAITING_PAYMENT}. Settling it is what moves the task to
+ * {@link TaskStatus#COMPLETED}, so COMPLETED means "done and paid for".
+ *
+ * <p>The balance can be paid three ways. eSewa and Khalti verify themselves, so a confirmed
+ * gateway payment closes the job on the spot. {@link PaymentProvider#CASH} cannot be verified
+ * by anyone but the two people involved: the customer declares it, which writes a PENDING row
+ * and tells the worker, and the job closes only when the worker confirms they received it.
  */
 @Service
 public class PaymentService {
@@ -53,6 +62,7 @@ public class PaymentService {
     private final EsewaService esewaService;
     private final KhaltiService khaltiService;
     private final NotificationService notificationService;
+    private final TaskService taskService;
     private final BigDecimal advanceRate;
     private final String frontendUrl;
 
@@ -64,6 +74,7 @@ public class PaymentService {
             EsewaService esewaService,
             KhaltiService khaltiService,
             NotificationService notificationService,
+            TaskService taskService,
             @Value("${app.esewa.advance-rate:0.10}") BigDecimal advanceRate,
             @Value("${app.frontend-url}") String frontendUrl
     ) {
@@ -73,6 +84,7 @@ public class PaymentService {
         this.userRepository = userRepository;
         this.esewaService = esewaService;
         this.khaltiService = khaltiService;
+        this.taskService = taskService;
         this.advanceRate = advanceRate;
         this.frontendUrl = trimTrailingSlash(frontendUrl);
     }
@@ -82,12 +94,21 @@ public class PaymentService {
         return budget.multiply(advanceRate).setScale(2, RoundingMode.HALF_UP);
     }
 
+    /**
+     * What is left once the advance has been taken. Subtracted from the budget rather than
+     * multiplied by {@code 1 - rate}, so the two legs always add back up to exactly the
+     * budget however the advance rounded.
+     */
+    public BigDecimal balanceFor(BigDecimal budget) {
+        return budget.setScale(2, RoundingMode.HALF_UP).subtract(advanceFor(budget));
+    }
+
     @Transactional
     public PaymentInitiationResponse initiateAdvance(String customerEmail, Long taskId, PaymentProvider provider) {
         User customer = getUser(customerEmail);
         Task task = getOwnTaskOrThrow(taskId, customer);
 
-        if (paymentRepository.existsByTaskIdAndStatus(taskId, PaymentStatus.COMPLETED)) {
+        if (isSettled(taskId, PaymentType.ADVANCE)) {
             throw new InvalidOperationException("The advance for this task has already been paid");
         }
         if (task.getStatus() != TaskStatus.ACCEPTED) {
@@ -97,19 +118,155 @@ public class PaymentService {
             throw new InvalidOperationException("No worker has accepted this task yet");
         }
 
-        // Starting a new checkout abandons any attempt the customer walked away from.
-        paymentRepository.findByTaskIdAndStatus(taskId, PaymentStatus.PENDING).forEach(stale -> {
-            stale.setStatus(PaymentStatus.CANCELLED);
-            paymentRepository.save(stale);
-        });
+        return openCheckout(task, customer, PaymentType.ADVANCE, advanceFor(task.getBudget()), provider);
+    }
 
-        BigDecimal amount = advanceFor(task.getBudget());
+    /**
+     * Collects the rest of the price through a gateway, once the worker has finished the work.
+     *
+     * <p>Cash does not come through here - it has no gateway to open and settles on the
+     * worker's word rather than a callback, so it gets {@link #declareCashBalance} instead.
+     */
+    @Transactional
+    public PaymentInitiationResponse initiateBalance(String customerEmail, Long taskId, PaymentProvider provider) {
+        if (provider == PaymentProvider.CASH) {
+            throw new InvalidOperationException("Cash payments are not made through a gateway");
+        }
+        User customer = getUser(customerEmail);
+        Task task = getOwnTaskOrThrow(taskId, customer);
+        validateBalanceDue(task);
+
+        return openCheckout(task, customer, PaymentType.BALANCE, balanceFor(task.getBudget()), provider);
+    }
+
+    /**
+     * Records that the customer says they handed the worker cash.
+     *
+     * <p>Nothing can verify this from the outside, so the row is written PENDING and it is the
+     * worker pressing confirm - see {@link #confirmCashReceipt} - that settles it and closes
+     * the job. Declaring cash is therefore a claim, not a payment, and the task stays
+     * {@link TaskStatus#AWAITING_PAYMENT} until the other side agrees.
+     */
+    @Transactional
+    public PaymentResponse declareCashBalance(String customerEmail, Long taskId) {
+        User customer = getUser(customerEmail);
+        Task task = getOwnTaskOrThrow(taskId, customer);
+        validateBalanceDue(task);
+
+        BigDecimal amount = balanceFor(task.getBudget());
+        cancelPendingLeg(taskId, PaymentType.BALANCE);
+
+        Payment payment = paymentRepository.save(Payment.builder()
+                .task(task)
+                .customer(customer)
+                .transactionUuid("SS-CASH-" + taskId + "-" + System.currentTimeMillis())
+                .amount(amount)
+                .taskTotal(task.getBudget())
+                .type(PaymentType.BALANCE)
+                .provider(PaymentProvider.CASH)
+                .status(PaymentStatus.PENDING)
+                .build());
+
+        announceCashDeclaration(payment);
+        return PaymentResponse.from(payment);
+    }
+
+    /**
+     * The worker agreeing they were paid in cash. This is the moment the job closes.
+     *
+     * <p>Only the worker the task is assigned to can answer, and anybody else is told the task
+     * does not exist rather than that it is not theirs - the same shape
+     * {@link TaskService} uses.
+     */
+    @Transactional
+    public PaymentResponse confirmCashReceipt(String workerEmail, Long taskId) {
+        User worker = getUser(workerEmail);
+        Payment payment = getDeclaredCashOrThrow(taskId, worker);
+
+        if (payment.getStatus() == PaymentStatus.COMPLETED) {
+            return PaymentResponse.from(payment);
+        }
+
+        payment.setStatus(PaymentStatus.COMPLETED);
+        settle(payment);
+
+        return PaymentResponse.from(paymentRepository.save(payment));
+    }
+
+    /**
+     * The worker saying the cash never arrived. The claim is failed and the task is left
+     * {@link TaskStatus#AWAITING_PAYMENT}, so the customer can hand the money over again or
+     * switch to a gateway - a rejected claim must not strand the job.
+     */
+    @Transactional
+    public PaymentResponse rejectCashReceipt(String workerEmail, Long taskId) {
+        User worker = getUser(workerEmail);
+        Payment payment = getDeclaredCashOrThrow(taskId, worker);
+
+        if (payment.getStatus() == PaymentStatus.PENDING) {
+            payment.setStatus(PaymentStatus.FAILED);
+            paymentRepository.save(payment);
+            announceCashRejected(payment);
+        }
+        return PaymentResponse.from(payment);
+    }
+
+    /**
+     * What has to be true before the closing payment can be taken, whichever way it is paid.
+     *
+     * <p>The advance is required to have settled first. It always will have in practice -
+     * nothing reaches {@link TaskStatus#AWAITING_PAYMENT} without passing through ASSIGNED,
+     * which only a settled advance opens - but checking it here means the balance can never
+     * be the first money taken on a task, whatever else changes upstream.
+     */
+    private void validateBalanceDue(Task task) {
+        if (task.getStatus() != TaskStatus.AWAITING_PAYMENT) {
+            throw new InvalidOperationException(
+                    "The balance is only due once the worker has finished this task");
+        }
+        if (!isSettled(task.getId(), PaymentType.ADVANCE)) {
+            throw new InvalidOperationException("The advance on this task has not been paid");
+        }
+        if (isSettled(task.getId(), PaymentType.BALANCE)) {
+            throw new InvalidOperationException("This task has already been paid in full");
+        }
+    }
+
+    /**
+     * The cash claim awaiting this worker's answer. A PENDING row is the normal case; an
+     * already-COMPLETED one is returned too so a double click confirms idempotently rather
+     * than 404ing on the second press.
+     */
+    private Payment getDeclaredCashOrThrow(Long taskId, User worker) {
+        return paymentRepository
+                .findByTaskIdAndTypeAndProviderAndStatusIn(taskId, PaymentType.BALANCE,
+                        PaymentProvider.CASH,
+                        List.of(PaymentStatus.PENDING, PaymentStatus.COMPLETED)).stream()
+                .filter(p -> {
+                    User assigned = p.getTask().getAssignedWorker();
+                    return assigned != null && assigned.getId().equals(worker.getId());
+                })
+                .findFirst()
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "No cash payment to confirm on task " + taskId));
+    }
+
+    /**
+     * The half both legs share: abandon whatever the customer walked away from last time,
+     * write a fresh PENDING row, and hand the browser over to the gateway.
+     */
+    private PaymentInitiationResponse openCheckout(
+            Task task, User customer, PaymentType type, BigDecimal amount, PaymentProvider provider) {
+        Long taskId = task.getId();
+        cancelPendingLeg(taskId, type);
+
         Payment payment = paymentRepository.save(Payment.builder()
                 .task(task)
                 .customer(customer)
                 .transactionUuid("SS-" + taskId + "-" + System.currentTimeMillis())
                 .amount(amount)
                 .taskTotal(task.getBudget())
+                .type(type)
                 .provider(provider)
                 .status(PaymentStatus.PENDING)
                 .build());
@@ -117,7 +274,28 @@ public class PaymentService {
         return switch (provider) {
             case ESEWA -> initiateEsewa(payment, taskId, amount, task.getBudget());
             case KHALTI -> initiateKhalti(payment, task, customer, amount);
+            // Unreachable - the callers reject CASH before they get here. Listed so the
+            // compiler keeps this switch honest if a provider is ever added.
+            case CASH -> throw new InvalidOperationException(
+                    "Cash payments are not made through a gateway");
         };
+    }
+
+    /**
+     * Abandons whatever attempt the customer walked away from last time. Scoped to one leg,
+     * so retrying a balance cannot cancel anything belonging to the advance - and switching
+     * between cash and a gateway on the same leg cleanly replaces the earlier claim.
+     */
+    private void cancelPendingLeg(Long taskId, PaymentType type) {
+        paymentRepository.findByTaskIdAndTypeAndStatus(taskId, type, PaymentStatus.PENDING)
+                .forEach(stale -> {
+                    stale.setStatus(PaymentStatus.CANCELLED);
+                    paymentRepository.save(stale);
+                });
+    }
+
+    private boolean isSettled(Long taskId, PaymentType type) {
+        return paymentRepository.existsByTaskIdAndTypeAndStatus(taskId, type, PaymentStatus.COMPLETED);
     }
 
     /** eSewa is entered by POSTing a signed form, so the browser gets the fields to submit. */
@@ -200,8 +378,7 @@ public class PaymentService {
 
         payment.setStatus(PaymentStatus.COMPLETED);
         payment.setTransactionCode(payload.transactionCode());
-        promoteTask(payment.getTask());
-        sendReceipt(payment);
+        settle(payment);
 
         return PaymentResponse.from(paymentRepository.save(payment));
     }
@@ -239,8 +416,7 @@ public class PaymentService {
 
         payment.setStatus(PaymentStatus.COMPLETED);
         payment.setRefId(lookup.transactionId());
-        promoteTask(payment.getTask());
-        sendReceipt(payment);
+        settle(payment);
 
         return PaymentResponse.from(paymentRepository.save(payment));
     }
@@ -309,7 +485,22 @@ public class PaymentService {
     }
 
     /**
-     * Confirms a settled advance payment to the customer.
+     * What a freshly settled payment does to the world, which depends entirely on which leg
+     * it was. An advance confirms the booking and lets the worker start; a balance closes the
+     * job out and is the moment the worker is actually owed nothing.
+     */
+    private void settle(Payment payment) {
+        if (payment.getType() == PaymentType.BALANCE) {
+            taskService.markPaidInFull(payment.getTask());
+            announceSettlement(payment);
+        } else {
+            promoteTask(payment.getTask());
+        }
+        sendReceipt(payment);
+    }
+
+    /**
+     * Confirms a settled payment to the customer.
      *
      * <p>This used to be an emailed receipt. With no mail channel the confirmation goes to
      * the in-app notification feed instead - a payment that produced no acknowledgement at
@@ -319,13 +510,78 @@ public class PaymentService {
     private void sendReceipt(Payment payment) {
         Task task = payment.getTask();
         String amount = "NPR " + payment.getAmount().setScale(2, RoundingMode.HALF_UP);
-        String via = payment.getProvider() == PaymentProvider.ESEWA ? "eSewa" : "Khalti";
+        String via = providerLabel(payment.getProvider());
+        boolean balance = payment.getType() == PaymentType.BALANCE;
 
         notificationService.notify(payment.getCustomer(), "PAYMENT_RECEIVED",
-                "Payment received",
-                amount + " paid via " + via + " for \"" + task.getTitle()
+                balance ? "Task paid in full" : "Payment received",
+                amount + (balance ? " final payment" : " advance") + " paid via " + via
+                        + " for \"" + task.getTitle()
                         + "\". Reference " + payment.getTransactionUuid() + ".",
                 "/dashboard/payments");
+    }
+
+    /** How a provider is written in a notification. */
+    private static String providerLabel(PaymentProvider provider) {
+        return switch (provider) {
+            case ESEWA -> "eSewa";
+            case KHALTI -> "Khalti";
+            case CASH -> "cash";
+        };
+    }
+
+    /**
+     * Tells the worker the rest of their money has landed and the job is closed.
+     *
+     * <p>Skipped for cash, where the worker is the one who just confirmed it - telling them
+     * what they have this second told us would be noise.
+     */
+    private void announceSettlement(Payment payment) {
+        Task task = payment.getTask();
+        User worker = task.getAssignedWorker();
+        if (worker == null || payment.getProvider() == PaymentProvider.CASH) {
+            return;
+        }
+
+        String amount = "NPR " + payment.getAmount().setScale(2, RoundingMode.HALF_UP);
+        notificationService.notify(worker, "PAYMENT_RECEIVED",
+                "Final payment received",
+                task.getCustomer().getFullName() + " paid the remaining " + amount + " on \""
+                        + task.getTitle() + "\". That job is now paid in full.",
+                "/worker/earnings");
+    }
+
+    /**
+     * Asks the worker to vouch for cash the customer says they handed over. This notification
+     * is the whole mechanism - without it a worker has no reason to look at a job they have
+     * already finished.
+     */
+    private void announceCashDeclaration(Payment payment) {
+        Task task = payment.getTask();
+        User worker = task.getAssignedWorker();
+        if (worker == null) {
+            return;
+        }
+
+        String amount = "NPR " + payment.getAmount().setScale(2, RoundingMode.HALF_UP);
+        notificationService.notify(worker, "CASH_DECLARED",
+                "Confirm a cash payment",
+                task.getCustomer().getFullName() + " says they paid you " + amount + " in cash "
+                        + "for \"" + task.getTitle() + "\". Confirm it to close the job.",
+                "/worker/earnings");
+    }
+
+    /** Tells the customer the worker says the cash never arrived, and where to put that right. */
+    private void announceCashRejected(Payment payment) {
+        Task task = payment.getTask();
+        User worker = task.getAssignedWorker();
+        String workerName = worker == null ? "The worker" : worker.getFullName();
+
+        notificationService.notify(payment.getCustomer(), "CASH_REJECTED",
+                "Cash payment not confirmed",
+                workerName + " has not received the cash for \"" + task.getTitle()
+                        + "\". Hand it over again or settle by eSewa or Khalti.",
+                "/dashboard/checkout/" + task.getId());
     }
 
     /** A worker already at work must not be dragged back to {@link TaskStatus#ASSIGNED}. */
