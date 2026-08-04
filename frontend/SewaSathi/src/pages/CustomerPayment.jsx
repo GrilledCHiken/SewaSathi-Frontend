@@ -21,10 +21,12 @@ import {
   CHECK_ICON,
   INBOX_ICON,
   advanceFor,
+  balanceDue,
   categoryMeta,
   formatDate,
   formatMoney,
   formatStatus,
+  remainingAfter,
 } from "../components/tasks/taskUi";
 import { listMyPayments } from "../api/paymentApi";
 import { listMyTasks } from "../api/taskApi";
@@ -34,14 +36,20 @@ import { listMyTasks } from "../api/taskApi";
  *
  * Two server reads back this page. `GET /payments/mine` is the transaction
  * history — one row per checkout attempt, so it also carries the abandoned
- * ones. `GET /tasks/mine` supplies the other half: a task sitting in `accepted`
- * is one a worker has said yes to but the advance has not settled on, which is
- * the only state where money is genuinely owed.
+ * ones. `GET /tasks/mine` supplies the other half: the two states where money
+ * is genuinely owed. A task sitting in `accepted` is one a worker has said yes
+ * to but the advance has not settled on; one in `awaiting payment` is a finished
+ * job still owing its closing payment.
  *
- * Those two must not be conflated. A `PENDING` payment row is a checkout the
- * customer walked away from — the backend cancels stale ones on the next
- * attempt — so it is history, never a debt. Everything labelled "awaiting" here
- * is derived from task status, not from payment status.
+ * A `PENDING` payment row is usually neither of those — it is a checkout the
+ * customer walked away from, which the backend cancels on the next attempt. So
+ * it is history, never a debt. Everything labelled "awaiting" is derived from
+ * the task, never from a payment being un-settled.
+ *
+ * The exception, and the reason the payment rows are read at all, is cash: a
+ * `PENDING` CASH row is a real claim waiting on the worker's confirmation, not
+ * an abandoned checkout, and the customer must not be asked to pay it twice.
+ * That is what `balanceDue` checks for.
  */
 
 /* -------------------------------------------------------------------------- */
@@ -51,6 +59,7 @@ import { listMyTasks } from "../api/taskApi";
 const PROVIDER_LABEL = {
   ESEWA: "eSewa",
   KHALTI: "Khalti",
+  CASH: "Cash in hand",
 };
 
 function providerLabel(provider) {
@@ -117,8 +126,12 @@ function matchesFilter(payment, filter) {
 /* Rows                                                                        */
 /* -------------------------------------------------------------------------- */
 
-/** A task a worker has accepted, still waiting on its confirmation advance. */
-function AwaitingTaskRow({ task }) {
+/**
+ * A task with money owed on it — either a worker has accepted and the confirmation
+ * advance is due, or the job is finished and the balance is. The row is the same either
+ * way; only `amount`, `caption` and the subtitle differ.
+ */
+function AwaitingTaskRow({ task, amount, caption, subtitle }) {
   const meta = categoryMeta(task.category);
 
   return (
@@ -131,18 +144,12 @@ function AwaitingTaskRow({ task }) {
 
       <div className="min-w-0 flex-1">
         <p className="truncate font-semibold text-ink">{task.title}</p>
-        <p className="truncate text-sm text-ink-muted">
-          {[task.assignedWorker?.fullName, `due ${formatDate(task.dueDate)}`]
-            .filter(Boolean)
-            .join(" · ")}
-        </p>
+        <p className="truncate text-sm text-ink-muted">{subtitle}</p>
       </div>
 
       <div className="shrink-0 text-right">
-        <p className="font-bold tabular-nums text-ink">
-          {formatMoney(advanceFor(task.budget))}
-        </p>
-        <p className="text-xs text-ink-faint">advance</p>
+        <p className="font-bold tabular-nums text-ink">{formatMoney(amount)}</p>
+        <p className="text-xs text-ink-faint">{caption}</p>
       </div>
 
       <Button
@@ -176,6 +183,7 @@ function TransactionItem({ payment }) {
         </p>
         <p className="truncate text-sm text-ink-muted">
           {formatDate(payment.createdAt, "—")} · {providerLabel(payment.provider)}
+          {payment.type === "BALANCE" ? " · balance" : " · advance"}
         </p>
       </div>
 
@@ -255,10 +263,46 @@ export default function CustomerPayment() {
       .finally(() => setLoading(false));
   }, []);
 
-  // `accepted` is the same predicate checkout uses to decide an advance is due.
-  const awaitingTasks = useMemo(
-    () => tasks.filter((task) => formatStatus(task.status) === "accepted"),
-    [tasks],
+  /**
+   * Everything with money owed on it, in one list so the tile, the count and the panel
+   * cannot drift apart. Both predicates are exactly the ones checkout uses to pick a leg,
+   * so a row here always lands on a checkout that agrees something is due.
+   */
+  const awaiting = useMemo(
+    () =>
+      tasks.flatMap((task) => {
+        if (formatStatus(task.status) === "accepted") {
+          return [
+            {
+              key: `advance-${task.id}`,
+              task,
+              amount: advanceFor(task.budget),
+              caption: "advance",
+              subtitle: [
+                task.assignedWorker?.fullName,
+                `due ${formatDate(task.dueDate)}`,
+              ]
+                .filter(Boolean)
+                .join(" · "),
+            },
+          ];
+        }
+        if (balanceDue(task, payments)) {
+          return [
+            {
+              key: `balance-${task.id}`,
+              task,
+              amount: remainingAfter(task.budget),
+              caption: "balance",
+              subtitle: [task.assignedWorker?.fullName, "work finished"]
+                .filter(Boolean)
+                .join(" · "),
+            },
+          ];
+        }
+        return [];
+      }),
+    [tasks, payments],
   );
 
   const totalPaid = useMemo(
@@ -270,8 +314,8 @@ export default function CustomerPayment() {
   );
 
   const totalAwaiting = useMemo(
-    () => awaitingTasks.reduce((sum, task) => sum + advanceFor(task.budget), 0),
-    [awaitingTasks],
+    () => awaiting.reduce((sum, row) => sum + row.amount, 0),
+    [awaiting],
   );
 
   const filteredPayments = useMemo(
@@ -288,7 +332,7 @@ export default function CustomerPayment() {
     [payments],
   );
 
-  const awaitingCount = awaitingTasks.length;
+  const awaitingCount = awaiting.length;
 
   return (
     <PageShell
@@ -319,7 +363,7 @@ export default function CustomerPayment() {
                 icon={<ClockIcon className="h-6 w-6" />}
                 hint={
                   awaitingCount > 0
-                    ? `${awaitingCount} task${awaitingCount === 1 ? "" : "s"} to confirm`
+                    ? `${awaitingCount} payment${awaitingCount === 1 ? "" : "s"} due`
                     : "Nothing due right now"
                 }
                 to={awaitingCount > 0 ? "/dashboard/tasks" : undefined}
@@ -334,17 +378,23 @@ export default function CustomerPayment() {
 
             <div className="mt-6 grid gap-6 lg:grid-cols-2">
               <Panel title="Awaiting Payment" padding="lg">
-                {awaitingTasks.length === 0 ? (
+                {awaiting.length === 0 ? (
                   <EmptyState
                     tone="bare"
                     icon={CHECK_ICON}
                     title="You're all caught up"
-                    body="No tasks are waiting on an advance right now."
+                    body="Nothing is waiting on a payment right now."
                   />
                 ) : (
                   <ul className="divide-y divide-line-soft">
-                    {awaitingTasks.map((task) => (
-                      <AwaitingTaskRow key={task.id} task={task} />
+                    {awaiting.map((row) => (
+                      <AwaitingTaskRow
+                        key={row.key}
+                        task={row.task}
+                        amount={row.amount}
+                        caption={row.caption}
+                        subtitle={row.subtitle}
+                      />
                     ))}
                   </ul>
                 )}

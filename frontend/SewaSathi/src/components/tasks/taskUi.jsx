@@ -57,6 +57,16 @@ export const STATUS_META = {
     pulse: true,
     stripe: "bg-info",
   },
+  // The work is finished but the closing payment is not. Orange rather than the amber
+  // `assigned` and `requested` share, because this is the one status that always has
+  // something for the customer to do.
+  "awaiting payment": {
+    badge: "bg-orange-100 text-orange-700",
+    dot: "bg-orange-500 animate-pulse",
+    tone: "warning",
+    pulse: true,
+    stripe: "bg-warning",
+  },
   completed: {
     badge: "bg-emerald-100 text-emerald-700",
     dot: "bg-emerald-500",
@@ -286,6 +296,36 @@ export function remainingAfter(budget) {
 }
 
 export const ADVANCE_PERCENT_LABEL = `${Math.round(ADVANCE_RATE * 100)}%`;
+export const BALANCE_PERCENT_LABEL = `${Math.round((1 - ADVANCE_RATE) * 100)}%`;
+
+/**
+ * Whether a finished job is still owed its closing payment.
+ *
+ * A task sits in `awaiting payment` from the moment the worker downs tools until the
+ * balance settles, at which point the backend moves it to `completed`. So the status
+ * alone answers this — but a customer who has already declared cash should not be shown
+ * a Pay button again, which is what `cashDeclared` below is for.
+ */
+export function balanceDue(task, payments = []) {
+  if (formatStatus(task?.status) !== "awaiting payment") return false;
+  return !cashDeclared(task, payments);
+}
+
+/**
+ * Whether the customer has said they paid this balance in cash and is waiting on the
+ * worker to vouch for it. Cash cannot be verified by anyone but the two people involved,
+ * so the payment row sits `PENDING` in between — that row is the only record of the claim.
+ * `payments` is the list from `GET /payments/mine`.
+ */
+export function cashDeclared(task, payments = []) {
+  return payments.some(
+    (p) =>
+      p.task?.id === task?.id &&
+      p.type === "BALANCE" &&
+      p.provider === "CASH" &&
+      p.status === "PENDING",
+  );
+}
 
 /**
  * Chat is a paid feature: the backend only opens a thread once the advance has settled
@@ -294,7 +334,12 @@ export const ADVANCE_PERCENT_LABEL = `${Math.round(ADVANCE_RATE * 100)}%`;
  * stand in for it when deciding whether to enable a Message control. The Messages page
  * itself is driven by the server, which remains the authority.
  */
-const CHAT_OPEN_STATUSES = new Set(["assigned", "in progress", "completed"]);
+const CHAT_OPEN_STATUSES = new Set([
+  "assigned",
+  "in progress",
+  "awaiting payment",
+  "completed",
+]);
 
 export function chatUnlocked(task) {
   return CHAT_OPEN_STATUSES.has(formatStatus(task?.status));

@@ -1,7 +1,10 @@
 package com.sewasathi.service;
 
+import com.sewasathi.dto.response.ChatEvent;
 import com.sewasathi.dto.response.ConversationResponse;
 import com.sewasathi.dto.response.MessageResponse;
+import com.sewasathi.dto.response.ReadReceiptResponse;
+import com.sewasathi.dto.response.UnreadSummaryResponse;
 import com.sewasathi.entity.Message;
 import com.sewasathi.entity.Role;
 import com.sewasathi.entity.Task;
@@ -16,8 +19,10 @@ import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -30,10 +35,16 @@ import java.util.Set;
  *
  * <p>Threads only exist once the customer's advance has settled - see
  * {@link ChatAccessService}.
+ *
+ * <p>Live updates go out on two streams. The conversation topic reaches whoever has that
+ * thread open; the recipient's personal queue reaches them wherever they are in the app, which
+ * is what keeps the unread badges moving while the thread is closed.
  */
 @Service
 @RequiredArgsConstructor
 public class MessageService {
+
+    private static final String USER_CHAT_QUEUE = "/queue/chat";
 
     private final MessageRepository messageRepository;
     private final TaskRepository taskRepository;
@@ -45,27 +56,8 @@ public class MessageService {
     @Transactional(readOnly = true)
     public List<ConversationResponse> listConversations(String userEmail) {
         User user = getUser(userEmail);
-        List<Task> tasks = user.getRole() == Role.WORKER
-                ? taskRepository.findByAssignedWorkerIdOrderByCreatedAtDesc(user.getId())
-                : taskRepository.findByCustomerIdAndAssignedWorkerIsNotNullOrderByUpdatedAtDesc(user.getId());
 
-        Map<Long, List<Task>> tasksByPeer = new LinkedHashMap<>();
-        for (Task task : tasks) {
-            if (task.getAssignedWorker() == null) {
-                continue;
-            }
-            Long peerId = task.getCustomer().getId().equals(user.getId())
-                    ? task.getAssignedWorker().getId()
-                    : task.getCustomer().getId();
-            tasksByPeer.computeIfAbsent(peerId, id -> new ArrayList<>()).add(task);
-        }
-
-        // One lookup for every task on screen, then drop the people this user has hired
-        // but not yet paid - their thread is not open, so it should not be listed either.
-        Set<Long> paidTaskIds = chatAccessService.paidTaskIds(tasks.stream().map(Task::getId).toList());
-
-        return tasksByPeer.values().stream()
-                .filter(sharedTasks -> sharedTasks.stream().anyMatch(t -> paidTaskIds.contains(t.getId())))
+        return unlockedThreadsByPeer(user).values().stream()
                 .map(sharedTasks -> {
                     Message last = messageRepository.findFirstByTaskIdInOrderByCreatedAtDesc(
                             sharedTasks.stream().map(Task::getId).toList()
@@ -89,6 +81,68 @@ public class MessageService {
                 .stream()
                 .map(MessageResponse::from)
                 .toList();
+    }
+
+    /**
+     * Every unread badge in the app in one query: the total for the Messages nav item and the
+     * per-conversation counts for the conversation list.
+     */
+    @Transactional(readOnly = true)
+    public UnreadSummaryResponse unreadSummary(String userEmail) {
+        User user = getUser(userEmail);
+        Map<Long, List<Task>> threads = unlockedThreadsByPeer(user);
+        if (threads.isEmpty()) {
+            return new UnreadSummaryResponse(0, Map.of());
+        }
+
+        // One count for every task on screen, then folded up per conversation - a conversation
+        // spans several tasks, and only this class knows which ones belong together.
+        List<Long> allTaskIds = threads.values().stream().flatMap(List::stream).map(Task::getId).toList();
+        Map<Long, Long> unreadByTask = new HashMap<>();
+        for (MessageRepository.TaskUnreadCount row : messageRepository.countUnreadByTask(allTaskIds, user.getId())) {
+            unreadByTask.put(row.getTaskId(), row.getUnread());
+        }
+
+        Map<String, Long> byConversation = new LinkedHashMap<>();
+        long total = 0;
+        for (List<Task> sharedTasks : threads.values()) {
+            long unread = sharedTasks.stream()
+                    .mapToLong(task -> unreadByTask.getOrDefault(task.getId(), 0L))
+                    .sum();
+            if (unread == 0) {
+                continue;
+            }
+            byConversation.put(ConversationKey.of(sharedTasks.get(0)).toString(), unread);
+            total += unread;
+        }
+        return new UnreadSummaryResponse(total, byConversation);
+    }
+
+    /**
+     * Marks everything the reader did not send as read, and tells both sides: the topic so the
+     * sender's ticks flip while they are looking at the thread, the reader's own queue so the
+     * badge clears in any other tab they have open.
+     *
+     * @return how many messages were actually unread, so a no-op stays silent
+     */
+    @Transactional
+    public int markConversationRead(String userEmail, String conversationKey) {
+        User user = getUser(userEmail);
+        List<Task> sharedTasks = resolveConversation(user, conversationKey);
+
+        LocalDateTime now = LocalDateTime.now();
+        int updated = messageRepository.markRead(
+                sharedTasks.stream().map(Task::getId).toList(), user.getId(), now
+        );
+        if (updated == 0) {
+            return 0;
+        }
+
+        ConversationKey key = ConversationKey.of(sharedTasks.get(0));
+        ChatEvent event = ChatEvent.read(new ReadReceiptResponse(key.toString(), user.getId(), now));
+        broadcast(key, event);
+        pushToUser(user, event);
+        return updated;
     }
 
     @Transactional
@@ -134,7 +188,13 @@ public class MessageService {
         }
 
         MessageResponse response = MessageResponse.from(message);
-        broadcast(ConversationKey.of(message.getTask()), response);
+        Task task = message.getTask();
+        ConversationKey key = ConversationKey.of(task);
+        ChatEvent event = ChatEvent.message(key.toString(), response);
+        broadcast(key, event);
+        // Deleting a message the other side never read drops their unread count, so they need
+        // the tombstone even with the thread closed.
+        pushToUser(peerOf(task, user), event);
         return response;
     }
 
@@ -158,12 +218,62 @@ public class MessageService {
         message = messageRepository.save(message);
 
         MessageResponse response = MessageResponse.from(message);
-        broadcast(ConversationKey.of(task), response);
+        ConversationKey key = ConversationKey.of(task);
+        ChatEvent event = ChatEvent.message(key.toString(), response);
+        broadcast(key, event);
+        pushToUser(peerOf(task, sender), event);
         return response;
     }
 
-    private void broadcast(ConversationKey key, MessageResponse response) {
-        messagingTemplate.convertAndSend("/topic/conversations/" + key, response);
+    private void broadcast(ConversationKey key, ChatEvent event) {
+        messagingTemplate.convertAndSend("/topic/conversations/" + key, event);
+    }
+
+    /**
+     * Sends on the recipient's personal stream. Spring resolves the {@code /user} prefix against
+     * the authenticated STOMP session, and that session is keyed by email - see
+     * {@code UserPrincipal.getUsername()}.
+     */
+    private void pushToUser(User recipient, ChatEvent event) {
+        messagingTemplate.convertAndSendToUser(recipient.getEmail(), USER_CHAT_QUEUE, event);
+    }
+
+    /** The other participant on a task. Chat is one-to-one, so there is only ever one. */
+    private User peerOf(Task task, User user) {
+        return user.getId().equals(task.getCustomer().getId())
+                ? task.getAssignedWorker()
+                : task.getCustomer();
+    }
+
+    /**
+     * The user's open threads, keyed by the person on the other side and holding every task
+     * they share, oldest first within each thread.
+     *
+     * <p>One paid-task lookup covers every task on screen, then the people this user has hired
+     * but not yet paid are dropped: their thread is not open, so it should not be listed or
+     * counted either.
+     */
+    private Map<Long, List<Task>> unlockedThreadsByPeer(User user) {
+        List<Task> tasks = user.getRole() == Role.WORKER
+                ? taskRepository.findByAssignedWorkerIdOrderByCreatedAtDesc(user.getId())
+                : taskRepository.findByCustomerIdAndAssignedWorkerIsNotNullOrderByUpdatedAtDesc(user.getId());
+
+        Map<Long, List<Task>> tasksByPeer = new LinkedHashMap<>();
+        for (Task task : tasks) {
+            if (task.getAssignedWorker() == null) {
+                continue;
+            }
+            Long peerId = task.getCustomer().getId().equals(user.getId())
+                    ? task.getAssignedWorker().getId()
+                    : task.getCustomer().getId();
+            tasksByPeer.computeIfAbsent(peerId, id -> new ArrayList<>()).add(task);
+        }
+
+        Set<Long> paidTaskIds = chatAccessService.paidTaskIds(tasks.stream().map(Task::getId).toList());
+        tasksByPeer.values().removeIf(
+                sharedTasks -> sharedTasks.stream().noneMatch(task -> paidTaskIds.contains(task.getId()))
+        );
+        return tasksByPeer;
     }
 
     /**

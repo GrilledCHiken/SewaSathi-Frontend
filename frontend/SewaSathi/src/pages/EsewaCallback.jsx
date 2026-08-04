@@ -15,7 +15,12 @@ import { verifyEsewaPayment } from "../api/paymentApi";
 /**
  * Where eSewa drops the customer after checkout. On the success path the
  * `?data=` blob is forwarded to the backend, which is what actually confirms the
- * payment and flips the task to assigned.
+ * payment — flipping the task to assigned for an advance, or closing the job out
+ * for a balance.
+ *
+ * The gateway is not told which leg it was handling, so the failure route carries
+ * only a task id. That is enough: the checkout page picks the leg back up from the
+ * task's own state.
  */
 export default function EsewaCallback() {
   const { pathname } = useLocation();
@@ -54,6 +59,7 @@ export default function EsewaCallback() {
       : null);
 
   const retryTaskId = taskId || payment?.task?.id;
+  const isBalance = payment?.type === "BALANCE";
 
   return (
     <PageShell
@@ -70,7 +76,7 @@ export default function EsewaCallback() {
             tone="rose"
             icon={<CrossIcon />}
             title="Payment was not completed"
-            body="Nothing has been charged and your task is still waiting for its advance. You can try again whenever you're ready."
+            body="Nothing has been charged and your task is still waiting on its payment. You can try again whenever you're ready."
           >
             {retryTaskId && (
               <Button as={Link} to={`/dashboard/checkout/${retryTaskId}`}>
@@ -101,16 +107,29 @@ export default function EsewaCallback() {
           <ResultCard
             tone="emerald"
             icon={<CheckIcon />}
-            title="Payment confirmed!"
+            title={isBalance ? "Paid in full!" : "Payment confirmed!"}
             body={
               <>
                 <p>
-                  Your {formatMoney(payment.amount)} advance is paid and{" "}
-                  <span className="font-semibold text-ink">
-                    {payment.task?.title}
-                  </span>{" "}
-                  is now assigned to{" "}
-                  {payment.task?.assignedWorker?.fullName || "your worker"}.
+                  {isBalance ? (
+                    <>
+                      Your {formatMoney(payment.amount)} final payment is in and{" "}
+                      <span className="font-semibold text-ink">
+                        {payment.task?.title}
+                      </span>{" "}
+                      is fully settled with{" "}
+                      {payment.task?.assignedWorker?.fullName || "your worker"}.
+                    </>
+                  ) : (
+                    <>
+                      Your {formatMoney(payment.amount)} advance is paid and{" "}
+                      <span className="font-semibold text-ink">
+                        {payment.task?.title}
+                      </span>{" "}
+                      is now assigned to{" "}
+                      {payment.task?.assignedWorker?.fullName || "your worker"}.
+                    </>
+                  )}
                 </p>
                 {payment.refId && (
                   <p className="mt-2 text-xs text-ink-muted">

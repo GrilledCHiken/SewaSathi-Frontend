@@ -1,5 +1,7 @@
+import { useMemo } from "react";
 import { Link } from "react-router-dom";
 import SideNav from "../ui/SideNav";
+import { useChat } from "../../context/ChatContext";
 import {
   CardIcon,
   ChatIcon,
@@ -23,12 +25,14 @@ import {
  * the header rather than from here.
  */
 
+const MESSAGES_ROUTE = "/dashboard/messages";
+
 const NAV_ITEMS = [
   { label: "Overview", to: "/dashboard", end: true, icon: <GridIcon /> },
   { label: "Post Task", to: "/dashboard/post-task", icon: <PlusIcon /> },
   { label: "My Tasks", to: "/dashboard/tasks", icon: <ClipboardIcon /> },
   { label: "Browse Workers", to: "/dashboard/workers", icon: <UsersIcon /> },
-  { label: "Messages", to: "/dashboard/messages", icon: <ChatIcon /> },
+  { label: "Messages", to: MESSAGES_ROUTE, icon: <ChatIcon /> },
   { label: "Payments", to: "/dashboard/payments", icon: <CardIcon /> },
   { label: "Reviews", to: "/dashboard/reviews", icon: <StarOutlineIcon /> },
 ];
@@ -47,9 +51,20 @@ function SidebarFooter({ onNavigate }) {
 }
 
 function Sidebar({ mobileOpen, onCloseMobile }) {
+  // useChat returns null outside a ChatProvider, which is how this stays safe to render
+  // before the dashboard's provider mounts.
+  const totalUnread = useChat()?.totalUnread ?? 0;
+  const items = useMemo(
+    () =>
+      NAV_ITEMS.map((item) =>
+        item.to === MESSAGES_ROUTE ? { ...item, badge: totalUnread } : item,
+      ),
+    [totalUnread],
+  );
+
   return (
     <SideNav
-      items={NAV_ITEMS}
+      items={items}
       subtitle="Customer Dashboard"
       accent="brand"
       ariaLabel="Dashboard"

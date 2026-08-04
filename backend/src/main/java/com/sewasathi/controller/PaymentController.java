@@ -1,5 +1,6 @@
 package com.sewasathi.controller;
 
+import com.sewasathi.dto.request.CashPaymentRequest;
 import com.sewasathi.dto.request.EsewaVerifyRequest;
 import com.sewasathi.dto.request.InitiatePaymentRequest;
 import com.sewasathi.dto.request.KhaltiVerifyRequest;
@@ -33,6 +34,29 @@ public class PaymentController {
     ) {
         return paymentService.initiateAdvance(
                 principal.getUsername(), request.getTaskId(), request.getProvider());
+    }
+
+    /** The other leg: the rest of the price, once the worker has finished the job. */
+    @PostMapping("/balance/initiate")
+    public PaymentInitiationResponse initiateBalance(
+            @AuthenticationPrincipal UserPrincipal principal,
+            @Valid @RequestBody InitiatePaymentRequest request
+    ) {
+        return paymentService.initiateBalance(
+                principal.getUsername(), request.getTaskId(), request.getProvider());
+    }
+
+    /**
+     * The same leg, paid in person. Separate from {@link #initiateBalance} because there is
+     * no gateway to hand the browser to - this returns the pending claim itself, which the
+     * worker then has to confirm before the job closes.
+     */
+    @PostMapping("/balance/cash")
+    public PaymentResponse declareCashBalance(
+            @AuthenticationPrincipal UserPrincipal principal,
+            @Valid @RequestBody CashPaymentRequest request
+    ) {
+        return paymentService.declareCashBalance(principal.getUsername(), request.getTaskId());
     }
 
     @PostMapping("/esewa/verify")

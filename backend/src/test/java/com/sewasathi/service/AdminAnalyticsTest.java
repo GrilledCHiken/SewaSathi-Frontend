@@ -6,6 +6,7 @@ import com.sewasathi.entity.ApprovalStatus;
 import com.sewasathi.entity.Payment;
 import com.sewasathi.entity.PaymentProvider;
 import com.sewasathi.entity.PaymentStatus;
+import com.sewasathi.entity.PaymentType;
 import com.sewasathi.entity.Role;
 import com.sewasathi.entity.Task;
 import com.sewasathi.entity.TaskStatus;
@@ -56,6 +57,10 @@ class AdminAnalyticsTest {
     private BigDecimal baselineRevenue;
     private BigDecimal baselineFees;
 
+    private User seededCustomer;
+    private Task seededTask;
+    private long seedId;
+
     @BeforeEach
     void seedActivity() {
         // The context is shared across tests, so assert on the delta this seed adds rather
@@ -67,23 +72,26 @@ class AdminAnalyticsTest {
         baselineFees = before.getPlatformFees();
 
         long unique = System.nanoTime();
+        seedId = unique;
 
         User customer = userRepository.save(User.builder()
                 .email("analytics-customer-" + unique + "@example.com")
                 .passwordHash("x").fullName("Analytics Customer").phone("9800000020")
                 .role(Role.CUSTOMER).status(ApprovalStatus.APPROVED).build());
+        seededCustomer = customer;
 
         // Two Electrical tasks in Pokhara against one Cleaning task in Lalitpur, so the
         // "top" lists have something to actually rank.
         Task first = saveTask(customer, "Electrical", "Pokhara", "1000.00");
         saveTask(customer, "Electrical", "Pokhara", "2000.00");
         saveTask(customer, "Cleaning", "Lalitpur", "500.00");
+        seededTask = first;
 
         // A settled advance and an abandoned one: only the settled one is money.
         savePayment(first, customer, "analytics-paid-" + unique, "100.00", "1000.00",
-                PaymentStatus.COMPLETED);
+                PaymentType.ADVANCE, PaymentStatus.COMPLETED);
         savePayment(first, customer, "analytics-pending-" + unique, "200.00", "2000.00",
-                PaymentStatus.PENDING);
+                PaymentType.ADVANCE, PaymentStatus.PENDING);
     }
 
     private Task saveTask(User customer, String category, String city, String budget) {
@@ -96,12 +104,12 @@ class AdminAnalyticsTest {
     }
 
     private void savePayment(Task task, User customer, String uuid, String amount,
-                             String taskTotal, PaymentStatus status) {
+                             String taskTotal, PaymentType type, PaymentStatus status) {
         paymentRepository.save(Payment.builder()
                 .task(task).customer(customer)
                 .transactionUuid(uuid)
                 .amount(new BigDecimal(amount)).taskTotal(new BigDecimal(taskTotal))
-                .provider(PaymentProvider.ESEWA).status(status)
+                .type(type).provider(PaymentProvider.ESEWA).status(status)
                 .build());
     }
 
@@ -127,6 +135,25 @@ class AdminAnalyticsTest {
                 .isEqualByComparingTo(baselineRevenue.add(new BigDecimal("1000.00")));
         assertThat(analytics.getPlatformFees())
                 .isEqualByComparingTo(baselineFees.add(new BigDecimal("100.00")));
+    }
+
+    /**
+     * A task is paid in two legs and both carry the same {@code taskTotal} snapshot, so
+     * counting the balance would report the booking's value twice and bill the 90% that
+     * passes through to the worker as a platform fee.
+     */
+    @Test
+    void aSettledBalanceDoesNotInflateRevenueOrFees() {
+        AdminAnalyticsResponse before = adminService.getAnalytics(today.minusYears(1), today);
+
+        savePayment(seededTask, seededCustomer, "analytics-balance-" + seedId,
+                "900.00", "1000.00", PaymentType.BALANCE, PaymentStatus.COMPLETED);
+
+        AdminAnalyticsResponse after = adminService.getAnalytics(today.minusYears(1), today);
+
+        assertThat(after.getTotalRevenue()).isEqualByComparingTo(before.getTotalRevenue());
+        assertThat(after.getPlatformFees()).isEqualByComparingTo(before.getPlatformFees());
+        assertThat(after.getPaidBookings()).isEqualTo(before.getPaidBookings());
     }
 
     // ---------- top lists ----------

@@ -21,6 +21,16 @@ export async function uploadAttachment(conversationKey, file) {
   return data;
 }
 
+/** Returns `{ total, byConversation }` — seeds every unread badge in one request. */
+export async function getChatUnreadCounts() {
+  const { data } = await httpClient.get("/conversations/unread-count");
+  return data;
+}
+
+export async function markConversationRead(conversationKey) {
+  await httpClient.post(`/conversations/${conversationKey}/read`);
+}
+
 export async function deleteMessage(messageId) {
   const { data } = await httpClient.delete(`/messages/${messageId}`);
   return data;

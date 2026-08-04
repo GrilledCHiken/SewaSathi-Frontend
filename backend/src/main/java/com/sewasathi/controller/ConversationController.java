@@ -2,6 +2,7 @@ package com.sewasathi.controller;
 
 import com.sewasathi.dto.response.ConversationResponse;
 import com.sewasathi.dto.response.MessageResponse;
+import com.sewasathi.dto.response.UnreadSummaryResponse;
 import com.sewasathi.security.UserPrincipal;
 import com.sewasathi.service.FileStorageService;
 import com.sewasathi.service.MessageService;
@@ -32,6 +33,15 @@ public class ConversationController {
         return messageService.listConversations(principal.getUsername());
     }
 
+    /**
+     * Declared ahead of the {@code /{conversationKey}/...} routes so "unread-count" is not
+     * matched as a conversation key.
+     */
+    @GetMapping("/unread-count")
+    public UnreadSummaryResponse unreadCount(@AuthenticationPrincipal UserPrincipal principal) {
+        return messageService.unreadSummary(principal.getUsername());
+    }
+
     @GetMapping("/{conversationKey}/messages")
     public List<MessageResponse> history(
             @AuthenticationPrincipal UserPrincipal principal,
@@ -51,5 +61,15 @@ public class ConversationController {
                 principal.getUsername(), conversationKey, stored.url(), stored.originalName(), stored.contentType()
         );
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    }
+
+    /** Called when the user opens a thread. Idempotent - re-reading an already-read thread is a no-op. */
+    @PostMapping("/{conversationKey}/read")
+    public ResponseEntity<Void> markRead(
+            @AuthenticationPrincipal UserPrincipal principal,
+            @PathVariable String conversationKey
+    ) {
+        messageService.markConversationRead(principal.getUsername(), conversationKey);
+        return ResponseEntity.noContent().build();
     }
 }

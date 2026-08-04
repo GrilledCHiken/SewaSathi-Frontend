@@ -7,6 +7,7 @@ import com.sewasathi.entity.Role;
 import com.sewasathi.entity.Task;
 import com.sewasathi.entity.TaskStatus;
 import com.sewasathi.entity.User;
+import com.sewasathi.entity.WorkerProfile;
 import com.sewasathi.exception.InvalidOperationException;
 import com.sewasathi.exception.ResourceNotFoundException;
 import com.sewasathi.repository.TaskRepository;
@@ -209,6 +210,19 @@ class TaskServiceTest {
     }
 
     @Test
+    void cancelTask_awaitingPayment_isRejected() {
+        // The work has already been done. Cancelling out of it would be walking away from
+        // money the worker has earned.
+        Task task = openTaskOwnedBy(customer);
+        task.setStatus(TaskStatus.AWAITING_PAYMENT);
+        when(userRepository.findByEmail("customer@example.com")).thenReturn(Optional.of(customer));
+        when(taskRepository.findById(100L)).thenReturn(Optional.of(task));
+
+        assertThatThrownBy(() -> taskService.cancelTask(100L, "customer@example.com"))
+                .isInstanceOf(InvalidOperationException.class);
+    }
+
+    @Test
     void cancelTask_open_succeedsAndSetsCancelled() {
         Task task = openTaskOwnedBy(customer);
         when(userRepository.findByEmail("customer@example.com")).thenReturn(Optional.of(customer));
@@ -217,6 +231,53 @@ class TaskServiceTest {
         TaskResponse response = taskService.cancelTask(100L, "customer@example.com");
 
         assertThat(response.getStatus()).isEqualTo(TaskStatus.CANCELLED);
+    }
+
+    // --- finishing and closing out ---
+
+    @Test
+    void completeTask_endsTheWorkButNotTheJob() {
+        // The distinction the whole balance flow rests on: downing tools is not the same
+        // as being paid, so the counter that mirrors COMPLETED must not move yet.
+        Task task = requestedTask();
+        task.setStatus(TaskStatus.IN_PROGRESS);
+        when(userRepository.findByEmail("worker@example.com")).thenReturn(Optional.of(approvedWorker));
+        when(taskRepository.findById(100L)).thenReturn(Optional.of(task));
+
+        TaskResponse response = taskService.completeTask(100L, "worker@example.com");
+
+        assertThat(response.getStatus()).isEqualTo(TaskStatus.AWAITING_PAYMENT);
+        verifyNoInteractions(workerProfileRepository);
+        verify(notificationService).notify(
+                eq(customer), eq("TASK_AWAITING_PAYMENT"), anyString(), anyString(), anyString());
+    }
+
+    @Test
+    void markPaidInFull_closesTheJobAndCountsIt() {
+        Task task = requestedTask();
+        task.setStatus(TaskStatus.AWAITING_PAYMENT);
+        WorkerProfile profile = new WorkerProfile();
+        profile.setTasksCompleted(4);
+        when(workerProfileRepository.findByUserId(3L)).thenReturn(Optional.of(profile));
+
+        taskService.markPaidInFull(task);
+
+        assertThat(task.getStatus()).isEqualTo(TaskStatus.COMPLETED);
+        assertThat(profile.getTasksCompleted()).isEqualTo(5);
+        verify(taskRepository).save(task);
+    }
+
+    @Test
+    void markPaidInFull_fromAnyOtherStatus_isANoOp() {
+        // A gateway that delivers the same callback twice must not count the job twice.
+        Task task = requestedTask();
+        task.setStatus(TaskStatus.COMPLETED);
+
+        taskService.markPaidInFull(task);
+
+        assertThat(task.getStatus()).isEqualTo(TaskStatus.COMPLETED);
+        verify(taskRepository, never()).save(any());
+        verifyNoInteractions(workerProfileRepository);
     }
 
     @Test

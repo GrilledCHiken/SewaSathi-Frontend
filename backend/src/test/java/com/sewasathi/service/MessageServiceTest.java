@@ -1,7 +1,9 @@
 package com.sewasathi.service;
 
+import com.sewasathi.dto.response.ChatEvent;
 import com.sewasathi.dto.response.ConversationResponse;
 import com.sewasathi.dto.response.MessageResponse;
+import com.sewasathi.dto.response.UnreadSummaryResponse;
 import com.sewasathi.entity.ApprovalStatus;
 import com.sewasathi.entity.Message;
 import com.sewasathi.entity.PaymentStatus;
@@ -31,6 +33,7 @@ import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.entry;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyCollection;
 import static org.mockito.ArgumentMatchers.eq;
@@ -201,7 +204,25 @@ class MessageServiceTest {
         assertThat(sent.getTaskId()).isEqualTo(second.getId());
         ArgumentCaptor<Object> payload = ArgumentCaptor.forClass(Object.class);
         verify(messagingTemplate).convertAndSend(eq("/topic/conversations/c1-w2"), payload.capture());
-        assertThat(payload.getValue()).isInstanceOf(MessageResponse.class);
+        assertThat(payload.getValue()).isInstanceOf(ChatEvent.class);
+        ChatEvent event = (ChatEvent) payload.getValue();
+        assertThat(event.getType()).isEqualTo(ChatEvent.MESSAGE);
+        assertThat(event.getMessage().getContent()).isEqualTo("when can you come?");
+    }
+
+    @Test
+    void aSentMessageAlsoReachesTheRecipientsPersonalQueue() {
+        when(taskRepository.findByCustomerIdAndAssignedWorkerIdOrderByCreatedAtAsc(1L, 2L))
+                .thenReturn(List.of(task(10L, "Kitchen sink", customer, worker)));
+
+        messageService.sendTextMessage(customer.getEmail(), "c1-w2", "when can you come?");
+
+        // The topic only reaches whoever has the thread open. Without this, the worker's
+        // unread badge would not move until they went looking for it.
+        verify(messagingTemplate).convertAndSendToUser(
+                eq(worker.getEmail()), eq("/queue/chat"), any(ChatEvent.class));
+        verify(messagingTemplate, never()).convertAndSendToUser(
+                eq(customer.getEmail()), any(String.class), any(Object.class));
     }
 
     @Test
@@ -234,6 +255,98 @@ class MessageServiceTest {
                 .hasMessageContaining("your own messages");
         assertThat(theirs.isDeleted()).isFalse();
         verify(messageRepository, never()).save(any(Message.class));
+    }
+
+    /* ---------------------------------------------------------------------- */
+    /* Read receipts and unread counts                                         */
+    /* ---------------------------------------------------------------------- */
+
+    @Test
+    void openingAThreadMarksTheOtherPartysMessagesRead() {
+        when(taskRepository.findByCustomerIdAndAssignedWorkerIdOrderByCreatedAtAsc(1L, 2L))
+                .thenReturn(List.of(task(10L, "Kitchen sink", customer, worker)));
+        when(messageRepository.markRead(eq(List.of(10L)), eq(customer.getId()), any(LocalDateTime.class)))
+                .thenReturn(2);
+
+        assertThat(messageService.markConversationRead(customer.getEmail(), "c1-w2")).isEqualTo(2);
+
+        ArgumentCaptor<Object> payload = ArgumentCaptor.forClass(Object.class);
+        verify(messagingTemplate).convertAndSend(eq("/topic/conversations/c1-w2"), payload.capture());
+        ChatEvent event = (ChatEvent) payload.getValue();
+        assertThat(event.getType()).isEqualTo(ChatEvent.READ);
+        assertThat(event.getRead().getReaderId()).isEqualTo(customer.getId());
+        assertThat(event.getRead().getReadAt()).isNotNull();
+        // The reader's own tabs get it too, so clearing a badge in one clears it in all.
+        verify(messagingTemplate).convertAndSendToUser(
+                eq(customer.getEmail()), eq("/queue/chat"), any(ChatEvent.class));
+    }
+
+    @Test
+    void reopeningAnAlreadyReadThreadBroadcastsNothing() {
+        when(taskRepository.findByCustomerIdAndAssignedWorkerIdOrderByCreatedAtAsc(1L, 2L))
+                .thenReturn(List.of(task(10L, "Kitchen sink", customer, worker)));
+        when(messageRepository.markRead(anyCollection(), eq(customer.getId()), any(LocalDateTime.class)))
+                .thenReturn(0);
+
+        // Marking read runs on every open and on every message that lands while the thread
+        // is on screen, so the no-op case has to stay quiet.
+        assertThat(messageService.markConversationRead(customer.getEmail(), "c1-w2")).isZero();
+        verify(messagingTemplate, never()).convertAndSend(any(String.class), any(Object.class));
+        verify(messagingTemplate, never()).convertAndSendToUser(
+                any(String.class), any(String.class), any(Object.class));
+    }
+
+    @Test
+    void nonParticipantsCannotMarkAConversationRead() {
+        assertThatThrownBy(() -> messageService.markConversationRead(stranger.getEmail(), "c1-w2"))
+                .isInstanceOf(ResourceNotFoundException.class);
+        verify(messageRepository, never())
+                .markRead(anyCollection(), any(Long.class), any(LocalDateTime.class));
+    }
+
+    @Test
+    void unreadCountsAreFoldedUpPerConversation() {
+        Task first = task(10L, "Kitchen sink", customer, worker);
+        Task second = task(11L, "Wiring fix", customer, worker);
+        Task withSomeoneElse = task(12L, "Painting", customer, stranger);
+        when(taskRepository.findByCustomerIdAndAssignedWorkerIsNotNullOrderByUpdatedAtDesc(customer.getId()))
+                .thenReturn(List.of(first, second, withSomeoneElse));
+        when(messageRepository.countUnreadByTask(anyCollection(), eq(customer.getId())))
+                .thenReturn(List.of(unreadOn(10L, 2L), unreadOn(11L, 3L)));
+
+        UnreadSummaryResponse summary = messageService.unreadSummary(customer.getEmail());
+
+        assertThat(summary.getTotal()).isEqualTo(5);
+        // Both tasks are with the same worker, so they are one thread and one badge. The
+        // third person has nothing unread and is left out rather than sent as a zero.
+        assertThat(summary.getByConversation()).containsExactly(entry("c1-w2", 5L));
+    }
+
+    @Test
+    void unreadCountsSkipPeopleWhoseAdvanceHasNotSettled() {
+        when(taskRepository.findByCustomerIdAndAssignedWorkerIsNotNullOrderByUpdatedAtDesc(customer.getId()))
+                .thenReturn(List.of(task(10L, "Kitchen sink", customer, worker)));
+        advancePaidOn();
+
+        UnreadSummaryResponse summary = messageService.unreadSummary(customer.getEmail());
+
+        assertThat(summary.getTotal()).isZero();
+        assertThat(summary.getByConversation()).isEmpty();
+        verify(messageRepository, never()).countUnreadByTask(anyCollection(), any(Long.class));
+    }
+
+    private MessageRepository.TaskUnreadCount unreadOn(Long taskId, long count) {
+        return new MessageRepository.TaskUnreadCount() {
+            @Override
+            public Long getTaskId() {
+                return taskId;
+            }
+
+            @Override
+            public long getUnread() {
+                return count;
+            }
+        };
     }
 
     /* ---------------------------------------------------------------------- */

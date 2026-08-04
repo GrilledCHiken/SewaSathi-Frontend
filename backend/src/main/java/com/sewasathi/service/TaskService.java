@@ -25,9 +25,11 @@ import java.util.Set;
 @RequiredArgsConstructor
 public class TaskService {
 
+    // AWAITING_PAYMENT counts as active: the work is done but the job is not closed until
+    // the balance settles, and until then it still needs the customer's attention.
     private static final List<TaskStatus> ACTIVE_STATUSES =
             List.of(TaskStatus.OPEN, TaskStatus.REQUESTED, TaskStatus.ACCEPTED,
-                    TaskStatus.ASSIGNED, TaskStatus.IN_PROGRESS);
+                    TaskStatus.ASSIGNED, TaskStatus.IN_PROGRESS, TaskStatus.AWAITING_PAYMENT);
 
     private static final Set<String> ALLOWED_TIME_PREFERENCES =
             Set.of("Flexible", "Morning", "Afternoon", "Evening");
@@ -111,7 +113,11 @@ public class TaskService {
         if (!task.getCustomer().getId().equals(customer.getId())) {
             throw new ResourceNotFoundException("No task with id " + taskId);
         }
-        if (task.getStatus() == TaskStatus.COMPLETED || task.getStatus() == TaskStatus.CANCELLED) {
+        // AWAITING_PAYMENT is past the point of no return too - the worker has already done
+        // the job, so cancelling out of it would be walking away from money that is owed.
+        if (task.getStatus() == TaskStatus.COMPLETED
+                || task.getStatus() == TaskStatus.CANCELLED
+                || task.getStatus() == TaskStatus.AWAITING_PAYMENT) {
             throw new InvalidOperationException("This task can no longer be cancelled");
         }
         task.setStatus(TaskStatus.CANCELLED);
@@ -251,6 +257,11 @@ public class TaskService {
         return TaskResponse.from(taskRepository.save(task));
     }
 
+    /**
+     * The worker downing tools. This ends the <em>work</em>, not the job: the task lands in
+     * {@link TaskStatus#AWAITING_PAYMENT} and only {@link #markPaidInFull} takes it the rest
+     * of the way, once the closing balance has actually been collected.
+     */
     @Transactional
     public TaskResponse completeTask(Long taskId, String workerEmail) {
         User worker = getApprovedWorkerOrThrow(workerEmail);
@@ -258,15 +269,48 @@ public class TaskService {
         if (task.getStatus() != TaskStatus.IN_PROGRESS) {
             throw new InvalidOperationException("This task is not in progress");
         }
-        task.setStatus(TaskStatus.COMPLETED);
+        task.setStatus(TaskStatus.AWAITING_PAYMENT);
         Task saved = taskRepository.save(task);
 
+        notificationService.notify(task.getCustomer(), "TASK_AWAITING_PAYMENT",
+                worker.getFullName() + " finished your task",
+                "\"" + task.getTitle() + "\" is done. Settle the remaining balance to close "
+                        + "it out - by eSewa, Khalti or cash in hand.",
+                "/dashboard/checkout/" + task.getId());
+
+        return TaskResponse.from(saved);
+    }
+
+    /**
+     * Closes a job out once its balance has been collected. The single place a task becomes
+     * {@link TaskStatus#COMPLETED}, which is why the worker's completed-jobs counter is
+     * incremented here rather than when the work finished - the two stay in step that way.
+     *
+     * <p>A no-op from any other status, so a gateway that delivers the same callback twice
+     * cannot double-count the job.
+     */
+    @Transactional
+    public void markPaidInFull(Task task) {
+        if (task.getStatus() != TaskStatus.AWAITING_PAYMENT) {
+            return;
+        }
+        task.setStatus(TaskStatus.COMPLETED);
+        taskRepository.save(task);
+
+        User worker = task.getAssignedWorker();
+        if (worker == null) {
+            return;
+        }
         workerProfileRepository.findByUserId(worker.getId()).ifPresent(profile -> {
             profile.setTasksCompleted(profile.getTasksCompleted() + 1);
             workerProfileRepository.save(profile);
         });
 
-        return TaskResponse.from(saved);
+        notificationService.notify(task.getCustomer(), "TASK_COMPLETED",
+                "Task completed",
+                "\"" + task.getTitle() + "\" is settled and closed. You can leave "
+                        + worker.getFullName() + " a review now.",
+                "/dashboard/reviews?taskId=" + task.getId());
     }
 
     // --- helpers ---

@@ -3,6 +3,7 @@ package com.sewasathi.dto.response;
 import com.sewasathi.entity.Payment;
 import com.sewasathi.entity.PaymentProvider;
 import com.sewasathi.entity.PaymentStatus;
+import com.sewasathi.entity.PaymentType;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 
@@ -15,6 +16,8 @@ public class PaymentResponse {
     private Long id;
     private String transactionUuid;
     private PaymentProvider provider;
+    /** Which instalment this row is - the callback pages word themselves off it. */
+    private PaymentType type;
     private PaymentStatus status;
     private BigDecimal amount;
     private BigDecimal taskTotal;
@@ -27,6 +30,7 @@ public class PaymentResponse {
                 payment.getId(),
                 payment.getTransactionUuid(),
                 payment.getProvider(),
+                payment.getType(),
                 payment.getStatus(),
                 payment.getAmount(),
                 payment.getTaskTotal(),

@@ -23,7 +23,7 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 /**
- * A 10% advance a customer pays to confirm a task a worker has accepted.
+ * One leg of what a customer owes on a task - see {@link PaymentType} for the two of them.
  * One row per attempt: a fresh {@code transactionUuid} is minted every time the
  * customer starts a checkout, because the gateway keys everything off it.
  */
@@ -58,6 +58,15 @@ public class Payment {
     /** Snapshot of the task budget when checkout started, so the split stays auditable. */
     @Column(name = "task_total", nullable = false, precision = 10, scale = 2)
     private BigDecimal taskTotal;
+
+    /**
+     * Which instalment this is. Defaults to {@code ADVANCE} so the rows written before the
+     * balance leg existed - and the column's SQL default - agree with the entity.
+     */
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20)
+    @Builder.Default
+    private PaymentType type = PaymentType.ADVANCE;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)

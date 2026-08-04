@@ -6,6 +6,7 @@ import com.sewasathi.entity.ApprovalStatus;
 import com.sewasathi.entity.Payment;
 import com.sewasathi.entity.PaymentProvider;
 import com.sewasathi.entity.PaymentStatus;
+import com.sewasathi.entity.PaymentType;
 import com.sewasathi.entity.Role;
 import com.sewasathi.entity.Task;
 import com.sewasathi.entity.TaskStatus;
@@ -61,6 +62,9 @@ class PaymentServiceTest {
     @Mock
     private NotificationService notificationService;
 
+    @Mock
+    private TaskService taskService;
+
     private PaymentService paymentService;
 
     private User customer;
@@ -71,7 +75,7 @@ class PaymentServiceTest {
     void setUp() {
         paymentService = new PaymentService(
                 paymentRepository, taskRepository, userRepository, esewaService, khaltiService,
-                notificationService, new BigDecimal("0.10"), "http://localhost:5174"
+                notificationService, taskService, new BigDecimal("0.10"), "http://localhost:5174"
         );
 
         customer = User.builder()
@@ -100,6 +104,43 @@ class PaymentServiceTest {
                 .city("Kathmandu").location("Baneshwor")
                 .budget(new BigDecimal("2500")).status(TaskStatus.ACCEPTED)
                 .build();
+    }
+
+    /** The other end of the lifecycle: the worker has finished and the balance is due. */
+    private Task awaitingPaymentTask() {
+        Task task = acceptedTask();
+        task.setStatus(TaskStatus.AWAITING_PAYMENT);
+        return task;
+    }
+
+    private Payment pendingBalancePayment(Task task) {
+        return Payment.builder()
+                .id(52L).task(task).customer(customer).transactionUuid(UUID)
+                .amount(new BigDecimal("2250.00")).taskTotal(task.getBudget())
+                .type(PaymentType.BALANCE)
+                .provider(PaymentProvider.ESEWA).status(PaymentStatus.PENDING)
+                .build();
+    }
+
+    private Payment declaredCashPayment(Task task) {
+        return Payment.builder()
+                .id(53L).task(task).customer(customer).transactionUuid("SS-CASH-100-1730000000000")
+                .amount(new BigDecimal("2250.00")).taskTotal(task.getBudget())
+                .type(PaymentType.BALANCE)
+                .provider(PaymentProvider.CASH).status(PaymentStatus.PENDING)
+                .build();
+    }
+
+    private void cashClaimIs(Payment payment) {
+        when(paymentRepository.findByTaskIdAndTypeAndProviderAndStatusIn(
+                100L, PaymentType.BALANCE, PaymentProvider.CASH,
+                List.of(PaymentStatus.PENDING, PaymentStatus.COMPLETED)))
+                .thenReturn(payment == null ? List.of() : List.of(payment));
+    }
+
+    private void advanceHasSettled() {
+        when(paymentRepository.existsByTaskIdAndTypeAndStatus(
+                100L, PaymentType.ADVANCE, PaymentStatus.COMPLETED)).thenReturn(true);
     }
 
     private Payment pendingPayment(Task task) {
@@ -135,7 +176,7 @@ class PaymentServiceTest {
         Task task = acceptedTask();
         when(userRepository.findByEmail("customer@example.com")).thenReturn(Optional.of(customer));
         when(taskRepository.findById(100L)).thenReturn(Optional.of(task));
-        when(paymentRepository.findByTaskIdAndStatus(100L, PaymentStatus.PENDING)).thenReturn(List.of());
+        when(paymentRepository.findByTaskIdAndTypeAndStatus(100L, PaymentType.ADVANCE, PaymentStatus.PENDING)).thenReturn(List.of());
         when(esewaService.formatAmount(new BigDecimal("250.00"))).thenReturn("250");
         when(esewaService.getFormUrl()).thenReturn("https://rc-epay.esewa.com.np/api/epay/main/v2/form");
         when(esewaService.buildFormFields(anyString(), anyString(), anyString(), anyString()))
@@ -161,7 +202,7 @@ class PaymentServiceTest {
         Task task = acceptedTask();
         when(userRepository.findByEmail("customer@example.com")).thenReturn(Optional.of(customer));
         when(taskRepository.findById(100L)).thenReturn(Optional.of(task));
-        when(paymentRepository.findByTaskIdAndStatus(100L, PaymentStatus.PENDING)).thenReturn(List.of());
+        when(paymentRepository.findByTaskIdAndTypeAndStatus(100L, PaymentType.ADVANCE, PaymentStatus.PENDING)).thenReturn(List.of());
         when(esewaService.formatAmount(any())).thenReturn("250");
         when(esewaService.buildFormFields(anyString(), anyString(), anyString(), anyString()))
                 .thenReturn(Map.of());
@@ -182,7 +223,7 @@ class PaymentServiceTest {
         Payment abandoned = pendingPayment(task);
         when(userRepository.findByEmail("customer@example.com")).thenReturn(Optional.of(customer));
         when(taskRepository.findById(100L)).thenReturn(Optional.of(task));
-        when(paymentRepository.findByTaskIdAndStatus(100L, PaymentStatus.PENDING))
+        when(paymentRepository.findByTaskIdAndTypeAndStatus(100L, PaymentType.ADVANCE, PaymentStatus.PENDING))
                 .thenReturn(List.of(abandoned));
         when(esewaService.formatAmount(any())).thenReturn("250");
         when(esewaService.buildFormFields(anyString(), anyString(), anyString(), anyString()))
@@ -198,7 +239,7 @@ class PaymentServiceTest {
         Task task = acceptedTask();
         when(userRepository.findByEmail("customer@example.com")).thenReturn(Optional.of(customer));
         when(taskRepository.findById(100L)).thenReturn(Optional.of(task));
-        when(paymentRepository.findByTaskIdAndStatus(100L, PaymentStatus.PENDING)).thenReturn(List.of());
+        when(paymentRepository.findByTaskIdAndTypeAndStatus(100L, PaymentType.ADVANCE, PaymentStatus.PENDING)).thenReturn(List.of());
         when(khaltiService.toPaisa(new BigDecimal("250.00"))).thenReturn(25_000L);
         when(khaltiService.initiate(anyString(), anyString(), anyLong(), anyString(), any()))
                 .thenReturn(new KhaltiInitiateResponse(
@@ -227,7 +268,7 @@ class PaymentServiceTest {
         Task task = acceptedTask();
         when(userRepository.findByEmail("customer@example.com")).thenReturn(Optional.of(customer));
         when(taskRepository.findById(100L)).thenReturn(Optional.of(task));
-        when(paymentRepository.findByTaskIdAndStatus(100L, PaymentStatus.PENDING)).thenReturn(List.of());
+        when(paymentRepository.findByTaskIdAndTypeAndStatus(100L, PaymentType.ADVANCE, PaymentStatus.PENDING)).thenReturn(List.of());
         when(khaltiService.toPaisa(any())).thenReturn(25_000L);
         when(khaltiService.initiate(anyString(), anyString(), anyLong(), anyString(), any()))
                 .thenReturn(new KhaltiInitiateResponse(PIDX, "https://test-pay.khalti.com/", null, 1800));
@@ -250,7 +291,7 @@ class PaymentServiceTest {
         Task task = acceptedTask();
         when(userRepository.findByEmail("customer@example.com")).thenReturn(Optional.of(customer));
         when(taskRepository.findById(100L)).thenReturn(Optional.of(task));
-        when(paymentRepository.findByTaskIdAndStatus(100L, PaymentStatus.PENDING)).thenReturn(List.of());
+        when(paymentRepository.findByTaskIdAndTypeAndStatus(100L, PaymentType.ADVANCE, PaymentStatus.PENDING)).thenReturn(List.of());
         when(khaltiService.toPaisa(any())).thenReturn(25_000L);
         when(khaltiService.initiate(anyString(), anyString(), anyLong(), anyString(), any()))
                 .thenThrow(new InvalidOperationException("Khalti could not start this payment."));
@@ -281,7 +322,8 @@ class PaymentServiceTest {
         Task task = acceptedTask();
         when(userRepository.findByEmail("customer@example.com")).thenReturn(Optional.of(customer));
         when(taskRepository.findById(100L)).thenReturn(Optional.of(task));
-        when(paymentRepository.existsByTaskIdAndStatus(100L, PaymentStatus.COMPLETED)).thenReturn(true);
+        when(paymentRepository.existsByTaskIdAndTypeAndStatus(
+                100L, PaymentType.ADVANCE, PaymentStatus.COMPLETED)).thenReturn(true);
 
         assertThatThrownBy(() ->
                 paymentService.initiateAdvance("customer@example.com", 100L, PaymentProvider.ESEWA))
@@ -300,7 +342,290 @@ class PaymentServiceTest {
                 .isInstanceOf(ResourceNotFoundException.class);
     }
 
+    // --- initiate balance ---
+
+    @Test
+    void initiateBalance_chargesWhatIsLeftAfterTheAdvance() {
+        Task task = awaitingPaymentTask();
+        when(userRepository.findByEmail("customer@example.com")).thenReturn(Optional.of(customer));
+        when(taskRepository.findById(100L)).thenReturn(Optional.of(task));
+        advanceHasSettled();
+        when(paymentRepository.findByTaskIdAndTypeAndStatus(
+                100L, PaymentType.BALANCE, PaymentStatus.PENDING)).thenReturn(List.of());
+        when(esewaService.formatAmount(new BigDecimal("2250.00"))).thenReturn("2250");
+        when(esewaService.getFormUrl()).thenReturn("https://rc-epay.esewa.com.np/api/epay/main/v2/form");
+        when(esewaService.buildFormFields(anyString(), anyString(), anyString(), anyString()))
+                .thenReturn(Map.of("total_amount", "2250"));
+
+        PaymentInitiationResponse response =
+                paymentService.initiateBalance("customer@example.com", 100L, PaymentProvider.ESEWA);
+
+        // The two legs must add back up to exactly the budget.
+        assertThat(response.getAmount()).isEqualByComparingTo("2250.00");
+        assertThat(response.getTaskTotal()).isEqualByComparingTo("2500");
+
+        ArgumentCaptor<Payment> captor = ArgumentCaptor.forClass(Payment.class);
+        verify(paymentRepository).save(captor.capture());
+        assertThat(captor.getValue().getType()).isEqualTo(PaymentType.BALANCE);
+        assertThat(captor.getValue().getStatus()).isEqualTo(PaymentStatus.PENDING);
+    }
+
+    @Test
+    void initiateBalance_beforeTheJobIsFinished_isRejected() {
+        Task task = acceptedTask();
+        task.setStatus(TaskStatus.IN_PROGRESS);
+        when(userRepository.findByEmail("customer@example.com")).thenReturn(Optional.of(customer));
+        when(taskRepository.findById(100L)).thenReturn(Optional.of(task));
+
+        assertThatThrownBy(() ->
+                paymentService.initiateBalance("customer@example.com", 100L, PaymentProvider.ESEWA))
+                .isInstanceOf(InvalidOperationException.class)
+                .hasMessageContaining("only due once the worker has finished");
+    }
+
+    @Test
+    void initiateBalance_forCash_isRejectedBecauseThereIsNoGateway() {
+        assertThatThrownBy(() ->
+                paymentService.initiateBalance("customer@example.com", 100L, PaymentProvider.CASH))
+                .isInstanceOf(InvalidOperationException.class)
+                .hasMessageContaining("not made through a gateway");
+
+        // Rejected before anything is even looked up, so no row can be written.
+        verify(paymentRepository, never()).save(any());
+    }
+
+    @Test
+    void initiateBalance_withNoSettledAdvance_isRejected() {
+        // Unreachable through the UI, but the balance must never be the first money taken.
+        Task task = awaitingPaymentTask();
+        when(userRepository.findByEmail("customer@example.com")).thenReturn(Optional.of(customer));
+        when(taskRepository.findById(100L)).thenReturn(Optional.of(task));
+
+        assertThatThrownBy(() ->
+                paymentService.initiateBalance("customer@example.com", 100L, PaymentProvider.ESEWA))
+                .isInstanceOf(InvalidOperationException.class)
+                .hasMessageContaining("advance on this task has not been paid");
+    }
+
+    @Test
+    void initiateBalance_whenAlreadyPaidInFull_isRejected() {
+        Task task = awaitingPaymentTask();
+        when(userRepository.findByEmail("customer@example.com")).thenReturn(Optional.of(customer));
+        when(taskRepository.findById(100L)).thenReturn(Optional.of(task));
+        advanceHasSettled();
+        when(paymentRepository.existsByTaskIdAndTypeAndStatus(
+                100L, PaymentType.BALANCE, PaymentStatus.COMPLETED)).thenReturn(true);
+
+        assertThatThrownBy(() ->
+                paymentService.initiateBalance("customer@example.com", 100L, PaymentProvider.ESEWA))
+                .isInstanceOf(InvalidOperationException.class)
+                .hasMessageContaining("already been paid in full");
+    }
+
+    @Test
+    void initiateBalance_supersedesOnlyItsOwnAbandonedAttempts() {
+        Task task = awaitingPaymentTask();
+        Payment abandoned = pendingBalancePayment(task);
+        when(userRepository.findByEmail("customer@example.com")).thenReturn(Optional.of(customer));
+        when(taskRepository.findById(100L)).thenReturn(Optional.of(task));
+        advanceHasSettled();
+        when(paymentRepository.findByTaskIdAndTypeAndStatus(
+                100L, PaymentType.BALANCE, PaymentStatus.PENDING)).thenReturn(List.of(abandoned));
+        when(esewaService.formatAmount(any())).thenReturn("2250");
+        when(esewaService.buildFormFields(anyString(), anyString(), anyString(), anyString()))
+                .thenReturn(Map.of());
+
+        paymentService.initiateBalance("customer@example.com", 100L, PaymentProvider.ESEWA);
+
+        assertThat(abandoned.getStatus()).isEqualTo(PaymentStatus.CANCELLED);
+        // The advance's own rows are a different leg and must be left alone.
+        verify(paymentRepository, never())
+                .findByTaskIdAndTypeAndStatus(100L, PaymentType.ADVANCE, PaymentStatus.PENDING);
+    }
+
+    @Test
+    void initiateBalance_onSomeoneElsesTask_isTreatedAsNotFound() {
+        Task task = awaitingPaymentTask();
+        when(userRepository.findByEmail("other@example.com")).thenReturn(Optional.of(otherCustomer));
+        when(taskRepository.findById(100L)).thenReturn(Optional.of(task));
+
+        assertThatThrownBy(() ->
+                paymentService.initiateBalance("other@example.com", 100L, PaymentProvider.ESEWA))
+                .isInstanceOf(ResourceNotFoundException.class);
+    }
+
     // --- complete ---
+
+    @Test
+    void completeEsewa_forTheBalance_closesTheJobOutAndTellsTheWorker() {
+        // A gateway verifies itself, so there is nothing for the worker to confirm - the
+        // job closes the moment eSewa says the money moved.
+        Task task = awaitingPaymentTask();
+        Payment payment = pendingBalancePayment(task);
+        when(userRepository.findByEmail("customer@example.com")).thenReturn(Optional.of(customer));
+        when(esewaService.decodeCallback("data")).thenReturn(callback("COMPLETE", "2250"));
+        when(paymentRepository.findByTransactionUuid(UUID)).thenReturn(Optional.of(payment));
+        when(esewaService.formatAmount(any())).thenReturn("2250");
+        when(esewaService.checkStatus(UUID, "2250"))
+                .thenReturn(new EsewaStatusResponse("EPAYTEST", UUID, "2250", "COMPLETE", "0001TS9"));
+
+        PaymentResponse response = paymentService.completeEsewa("customer@example.com", "data");
+
+        assertThat(response.getStatus()).isEqualTo(PaymentStatus.COMPLETED);
+        assertThat(response.getType()).isEqualTo(PaymentType.BALANCE);
+        verify(taskService).markPaidInFull(task);
+        verify(notificationService).notify(
+                org.mockito.ArgumentMatchers.eq(worker),
+                anyString(), anyString(), anyString(),
+                org.mockito.ArgumentMatchers.eq("/worker/earnings"));
+    }
+
+    // --- cash ---
+
+    @Test
+    void declareCashBalance_recordsAClaimNobodyHasConfirmedYet() {
+        Task task = awaitingPaymentTask();
+        when(userRepository.findByEmail("customer@example.com")).thenReturn(Optional.of(customer));
+        when(taskRepository.findById(100L)).thenReturn(Optional.of(task));
+        advanceHasSettled();
+        when(paymentRepository.findByTaskIdAndTypeAndStatus(
+                100L, PaymentType.BALANCE, PaymentStatus.PENDING)).thenReturn(List.of());
+
+        PaymentResponse response = paymentService.declareCashBalance("customer@example.com", 100L);
+
+        assertThat(response.getProvider()).isEqualTo(PaymentProvider.CASH);
+        assertThat(response.getType()).isEqualTo(PaymentType.BALANCE);
+        // PENDING, not COMPLETED: the customer's word alone does not settle anything.
+        assertThat(response.getStatus()).isEqualTo(PaymentStatus.PENDING);
+        assertThat(response.getAmount()).isEqualByComparingTo("2250.00");
+        // And the task must not move - that is the worker's call.
+        assertThat(task.getStatus()).isEqualTo(TaskStatus.AWAITING_PAYMENT);
+        verify(taskService, never()).markPaidInFull(any());
+
+        // The worker has to be told, or nothing will ever prompt them to answer.
+        verify(notificationService).notify(
+                org.mockito.ArgumentMatchers.eq(worker),
+                org.mockito.ArgumentMatchers.eq("CASH_DECLARED"),
+                anyString(), anyString(),
+                org.mockito.ArgumentMatchers.eq("/worker/earnings"));
+    }
+
+    @Test
+    void declareCashBalance_supersedesAnAbandonedGatewayAttempt() {
+        // Changing your mind at the gateway and paying cash instead must not leave two
+        // live rows on the same leg.
+        Task task = awaitingPaymentTask();
+        Payment abandoned = pendingBalancePayment(task);
+        when(userRepository.findByEmail("customer@example.com")).thenReturn(Optional.of(customer));
+        when(taskRepository.findById(100L)).thenReturn(Optional.of(task));
+        advanceHasSettled();
+        when(paymentRepository.findByTaskIdAndTypeAndStatus(
+                100L, PaymentType.BALANCE, PaymentStatus.PENDING)).thenReturn(List.of(abandoned));
+
+        paymentService.declareCashBalance("customer@example.com", 100L);
+
+        assertThat(abandoned.getStatus()).isEqualTo(PaymentStatus.CANCELLED);
+    }
+
+    @Test
+    void declareCashBalance_beforeTheJobIsFinished_isRejected() {
+        Task task = acceptedTask();
+        task.setStatus(TaskStatus.IN_PROGRESS);
+        when(userRepository.findByEmail("customer@example.com")).thenReturn(Optional.of(customer));
+        when(taskRepository.findById(100L)).thenReturn(Optional.of(task));
+
+        assertThatThrownBy(() -> paymentService.declareCashBalance("customer@example.com", 100L))
+                .isInstanceOf(InvalidOperationException.class)
+                .hasMessageContaining("only due once the worker has finished");
+    }
+
+    @Test
+    void declareCashBalance_onSomeoneElsesTask_isTreatedAsNotFound() {
+        Task task = awaitingPaymentTask();
+        when(userRepository.findByEmail("other@example.com")).thenReturn(Optional.of(otherCustomer));
+        when(taskRepository.findById(100L)).thenReturn(Optional.of(task));
+
+        assertThatThrownBy(() -> paymentService.declareCashBalance("other@example.com", 100L))
+                .isInstanceOf(ResourceNotFoundException.class);
+    }
+
+    @Test
+    void confirmCashReceipt_settlesThePaymentAndClosesTheJob() {
+        Task task = awaitingPaymentTask();
+        Payment claim = declaredCashPayment(task);
+        when(userRepository.findByEmail("worker@example.com")).thenReturn(Optional.of(worker));
+        cashClaimIs(claim);
+
+        PaymentResponse response = paymentService.confirmCashReceipt("worker@example.com", 100L);
+
+        assertThat(response.getStatus()).isEqualTo(PaymentStatus.COMPLETED);
+        verify(taskService).markPaidInFull(task);
+        // The customer gets a receipt; the worker does not get told what they just said.
+        verify(notificationService).notify(
+                org.mockito.ArgumentMatchers.eq(customer),
+                anyString(), anyString(), anyString(), anyString());
+        verify(notificationService, never()).notify(
+                org.mockito.ArgumentMatchers.eq(worker),
+                anyString(), anyString(), anyString(), anyString());
+    }
+
+    @Test
+    void confirmCashReceipt_isIdempotentSoADoublePressIsHarmless() {
+        Task task = awaitingPaymentTask();
+        Payment claim = declaredCashPayment(task);
+        claim.setStatus(PaymentStatus.COMPLETED);
+        when(userRepository.findByEmail("worker@example.com")).thenReturn(Optional.of(worker));
+        cashClaimIs(claim);
+
+        PaymentResponse response = paymentService.confirmCashReceipt("worker@example.com", 100L);
+
+        assertThat(response.getStatus()).isEqualTo(PaymentStatus.COMPLETED);
+        verify(taskService, never()).markPaidInFull(any());
+    }
+
+    @Test
+    void rejectCashReceipt_failsTheClaimButLeavesTheTaskPayable() {
+        Task task = awaitingPaymentTask();
+        Payment claim = declaredCashPayment(task);
+        when(userRepository.findByEmail("worker@example.com")).thenReturn(Optional.of(worker));
+        cashClaimIs(claim);
+
+        PaymentResponse response = paymentService.rejectCashReceipt("worker@example.com", 100L);
+
+        assertThat(response.getStatus()).isEqualTo(PaymentStatus.FAILED);
+        // The job must not be stranded - the customer has to be able to pay again.
+        assertThat(task.getStatus()).isEqualTo(TaskStatus.AWAITING_PAYMENT);
+        verify(taskService, never()).markPaidInFull(any());
+        verify(notificationService).notify(
+                org.mockito.ArgumentMatchers.eq(customer),
+                org.mockito.ArgumentMatchers.eq("CASH_REJECTED"),
+                anyString(), anyString(),
+                org.mockito.ArgumentMatchers.eq("/dashboard/checkout/100"));
+    }
+
+    @Test
+    void confirmCashReceipt_byAWorkerTheTaskIsNotAssignedTo_isTreatedAsNotFound() {
+        Task task = awaitingPaymentTask();
+        User otherWorker = User.builder()
+                .id(4L).email("intruder@example.com").fullName("Worker Two")
+                .phone("9800000004").role(Role.WORKER).status(ApprovalStatus.APPROVED).suspended(false)
+                .build();
+        when(userRepository.findByEmail("intruder@example.com")).thenReturn(Optional.of(otherWorker));
+        cashClaimIs(declaredCashPayment(task));
+
+        assertThatThrownBy(() -> paymentService.confirmCashReceipt("intruder@example.com", 100L))
+                .isInstanceOf(ResourceNotFoundException.class);
+        verify(taskService, never()).markPaidInFull(any());
+    }
+
+    @Test
+    void confirmCashReceipt_withNoClaimToAnswer_isTreatedAsNotFound() {
+        when(userRepository.findByEmail("worker@example.com")).thenReturn(Optional.of(worker));
+        cashClaimIs(null);
+
+        assertThatThrownBy(() -> paymentService.confirmCashReceipt("worker@example.com", 100L))
+                .isInstanceOf(ResourceNotFoundException.class);
+    }
 
     @Test
     void completeEsewa_promotesTheTaskToAssigned() {
@@ -563,5 +888,17 @@ class PaymentServiceTest {
         assertThat(paymentService.advanceFor(new BigDecimal("2500"))).isEqualByComparingTo("250.00");
         assertThat(paymentService.advanceFor(new BigDecimal("1999"))).isEqualByComparingTo("199.90");
         assertThat(paymentService.advanceFor(new BigDecimal("1234.56"))).isEqualByComparingTo("123.46");
+    }
+
+    @Test
+    void theTwoLegsAlwaysAddUpToTheBudget() {
+        // The point of subtracting rather than taking 90% directly: a customer must never be
+        // charged a rupee more or less than the budget across the two instalments.
+        for (String budget : List.of("2500", "1999", "1234.56", "0.05", "99999.99")) {
+            BigDecimal total = new BigDecimal(budget);
+            assertThat(paymentService.advanceFor(total).add(paymentService.balanceFor(total)))
+                    .as("legs of %s", budget)
+                    .isEqualByComparingTo(total);
+        }
     }
 }
