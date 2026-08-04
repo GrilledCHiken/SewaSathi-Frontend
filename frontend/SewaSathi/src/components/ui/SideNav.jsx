@@ -129,7 +129,7 @@ export default function SideNav({
                       rail and is announced as a count, not as part of the destination. */}
                   {item.badge > 0 && (
                     <span
-                      className="ml-auto flex h-[18px] min-w-[18px] shrink-0 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white"
+                      className="ml-auto flex h-[18px] min-w-[18px] shrink-0 items-center justify-center rounded-full bg-danger px-1 text-[10px] font-bold text-white"
                       aria-label={`${item.badge} unread`}
                     >
                       {item.badge > 9 ? "9+" : item.badge}

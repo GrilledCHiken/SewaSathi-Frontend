@@ -1,19 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import useNotifications from "../hooks/useNotifications";
-
-function BellIcon() {
-  return (
-    <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-      <path
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        strokeWidth={1.75}
-        d="M15 17h5l-1.4-1.4A2 2 0 0118 14.2V11a6 6 0 10-12 0v3.2a2 2 0 01-.6 1.4L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"
-      />
-    </svg>
-  );
-}
+import { BellIcon } from "./ui/icons";
 
 function relativeTime(iso) {
   const then = new Date(iso).getTime();
@@ -64,12 +52,21 @@ export default function NotificationBell() {
           unreadCount > 0 ? `Notifications, ${unreadCount} unread` : "Notifications"
         }
         aria-expanded={open}
-        className="relative flex h-10 w-10 items-center justify-center rounded-full text-ink-muted transition hover:bg-surface-sunken hover:text-ink"
+        className={`relative flex h-10 w-10 items-center justify-center rounded-full transition duration-200 ease-out-soft focus-ring ${
+          open
+            ? "bg-surface-sunken text-brand"
+            : "text-ink-muted hover:bg-surface-sunken hover:text-ink active:scale-95"
+        }`}
       >
-        <BellIcon />
+        <BellIcon className="h-[22px] w-[22px]" />
+        {/* The count is already announced by the button's aria-label, so the
+            badge itself stays out of the accessibility tree. */}
         {unreadCount > 0 && (
-          <span className="absolute right-1.5 top-1.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white ring-2 ring-white">
-            {unreadCount > 9 ? "9+" : unreadCount}
+          <span className="absolute right-1 top-1 flex" aria-hidden="true">
+            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-danger opacity-60 motion-reduce:hidden" />
+            <span className="relative inline-flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-danger px-1 text-[10px] font-bold leading-none text-white ring-2 ring-surface">
+              {unreadCount > 9 ? "9+" : unreadCount}
+            </span>
           </span>
         )}
       </button>

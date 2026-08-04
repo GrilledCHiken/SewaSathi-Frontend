@@ -37,7 +37,7 @@ export default function Terms() {
             <h1 className="text-4xl font-extrabold tracking-tight text-ink sm:text-5xl">
               Terms of Service
             </h1>
-            <p className="mt-4 text-base text-ink-muted">Last updated: January 2026</p>
+            <p className="mt-4 text-base text-ink-muted">Last updated: August 2026</p>
           </Reveal>
         </div>
       </section>
