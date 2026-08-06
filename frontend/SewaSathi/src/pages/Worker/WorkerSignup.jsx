@@ -8,6 +8,7 @@ import {
   sanitizePhone,
   validateSignupForm,
 } from "../../utils/validation";
+import { stashSignupPassword } from "../../utils/signupHandoff";
 import AuthLayout, { AuthFooterLink } from "../../components/auth/AuthLayout";
 import WorkerAside from "../../components/auth/WorkerAside";
 import WorkerSignupSteps from "../../components/auth/WorkerSignupSteps";
@@ -56,7 +57,7 @@ function WorkerSignup() {
     password: "",
     confirmPassword: "",
   });
-  const { registerWorker, login } = useAuth();
+  const { registerWorker } = useAuth();
   const navigate = useNavigate();
 
   const update = (field) => (e) => {
@@ -87,7 +88,9 @@ function WorkerSignup() {
 
     setLoading(true);
     try {
-      await registerWorker({
+      // No account yet: this only emails a code. /signup/verify is where the account is
+      // actually created, once that code comes back.
+      const challenge = await registerWorker({
         fullName: form.fullName.trim(),
         email,
         phone: form.phone.trim(),
@@ -95,25 +98,17 @@ function WorkerSignup() {
       });
       setSuccess(true);
 
-      // Registration hands back no token, but the verification step that follows posts
-      // documents to an authenticated endpoint — so trade the credentials still in
-      // state for a session and carry straight on to step 2.
-      try {
-        await login({ email, password: form.password });
-      } catch {
-        // The account exists either way; falling back to the old flow beats stranding
-        // them. WorkerLayout still puts the verification form in front of them once
-        // they sign in.
-        toast.success("Account created! Sign in to finish your verification.");
-        navigate("/login", {
-          replace: true,
-          state: { registered: true, email, role: "WORKER" },
-        });
-        return;
-      }
+      // The document upload in step 2 posts to an authenticated endpoint, so the new
+      // account has to be signed in the moment it exists — which is now one screen away.
+      // The password rides there in memory rather than in router state, which react-router
+      // would serialise into window.history.state.
+      stashSignupPassword(form.password);
 
-      toast.success("Account created — one more step to go.");
-      navigate("/signup/worker/verify", { replace: true });
+      toast.success(`We sent a 6-digit code to ${email}.`);
+      navigate("/signup/verify", {
+        replace: true,
+        state: { ...challenge, email, role: "WORKER" },
+      });
     } catch (err) {
       // Same as the customer form: a duplicate address is only detectable server-side, so
       // that message has to reach the email field.

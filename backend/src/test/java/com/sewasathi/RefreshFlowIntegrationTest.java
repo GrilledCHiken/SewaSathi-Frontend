@@ -2,12 +2,14 @@ package com.sewasathi;
 
 import com.jayway.jsonpath.JsonPath;
 import com.sewasathi.repository.UserRepository;
+import com.sewasathi.service.EmailService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 
@@ -32,6 +34,10 @@ class RefreshFlowIntegrationTest {
     @Autowired
     private UserRepository userRepository;
 
+    /** Signing up now needs the emailed code, which SignupFlow reads back off this spy. */
+    @MockitoSpyBean
+    private EmailService emailService;
+
     private String email;
     private String password;
 
@@ -40,12 +46,8 @@ class RefreshFlowIntegrationTest {
         email = "refresh-flow-" + System.nanoTime() + "@example.com";
         password = "RefreshPass1!";
 
-        mockMvc.perform(post("/api/auth/register/customer")
-                        .contentType("application/json")
-                        .content("""
-                                {"fullName":"Refresh Flow","email":"%s","phone":"9800000033","password":"%s"}
-                                """.formatted(email, password)))
-                .andExpect(status().isCreated());
+        SignupFlow.registerCustomer(mockMvc, emailService,
+                "Refresh Flow", email, "9800000033", password);
     }
 
     private String[] signIn() throws Exception {

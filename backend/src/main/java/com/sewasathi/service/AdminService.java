@@ -1,5 +1,6 @@
 package com.sewasathi.service;
 
+import com.sewasathi.config.ContactProperties;
 import com.sewasathi.dto.response.AdminAnalyticsResponse;
 import com.sewasathi.dto.response.AdminOverviewResponse;
 import com.sewasathi.dto.response.AdminUserDetailResponse;
@@ -19,7 +20,9 @@ import com.sewasathi.repository.PaymentRepository;
 import com.sewasathi.repository.TaskRepository;
 import com.sewasathi.repository.UserRepository;
 import com.sewasathi.repository.WorkerProfileRepository;
-import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Limit;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -27,9 +30,10 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 
 @Service
-@RequiredArgsConstructor
+@Slf4j
 public class AdminService {
 
     /** How many entries the "top service categories" and "top locations" lists carry. */
@@ -41,6 +45,39 @@ public class AdminService {
     private final PaymentRepository paymentRepository;
     private final ContactMessageRepository contactMessageRepository;
     private final FileStorageService fileStorageService;
+    private final EmailService emailService;
+    private final ContactProperties contactProperties;
+    private final String frontendUrl;
+
+    // Written out rather than left to @RequiredArgsConstructor because the @Value parameter
+    // below needs the annotation on the constructor argument, and Lombok does not copy it
+    // there. PaymentService does the same for the same reason.
+    @Autowired
+    public AdminService(
+            UserRepository userRepository,
+            WorkerProfileRepository workerProfileRepository,
+            TaskRepository taskRepository,
+            PaymentRepository paymentRepository,
+            ContactMessageRepository contactMessageRepository,
+            FileStorageService fileStorageService,
+            EmailService emailService,
+            ContactProperties contactProperties,
+            @Value("${app.frontend-url}") String frontendUrl
+    ) {
+        this.userRepository = userRepository;
+        this.workerProfileRepository = workerProfileRepository;
+        this.taskRepository = taskRepository;
+        this.paymentRepository = paymentRepository;
+        this.contactMessageRepository = contactMessageRepository;
+        this.fileStorageService = fileStorageService;
+        this.emailService = emailService;
+        this.contactProperties = contactProperties;
+        this.frontendUrl = trimTrailingSlash(frontendUrl);
+    }
+
+    private static String trimTrailingSlash(String url) {
+        return url.endsWith("/") ? url.substring(0, url.length() - 1) : url;
+    }
 
     /**
      * The live figures behind the analytics dashboard, all measured over the same window.
@@ -203,18 +240,54 @@ public class AdminService {
         return AdminUserDetailResponse.from(user, profile);
     }
 
+    /**
+     * Lets a worker start taking jobs, and tells them so. The decision is the point of the
+     * call; the email is best-effort, for the same reason suspension's is - see
+     * {@link #send(User, String, String, Map)}.
+     */
     @Transactional
     public UserResponse approveWorker(Long userId) {
         User user = getWorkerOrThrow(userId);
         user.setStatus(ApprovalStatus.APPROVED);
-        return UserResponse.from(userRepository.save(user));
+        // An approved worker must not keep the reason from an earlier rejection: it would
+        // resurface in their banner and in any later rejection email, describing something
+        // that was already put right.
+        user.setRejectionReason(null);
+        User saved = userRepository.save(user);
+        notifyApproved(saved);
+        return UserResponse.from(saved);
     }
 
+    /**
+     * Turns an application down. The reason is stored as well as sent, because the banner the
+     * worker sees at their next sign-in repeats it - see {@code WorkerLayout} on the client.
+     */
     @Transactional
-    public UserResponse rejectWorker(Long userId) {
+    public UserResponse rejectWorker(Long userId, String reason) {
         User user = getWorkerOrThrow(userId);
         user.setStatus(ApprovalStatus.REJECTED);
-        return UserResponse.from(userRepository.save(user));
+        user.setRejectionReason(reason.trim());
+        User saved = userRepository.save(user);
+        notifyRejected(saved, saved.getRejectionReason());
+        return UserResponse.from(saved);
+    }
+
+    private boolean notifyApproved(User user) {
+        return send(user, "Your Sewa Sathi worker application has been approved",
+                "email/worker-approved",
+                Map.of(
+                        "name", firstName(user.getFullName()),
+                        "loginUrl", frontendUrl + "/login"));
+    }
+
+    private boolean notifyRejected(User user, String reason) {
+        return send(user, "An update on your Sewa Sathi worker application",
+                "email/worker-rejected",
+                Map.of(
+                        "name", firstName(user.getFullName()),
+                        // The admin's own words, unedited - the same text fills the banner.
+                        "reason", reason,
+                        "supportEmail", contactProperties.getSupportEmail()));
     }
 
     private User getWorkerOrThrow(Long userId) {
@@ -226,18 +299,71 @@ public class AdminService {
         return user;
     }
 
+    /**
+     * Locks the account out and tells its owner why. The reason is stored as well as sent,
+     * because the sign-in attempt that follows repeats it - see
+     * {@link com.sewasathi.exception.SuspendedAccountException}.
+     */
     @Transactional
-    public AdminUserResponse suspendUser(Long userId) {
+    public AdminUserResponse suspendUser(Long userId, String reason) {
         User user = getSuspendableUserOrThrow(userId);
         user.setSuspended(true);
-        return AdminUserResponse.from(userRepository.save(user));
+        user.setSuspensionReason(reason);
+        User saved = userRepository.save(user);
+        return AdminUserResponse.from(saved, notifySuspended(saved, reason));
     }
 
     @Transactional
-    public AdminUserResponse unsuspendUser(Long userId) {
+    public AdminUserResponse unsuspendUser(Long userId, String note) {
         User user = getSuspendableUserOrThrow(userId);
         user.setSuspended(false);
-        return AdminUserResponse.from(userRepository.save(user));
+        // A restored account must not keep the old reason: it would resurface in the 403 the
+        // next time anything suspends them, describing something that was already resolved.
+        user.setSuspensionReason(null);
+        User saved = userRepository.save(user);
+        return AdminUserResponse.from(saved, notifyRestored(saved, note));
+    }
+
+    private boolean notifySuspended(User user, String reason) {
+        return send(user, "Your Sewa Sathi account has been suspended", "email/account-suspended",
+                Map.of(
+                        "name", firstName(user.getFullName()),
+                        "reason", reason,
+                        "supportEmail", contactProperties.getSupportEmail()));
+    }
+
+    private boolean notifyRestored(User user, String note) {
+        return send(user, "Your Sewa Sathi account has been restored", "email/account-restored",
+                Map.of(
+                        "name", firstName(user.getFullName()),
+                        // Normalised to "" rather than left null: Map.of rejects nulls, and the
+                        // template drops the paragraph on an empty string either way.
+                        "note", note == null ? "" : note.trim(),
+                        "loginUrl", frontendUrl + "/login"));
+    }
+
+    /**
+     * The one place this service swallows an exception, and deliberately so: an admin decision -
+     * a suspension, or approving or rejecting a worker - must not hinge on the mail server being
+     * reachable. Catching here - rather than letting
+     * {@link com.sewasathi.exception.EmailDeliveryException} escape the transactional proxy - is
+     * what keeps Spring from marking the transaction rollback-only, so the decision sticks and,
+     * where the caller passes the flag on, the admin is told the notice did not go out.
+     */
+    private boolean send(User user, String subject, String template, Map<String, Object> model) {
+        try {
+            emailService.sendTemplate(user.getEmail(), subject, template, model);
+            return true;
+        } catch (RuntimeException ex) {
+            log.warn("Could not email {} about their account status: {}", user.getEmail(), ex.getMessage());
+            return false;
+        }
+    }
+
+    private String firstName(String fullName) {
+        String trimmed = fullName == null ? "" : fullName.trim();
+        int space = trimmed.indexOf(' ');
+        return space > 0 ? trimmed.substring(0, space) : trimmed;
     }
 
     private User getSuspendableUserOrThrow(Long userId) {

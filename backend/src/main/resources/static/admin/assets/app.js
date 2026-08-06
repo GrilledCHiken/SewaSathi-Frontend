@@ -39,15 +39,22 @@
     /**
      * POSTs to an admin endpoint with the CSRF token attached. Without the token header the
      * server answers 403 by design - that is the protection, not a bug.
+     *
+     * `body`, when given, is sent as JSON; endpoints that take no payload omit it entirely
+     * rather than posting an empty object.
      */
-    function post(path) {
+    function post(path, body) {
         var headers = { Accept: "application/json" };
         if (csrfToken) {
             headers[csrfHeader] = csrfToken;
         }
+        if (body) {
+            headers["Content-Type"] = "application/json";
+        }
         return fetch(path, {
             method: "POST",
             headers: headers,
+            body: body ? JSON.stringify(body) : undefined,
             // The session cookie is what authenticates these calls.
             credentials: "same-origin"
         }).then(function (response) {
@@ -66,11 +73,19 @@
         });
     }
 
-    function bindAction(selector, buildPath, onSuccess) {
+    /**
+     * `buildBody` is optional. Returning nothing posts without a payload; returning false
+     * abandons the click, which is how a cancelled prompt stops short of the server.
+     */
+    function bindAction(selector, buildPath, onSuccess, buildBody) {
         document.querySelectorAll(selector).forEach(function (button) {
             button.addEventListener("click", function () {
+                var body = buildBody ? buildBody(button) : undefined;
+                if (body === false) {
+                    return;
+                }
                 button.disabled = true;
-                post(buildPath(button))
+                post(buildPath(button), body)
                     .then(function (data) {
                         onSuccess(button, data);
                     })
@@ -94,7 +109,23 @@
             if (card) {
                 card.remove();
             }
-            toast(button.dataset.action === "approve" ? "Worker approved." : "Worker rejected.");
+            toast(
+                button.dataset.action === "approve"
+                    ? "Worker approved. They have been emailed."
+                    : "Worker rejected. They have been emailed the reason."
+            );
+        },
+        function (button) {
+            if (button.dataset.action !== "reject") {
+                // There is nothing to explain about an approval.
+                return undefined;
+            }
+            // window.prompt for the same reason the suspend action uses one - see below.
+            var reason = window.prompt(document.body.dataset.msgRejectReason || "Reason for rejection");
+            if (reason === null || !reason.trim()) {
+                return false;
+            }
+            return { reason: reason.trim() };
         }
     );
 
@@ -121,7 +152,29 @@
                 tag.textContent = suspending ? "Suspended" : user.status;
                 statusCell.appendChild(tag);
             }
-            toast(suspending ? "Account suspended." : "Account restored.");
+            toast(
+                suspending
+                    ? (user.emailSent === false
+                        ? "Account suspended, but the notification email could not be sent."
+                        : "Account suspended. They have been emailed.")
+                    : "Account restored. They have been emailed."
+            );
+        },
+        function (button) {
+            if (button.dataset.action !== "suspend") {
+                // Restoring takes an optional note; the console does not ask for one.
+                return undefined;
+            }
+            /*
+             * window.prompt rather than a dialog: this console has no modal of its own, and
+             * the React admin app is where the richer form lives. The server rejects a blank
+             * reason anyway - asking here just saves the round trip.
+             */
+            var reason = window.prompt(document.body.dataset.msgSuspendReason || "Reason for suspension");
+            if (reason === null || !reason.trim()) {
+                return false;
+            }
+            return { reason: reason.trim() };
         }
     );
 

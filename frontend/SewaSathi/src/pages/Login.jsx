@@ -1,30 +1,36 @@
 import { useEffect, useState } from 'react'
-import { Navigate, useLocation, useNavigate } from 'react-router-dom'
+import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom'
 import { toast } from 'react-toastify'
 import { useAuth } from '../context/AuthContext'
 import AuthLayout, { AuthFooterLink } from '../components/auth/AuthLayout'
+import GoogleSignInButton from '../components/auth/GoogleSignInButton'
 import Alert from '../components/ui/Alert'
 import Button from '../components/ui/Button'
 import { Field, Input } from '../components/ui/Field'
 import { ArrowRightIcon, EyeIcon, LockIcon, MailIcon } from '../components/ui/icons'
+import { routeForRole } from '../utils/authRouting'
+import { stashGoogleCredential } from '../utils/signupHandoff'
 
 function Login() {
   const [showPassword, setShowPassword] = useState(false)
   const location = useLocation()
   // Captured once on mount: router state survives a refresh, so reading it on every
-  // render would re-show a stale "account created" banner.
-  const [signupNotice] = useState(() => (location.state?.registered ? location.state : null))
+  // render would re-show a stale banner. Both flows that route here — finishing a signup
+  // and finishing a password reset — hand off the same way.
+  const [arrivalNotice] = useState(() =>
+    location.state?.registered || location.state?.passwordReset ? location.state : null,
+  )
   const [email, setEmail] = useState(() => location.state?.email ?? '')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
-  const { isCustomerAuthenticated, user, login } = useAuth()
+  const { isCustomerAuthenticated, user, login, loginWithGoogle } = useAuth()
   const navigate = useNavigate()
 
   useEffect(() => {
-    if (signupNotice) {
+    if (arrivalNotice) {
       window.history.replaceState({}, '')
     }
-  }, [signupNotice])
+  }, [arrivalNotice])
 
   const from = location.state?.from?.pathname || '/dashboard'
 
@@ -45,16 +51,8 @@ function Login() {
     setLoading(true)
     try {
       const result = await login({ email: email.trim(), password })
-
-      const sessionUser = result.user
       toast.success('Welcome back!')
-      if (sessionUser.role === 'ADMIN') {
-        navigate('/admin', { replace: true })
-      } else if (sessionUser.role === 'CUSTOMER') {
-        navigate(from, { replace: true })
-      } else if (sessionUser.role === 'WORKER') {
-        navigate('/worker', { replace: true })
-      }
+      navigate(routeForRole(result.user, from), { replace: true })
     } catch (err) {
       // 403 is a suspended account, which carries its own message; anything else is
       // reported as a credentials failure so a wrong password reveals nothing more.
@@ -64,18 +62,42 @@ function Login() {
     }
   }
 
+  const handleGoogleCredential = async (credential) => {
+    try {
+      const result = await loginWithGoogle({ credential })
+
+      // Verified, but nobody here by that address yet. The account is created on the next
+      // screen, once it has the phone number Google does not supply.
+      if (result.status === 'profileCompletionRequired') {
+        stashGoogleCredential(credential)
+        navigate('/signup/google', { replace: true, state: result })
+        return
+      }
+
+      toast.success('Welcome back!')
+      navigate(routeForRole(result.user, from), { replace: true })
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Google sign-in failed. Please try again.')
+    }
+  }
+
   return (
     <AuthLayout
       title="Welcome back"
       subtitle="Sign in to your SewaSathi account"
       notice={
-        signupNotice && (
+        arrivalNotice &&
+        (arrivalNotice.passwordReset ? (
+          <Alert tone="success" title="Password updated" role="status">
+            Sign in below with your new password.
+          </Alert>
+        ) : (
           <Alert tone="success" title="Account created successfully!" role="status">
             Sign in below to get started.
-            {signupNotice.role === 'WORKER' &&
+            {arrivalNotice.role === 'WORKER' &&
               ' Your worker application will be reviewed by an administrator.'}
           </Alert>
-        )
+        ))
       }
       footer={
         <AuthFooterLink prompt="Don't have an account?" to="/signup" label="Sign up" />
@@ -97,7 +119,14 @@ function Login() {
           )}
         </Field>
 
-        <Field id="password" label="Password">
+        <Field
+          id="password"
+          label="Password"
+          // Carries whatever they have already typed, so the reset flow does not open on an
+          // empty email field they just filled in.
+          
+
+        >
           {(field) => (
             <Input
               {...field}
@@ -122,6 +151,16 @@ function Login() {
           )}
         </Field>
 
+<div className='flex justify-end'>
+        <Link 
+              to="/forgot-password"
+              state={{ email: email.trim() }}
+              className=" rounded text-sm font-semibold text-brand transition hover:text-brand-dark focus-ring"
+            >
+              Forgot password?
+            </Link>
+</div>
+
         <Button
           type="submit"
           size="lg"
@@ -133,6 +172,8 @@ function Login() {
           {loading ? 'Signing in...' : 'Sign In'}
         </Button>
       </form>
+
+      <GoogleSignInButton onCredential={handleGoogleCredential} text="signin_with" />
     </AuthLayout>
   )
 }

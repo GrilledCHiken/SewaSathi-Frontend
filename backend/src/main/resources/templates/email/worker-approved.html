@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{email/fragments/layout :: page(
+          'You are approved to work',
+          'Your Sewa Sathi worker account is now live.',
+          ~{::#content})}">
+<head><meta charset="UTF-8"/><title>You are approved to work</title></head>
+<body>
+<div id="content">
+
+    <p style="margin:0 0 12px;font-size:15px;line-height:1.65;color:#334155;">
+        Hi <span th:text="${name}">there</span>,
+    </p>
+    <p style="margin:0;font-size:15px;line-height:1.65;color:#334155;">
+        Good news - an administrator has reviewed your documents and approved your Sewa Sathi
+        worker application. Your profile is now visible to customers searching for the services
+        you offer, and you can start accepting tasks straight away.
+    </p>
+
+    <p style="margin:16px 0 0;font-size:15px;line-height:1.65;color:#334155;">
+        Sign in to check your profile is complete - your skills, rate and location are what
+        customers search on, so the more accurate they are, the more work you will be offered.
+    </p>
+
+    <th:block th:replace="~{email/fragments/components :: button(${loginUrl}, 'Sign in')}"/>
+    <th:block th:replace="~{email/fragments/components :: linkFallback(${loginUrl})}"/>
+
+</div>
+</body>
+</html>

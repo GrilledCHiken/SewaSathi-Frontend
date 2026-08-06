@@ -25,9 +25,16 @@ public class UserPrincipal implements UserDetails {
         return List.of(new SimpleGrantedAuthority("ROLE_" + user.getRole().name()));
     }
 
+    /**
+     * Empty rather than null for a Google-only account. Spring Security's password paths - the
+     * admin console's form login among them - are not written for a null here, and an empty
+     * string is the right answer anyway: no input can BCrypt-match it, so the password route
+     * stays closed for exactly the accounts that never had one.
+     */
     @Override
     public String getPassword() {
-        return user.getPasswordHash();
+        String hash = user.getPasswordHash();
+        return hash != null ? hash : "";
     }
 
     @Override

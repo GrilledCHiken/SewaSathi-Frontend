@@ -5,6 +5,9 @@ import { useAuth } from '../../context/AuthContext'
 import PasswordChecklist from '../../components/PasswordChecklist'
 import { parseSignupError, sanitizePhone, validateSignupForm } from '../../utils/validation'
 import AuthLayout, { AuthFooterLink } from '../../components/auth/AuthLayout'
+import GoogleSignInButton from '../../components/auth/GoogleSignInButton'
+import { routeForRole } from '../../utils/authRouting'
+import { stashGoogleCredential } from '../../utils/signupHandoff'
 import Button from '../../components/ui/Button'
 import { Field, Input } from '../../components/ui/Field'
 import {
@@ -48,8 +51,26 @@ function UserSignup() {
     password: '',
     confirmPassword: '',
   })
-  const { registerCustomer } = useAuth()
+  const { registerCustomer, loginWithGoogle } = useAuth()
   const navigate = useNavigate()
+
+  const handleGoogleCredential = async (credential) => {
+    try {
+      const result = await loginWithGoogle({ credential })
+
+      if (result.status === 'profileCompletionRequired') {
+        stashGoogleCredential(credential)
+        navigate('/signup/google', { replace: true, state: result })
+        return
+      }
+
+      // Already had an account. Nothing was created, so this is a sign-in, not a signup.
+      toast.success('Welcome back!')
+      navigate(routeForRole(result.user), { replace: true })
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Google sign-in failed. Please try again.')
+    }
+  }
 
   const update = (field) => (e) => {
     const value = field === 'phone' ? sanitizePhone(e.target.value) : e.target.value
@@ -75,18 +96,22 @@ function UserSignup() {
       return
     }
 
+    const email = form.email.trim()
+
     setLoading(true)
     try {
-      await registerCustomer({
+      // No account yet: this only emails a code. /signup/verify is where the account is
+      // actually created, once that code comes back.
+      const challenge = await registerCustomer({
         fullName: form.fullName.trim(),
-        email: form.email.trim(),
+        email,
         phone: form.phone.trim(),
         password: form.password,
       })
-      toast.success('Account created! Please sign in to continue.')
-      navigate('/login', {
+      toast.success(`We sent a 6-digit code to ${email}.`)
+      navigate('/signup/verify', {
         replace: true,
-        state: { registered: true, email: form.email.trim(), role: 'CUSTOMER' },
+        state: { ...challenge, email, role: 'CUSTOMER' },
       })
     } catch (err) {
       // An address already registered is something only the server can detect, so that
@@ -288,6 +313,10 @@ function UserSignup() {
           {loading ? 'Creating account...' : 'Create Account'}
         </Button>
       </form>
+
+      {/* Signing up this way skips the emailed code — Google has already established that the
+          address belongs to them, which is the only thing the code is there to prove. */}
+      <GoogleSignInButton onCredential={handleGoogleCredential} text="signup_with" />
     </AuthLayout>
   )
 }

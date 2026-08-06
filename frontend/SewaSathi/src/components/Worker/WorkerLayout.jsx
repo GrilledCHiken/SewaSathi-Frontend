@@ -18,6 +18,12 @@ const STATUS_MESSAGES = {
   },
 };
 
+/**
+ * The admin's own words, when there are any. Accounts rejected before the reason became
+ * mandatory have none, and fall back to the generic line above.
+ */
+const rejectionLead = "Your worker application wasn't approved.";
+
 function WorkerLayout() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [profile, setProfile] = useState(null);
@@ -49,10 +55,22 @@ function WorkerLayout() {
     }
 
     const message = STATUS_MESSAGES[user.status] || STATUS_MESSAGES.PENDING;
+    const reason = user.status === "REJECTED" ? user.rejectionReason?.trim() : null;
     return (
       <div className="flex min-h-svh flex-col items-center justify-center bg-slate-50 px-4 py-12 text-center">
         <div className={`max-w-md rounded-2xl px-6 py-8 text-sm font-medium ${message.tone}`}>
-          {message.text}
+          {reason ? (
+            <>
+              <p>{rejectionLead}</p>
+              <p className="mt-3 text-xs font-semibold uppercase tracking-wide opacity-70">
+                Reason given
+              </p>
+              {/* The admin typed this; whitespace is preserved so line breaks survive. */}
+              <p className="mt-1 whitespace-pre-line font-normal">{reason}</p>
+            </>
+          ) : (
+            message.text
+          )}
         </div>
         <div className="mt-6 flex gap-3">
           <Link

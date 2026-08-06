@@ -1,13 +1,18 @@
 package com.sewasathi.controller.web;
 
+import com.sewasathi.dto.request.RejectWorkerRequest;
+import com.sewasathi.dto.request.SuspendUserRequest;
+import com.sewasathi.dto.request.UnsuspendUserRequest;
 import com.sewasathi.dto.response.AdminUserResponse;
 import com.sewasathi.dto.response.UserResponse;
 import com.sewasathi.service.AdminService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpSession;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -35,18 +40,21 @@ public class AdminWebApiController {
     }
 
     @PostMapping("/workers/{id}/reject")
-    public UserResponse rejectWorker(@PathVariable Long id) {
-        return adminService.rejectWorker(id);
+    public UserResponse rejectWorker(@PathVariable Long id, @Valid @RequestBody RejectWorkerRequest request) {
+        return adminService.rejectWorker(id, request.getReason());
     }
 
     @PostMapping("/users/{id}/suspend")
-    public AdminUserResponse suspendUser(@PathVariable Long id) {
-        return adminService.suspendUser(id);
+    public AdminUserResponse suspendUser(@PathVariable Long id, @Valid @RequestBody SuspendUserRequest request) {
+        return adminService.suspendUser(id, request.getReason().trim());
     }
 
+    /** Optional body, matching {@code /api/admin}: the note only enriches the email. */
     @PostMapping("/users/{id}/unsuspend")
-    public AdminUserResponse unsuspendUser(@PathVariable Long id) {
-        return adminService.unsuspendUser(id);
+    public AdminUserResponse unsuspendUser(
+            @PathVariable Long id,
+            @Valid @RequestBody(required = false) UnsuspendUserRequest request) {
+        return adminService.unsuspendUser(id, request == null ? null : request.getNote());
     }
 
     /**

@@ -9,6 +9,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
+import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockHttpSession;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.context.ActiveProfiles;
@@ -150,7 +151,9 @@ class AdminConsoleIntegrationTest {
 
         mockMvc.perform(post("/admin/api/users/" + customerId + "/suspend")
                         .session(session)
-                        .with(user("admin").roles("ADMIN")))
+                        .with(user("admin").roles("ADMIN"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"reason\":\"Testing CSRF\"}"))
                 .andExpect(status().isForbidden());
 
         assertThat(userRepository.findById(customerId).orElseThrow().isSuspended())
@@ -162,15 +165,35 @@ class AdminConsoleIntegrationTest {
     void adminApiMutation_withACsrfToken_succeeds() throws Exception {
         mockMvc.perform(post("/admin/api/users/" + customerId + "/suspend")
                         .with(user("admin").roles("ADMIN"))
-                        .with(csrf()))
+                        .with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"reason\":\"Repeated no-shows on confirmed bookings.\"}"))
                 .andExpect(status().isOk());
 
-        assertThat(userRepository.findById(customerId).orElseThrow().isSuspended()).isTrue();
+        User suspended = userRepository.findById(customerId).orElseThrow();
+        assertThat(suspended.isSuspended()).isTrue();
+        assertThat(suspended.getSuspensionReason()).isEqualTo("Repeated no-shows on confirmed bookings.");
 
+        // No body at all: the note is optional, so restoring must still go through.
         mockMvc.perform(post("/admin/api/users/" + customerId + "/unsuspend")
                         .with(user("admin").roles("ADMIN"))
                         .with(csrf()))
                 .andExpect(status().isOk());
+
+        User restored = userRepository.findById(customerId).orElseThrow();
+        assertThat(restored.isSuspended()).isFalse();
+        assertThat(restored.getSuspensionReason()).isNull();
+    }
+
+    /** The reason is what the account holder is told, so a suspension without one is refused. */
+    @Test
+    void suspending_withoutAReason_isRejected() throws Exception {
+        mockMvc.perform(post("/admin/api/users/" + customerId + "/suspend")
+                        .with(user("admin").roles("ADMIN"))
+                        .with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"reason\":\"   \"}"))
+                .andExpect(status().isBadRequest());
 
         assertThat(userRepository.findById(customerId).orElseThrow().isSuspended()).isFalse();
     }

@@ -20,7 +20,13 @@
     <link rel="icon" th:href="@{/admin/assets/favicon.png}" type="image/png">
     <link rel="stylesheet" th:href="@{/admin/assets/app.css}">
 </head>
-<body>
+<!--/*
+  Strings app.js needs at runtime ride on the body as data attributes: the script is served
+  from /static so it cannot be parsed by Thymeleaf, and the page's Content-Security-Policy is
+  'self', which rules out an inline <script> holding them.
+*/-->
+<body th:data-msg-suspend-reason="#{admin.prompt.suspendReason}"
+      th:data-msg-reject-reason="#{admin.prompt.rejectReason}">
 
 <header class="topbar">
     <a class="brand" th:href="@{/admin/dashboard}">

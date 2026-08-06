@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{email/fragments/layout :: page(
+          'An update on your application',
+          'Your Sewa Sathi worker application was not approved.',
+          ~{::#content})}">
+<head><meta charset="UTF-8"/><title>An update on your application</title></head>
+<body>
+<div id="content">
+
+    <p style="margin:0 0 12px;font-size:15px;line-height:1.65;color:#334155;">
+        Hi <span th:text="${name}">there</span>,
+    </p>
+    <p style="margin:0;font-size:15px;line-height:1.65;color:#334155;">
+        An administrator has reviewed your Sewa Sathi worker application and was not able to
+        approve it. Your account still exists - only the worker verification was turned down.
+    </p>
+
+    <!--/* The admin's own words, unedited - the same text is repeated in the app. */-->
+    <p style="margin:24px 0 0;font-size:13px;font-weight:600;text-transform:uppercase;letter-spacing:0.4px;color:#64748b;">
+        Reason given
+    </p>
+    <th:block th:replace="~{email/fragments/components :: warning(${reason})}"/>
+
+    <p style="margin:24px 0 0;font-size:15px;line-height:1.65;color:#334155;">
+        If this is something you can put right - a clearer document, or a missing one - or if you
+        think the decision was a mistake, reply to this message or write to
+        <a th:href="'mailto:' + ${supportEmail}" th:text="${supportEmail}"
+           style="color:#2b8cff;text-decoration:none;">support@sewasathi.com</a>
+        and an administrator will take another look.
+    </p>
+
+</div>
+</body>
+</html>

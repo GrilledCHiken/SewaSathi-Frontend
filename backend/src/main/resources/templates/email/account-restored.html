@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{email/fragments/layout :: page(
+          'Your account has been restored',
+          'You can sign in to Sewa Sathi again.',
+          ~{::#content})}">
+<head><meta charset="UTF-8"/><title>Your account has been restored</title></head>
+<body>
+<div id="content">
+
+    <p style="margin:0 0 12px;font-size:15px;line-height:1.65;color:#334155;">
+        Hi <span th:text="${name}">there</span>,
+    </p>
+    <p style="margin:0;font-size:15px;line-height:1.65;color:#334155;">
+        The suspension on your Sewa Sathi account has been lifted. You can sign in again, and
+        your profile is back where it was - nothing was deleted while the account was suspended.
+    </p>
+
+    <!--/*
+      The note is optional. th:if must sit on an outer block: th:replace has the higher
+      precedence of the two, so on one element the fragment would be pulled in regardless of
+      the condition.
+    */-->
+    <th:block th:if="${not #strings.isEmpty(note)}">
+        <th:block th:replace="~{email/fragments/components :: notice(${note})}"/>
+    </th:block>
+
+    <th:block th:replace="~{email/fragments/components :: button(${loginUrl}, 'Sign in')}"/>
+    <th:block th:replace="~{email/fragments/components :: linkFallback(${loginUrl})}"/>
+
+</div>
+</body>
+</html>

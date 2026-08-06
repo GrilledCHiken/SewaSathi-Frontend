@@ -67,6 +67,37 @@ public class GlobalExceptionHandler {
                 .body(ErrorResponse.of(HttpStatus.BAD_REQUEST.value(), ex.getMessage()));
     }
 
+    /**
+     * A Google assertion we would not accept. 401 alongside the password equivalent: in both
+     * cases the caller offered a credential and it did not hold up.
+     */
+    @ExceptionHandler(GoogleAuthException.class)
+    public ResponseEntity<ErrorResponse> handleGoogleAuth(GoogleAuthException ex) {
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                .body(ErrorResponse.of(HttpStatus.UNAUTHORIZED.value(), ex.getMessage()));
+    }
+
+    /**
+     * A rejected signup verification code. 400 rather than 401: nothing is authenticated at
+     * this point, and the message carries the attempts remaining so the form can show it.
+     */
+    @ExceptionHandler(OtpException.class)
+    public ResponseEntity<ErrorResponse> handleOtp(OtpException ex) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(ErrorResponse.of(HttpStatus.BAD_REQUEST.value(), ex.getMessage()));
+    }
+
+    /**
+     * The mail server would not take the message. 502 keeps it out of the generic 500 bucket:
+     * the request itself was fine and the caller can sensibly try it again.
+     */
+    @ExceptionHandler(EmailDeliveryException.class)
+    public ResponseEntity<ErrorResponse> handleEmailDelivery(EmailDeliveryException ex) {
+        log.error("Email delivery failed", ex);
+        return ResponseEntity.status(HttpStatus.BAD_GATEWAY)
+                .body(ErrorResponse.of(HttpStatus.BAD_GATEWAY.value(), message("error.api.emailUndeliverable")));
+    }
+
     @ExceptionHandler(ResourceNotFoundException.class)
     public ResponseEntity<ErrorResponse> handleResourceNotFound(ResourceNotFoundException ex) {
         return ResponseEntity.status(HttpStatus.NOT_FOUND)
