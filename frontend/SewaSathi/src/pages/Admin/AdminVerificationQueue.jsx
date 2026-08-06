@@ -3,6 +3,7 @@ import { useSearchParams } from "react-router-dom";
 import { toast } from "react-toastify";
 import AdminHeader from "../../components/Admin/AdminHeader";
 import AdminSearchInput from "../../components/Admin/AdminSearchInput";
+import RejectWorkerDialog from "../../components/Admin/RejectWorkerDialog";
 import { DetailField, DocumentLink } from "../../components/detailUi";
 import SegmentedControl from "../../components/ui/SegmentedControl";
 import {
@@ -37,6 +38,8 @@ export default function AdminVerificationQueue() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [actioningId, setActioningId] = useState(null);
+  // The applicant whose rejection reason is being typed, or null when the dialog is closed.
+  const [rejecting, setRejecting] = useState(null);
   // A set rather than a single id so several cards can be opened and compared side by side.
   const [expandedIds, setExpandedIds] = useState(() => new Set());
 
@@ -88,19 +91,33 @@ export default function AdminVerificationQueue() {
     });
   };
 
-  const handleAction = async (id, action) => {
+  // Either decision emails the worker, so the toast says so — the send is best-effort on the
+  // server and never blocks the decision, which is why a failed email is not surfaced here.
+  const handleApprove = async (id) => {
     setActioningId(id);
     try {
-      if (action === "approve") {
-        await approveWorker(id);
-        toast.success("Worker approved.");
-      } else {
-        await rejectWorker(id);
-        toast.success("Worker rejected.");
-      }
+      await approveWorker(id);
+      toast.success("Worker approved. They have been emailed.");
       setWorkers((prev) => prev.filter((w) => w.id !== id));
       forget(id);
     } catch {
+      toast.error("That action failed. Please try again.");
+    } finally {
+      setActioningId(null);
+    }
+  };
+
+  const handleReject = async (reason) => {
+    const id = rejecting.id;
+    setActioningId(id);
+    try {
+      await rejectWorker(id, reason);
+      toast.success("Worker rejected. They have been emailed the reason.");
+      setWorkers((prev) => prev.filter((w) => w.id !== id));
+      forget(id);
+      setRejecting(null);
+    } catch {
+      // The dialog stays open with the text intact, so the reason does not have to be retyped.
       toast.error("That action failed. Please try again.");
     } finally {
       setActioningId(null);
@@ -219,7 +236,7 @@ export default function AdminVerificationQueue() {
                       onClick={() =>
                         isRenewals
                           ? handleRenewalAction(worker.id, "approve")
-                          : handleAction(worker.id, "approve")
+                          : handleApprove(worker.id)
                       }
                       className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-60"
                     >
@@ -229,9 +246,7 @@ export default function AdminVerificationQueue() {
                       type="button"
                       disabled={actioningId === worker.id}
                       onClick={() =>
-                        isRenewals
-                          ? handleRenewalAction(worker.id, "reject")
-                          : handleAction(worker.id, "reject")
+                        isRenewals ? handleRenewalAction(worker.id, "reject") : setRejecting(worker)
                       }
                       className="rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
                     >
@@ -345,6 +360,13 @@ export default function AdminVerificationQueue() {
           </ul>
         )}
       </main>
+
+      <RejectWorkerDialog
+        worker={rejecting}
+        submitting={actioningId === rejecting?.id}
+        onCancel={() => setRejecting(null)}
+        onConfirm={handleReject}
+      />
     </div>
   );
 }

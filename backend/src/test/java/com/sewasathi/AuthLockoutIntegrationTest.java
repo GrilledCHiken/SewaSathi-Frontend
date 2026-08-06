@@ -1,10 +1,12 @@
 package com.sewasathi;
 
+import com.sewasathi.service.EmailService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 import org.springframework.test.web.servlet.MockMvc;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -23,16 +25,15 @@ class AuthLockoutIntegrationTest {
     @Autowired
     private MockMvc mockMvc;
 
+    /** Signing up now needs the emailed code, which SignupFlow reads back off this spy. */
+    @MockitoSpyBean
+    private EmailService emailService;
+
     @Test
     void fifthFailedAttempt_locksAccountEvenOnSubsequentCorrectPassword() throws Exception {
         String email = "lockout-itest-" + System.currentTimeMillis() + "@example.com";
-        String registerBody = """
-                {"fullName":"Lockout Itest","email":"%s","phone":"9800000030","password":"CorrectPass1!"}
-                """.formatted(email);
-        mockMvc.perform(post("/api/auth/register/customer")
-                        .contentType("application/json")
-                        .content(registerBody))
-                .andExpect(status().isCreated());
+        SignupFlow.registerCustomer(mockMvc, emailService,
+                "Lockout Itest", email, "9800000030", "CorrectPass1!");
 
         String wrongLoginBody = """
                 {"email":"%s","password":"wrongPassword"}

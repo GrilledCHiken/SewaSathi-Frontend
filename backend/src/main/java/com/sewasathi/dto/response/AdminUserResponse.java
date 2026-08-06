@@ -18,9 +18,20 @@ public class AdminUserResponse {
     private Role role;
     private ApprovalStatus status;
     private boolean suspended;
+    private String suspensionReason;
     private LocalDateTime createdAt;
 
+    /**
+     * Whether the account holder was told. Null everywhere except the suspend/unsuspend
+     * replies - the directory listing sends no mail, so it must not claim anything either way.
+     */
+    private Boolean emailSent;
+
     public static AdminUserResponse from(User user) {
+        return from(user, null);
+    }
+
+    public static AdminUserResponse from(User user, Boolean emailSent) {
         return new AdminUserResponse(
                 user.getId(),
                 user.getFullName(),
@@ -29,7 +40,9 @@ public class AdminUserResponse {
                 user.getRole(),
                 user.getStatus(),
                 user.isSuspended(),
-                user.getCreatedAt()
+                user.getSuspensionReason(),
+                user.getCreatedAt(),
+                emailSent
         );
     }
 }

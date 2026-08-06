@@ -233,7 +233,7 @@ function Home() {
 
               <p className="mt-6 max-w-xl text-lg leading-relaxed text-ink-muted sm:text-xl">
                 Book verified local professionals for cleaning, repairs, moving,
-                and more — safely, simply, and affordably across Nepal.
+                and more safely, simply, and affordably across Nepal.
               </p>
 
               <form

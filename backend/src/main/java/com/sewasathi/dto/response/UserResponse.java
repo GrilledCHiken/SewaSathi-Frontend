@@ -18,6 +18,12 @@ public class UserResponse {
     private Role role;
     private ApprovalStatus status;
     private boolean suspended;
+    /**
+     * Why a worker's application was turned down, so the client can show it instead of telling
+     * them to contact support. Null for everyone else, and for workers rejected before the
+     * reason became mandatory.
+     */
+    private String rejectionReason;
     private String avatarUrl;
     /** Backs the "member since" line on My Profile; this is the only place the client can get it. */
     private LocalDateTime createdAt;
@@ -31,6 +37,7 @@ public class UserResponse {
                 user.getRole(),
                 user.getStatus(),
                 user.isSuspended(),
+                user.getRejectionReason(),
                 user.getAvatarUrl(),
                 user.getCreatedAt()
         );

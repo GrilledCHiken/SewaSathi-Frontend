@@ -1,17 +1,25 @@
 package com.sewasathi.service;
 
+import com.sewasathi.dto.request.GoogleSignInRequest;
 import com.sewasathi.dto.request.LoginRequest;
 import com.sewasathi.dto.request.RegisterCustomerRequest;
 import com.sewasathi.dto.request.RegisterWorkerRequest;
+import com.sewasathi.dto.request.ResendOtpRequest;
+import com.sewasathi.dto.request.VerifyRegistrationRequest;
 import com.sewasathi.dto.response.AuthResponse;
+import com.sewasathi.dto.response.GoogleSignupResponse;
+import com.sewasathi.dto.response.PendingRegistrationResponse;
 import com.sewasathi.dto.response.UserResponse;
 import com.sewasathi.entity.ApprovalStatus;
+import com.sewasathi.entity.AuthProvider;
+import com.sewasathi.entity.PendingRegistration;
 import com.sewasathi.entity.Role;
 import com.sewasathi.entity.User;
 import com.sewasathi.entity.WorkerProfile;
 import com.sewasathi.exception.AccountLockedException;
 import com.sewasathi.exception.DuplicateEmailException;
 import com.sewasathi.exception.InvalidCredentialsException;
+import com.sewasathi.exception.OtpException;
 import com.sewasathi.exception.SuspendedAccountException;
 import com.sewasathi.repository.UserRepository;
 import com.sewasathi.repository.WorkerProfileRepository;
@@ -22,6 +30,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.Objects;
+import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -35,54 +45,182 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
     private final RefreshTokenService refreshTokenService;
+    private final RegistrationOtpService registrationOtpService;
+    private final GoogleIdentityService googleIdentityService;
 
+    /**
+     * Starts a customer signup. No account is created here: the submitted details are parked
+     * as a {@link PendingRegistration} and a six-digit code goes to the address given, which
+     * {@link #completeRegistration} then exchanges for the real {@code users} row.
+     *
+     * <p>Registering therefore now proves the address belongs to whoever typed it, and an
+     * address that was mistyped or does not exist never reaches the accounts table at all.
+     */
     @Transactional
-    public AuthResponse registerCustomer(RegisterCustomerRequest request) {
+    public PendingRegistrationResponse registerCustomer(RegisterCustomerRequest request) {
         String email = request.getEmail().trim().toLowerCase();
         ensureEmailAvailable(email);
 
-        User user = User.builder()
+        PendingRegistration draft = PendingRegistration.builder()
                 .email(email)
                 .passwordHash(passwordEncoder.encode(request.getPassword()))
                 .fullName(request.getFullName().trim())
                 .phone(request.getPhone().trim())
                 .role(Role.CUSTOMER)
-                .status(ApprovalStatus.APPROVED)
                 .build();
 
-        user = userRepository.save(user);
-        // The account is usable straight away; the client sends the user to the sign-in page
-        // to enter the password once rather than being handed a token here.
-        return AuthResponse.registered(UserResponse.from(user));
+        return PendingRegistrationResponse.from(registrationOtpService.issue(draft));
     }
 
+    /** As {@link #registerCustomer}, carrying the worker-only profile fields through the challenge. */
     @Transactional
-    public AuthResponse registerWorker(RegisterWorkerRequest request) {
+    public PendingRegistrationResponse registerWorker(RegisterWorkerRequest request) {
         String email = request.getEmail().trim().toLowerCase();
         ensureEmailAvailable(email);
 
-        User user = User.builder()
+        PendingRegistration draft = PendingRegistration.builder()
                 .email(email)
                 .passwordHash(passwordEncoder.encode(request.getPassword()))
                 .fullName(request.getFullName().trim())
                 .phone(request.getPhone().trim())
                 .role(Role.WORKER)
-                // Workers can sign in immediately, but stay PENDING until an admin approves
-                // them, which is what gates accepting tasks.
-                .status(ApprovalStatus.PENDING)
-                .build();
-        user = userRepository.save(user);
-
-        WorkerProfile profile = WorkerProfile.builder()
-                .user(user)
                 .skills(request.getSkills())
                 .hourlyRate(request.getHourlyRate())
                 .location(request.getLocation())
                 .bio(request.getBio())
                 .build();
-        workerProfileRepository.save(profile);
 
+        return PendingRegistrationResponse.from(registrationOtpService.issue(draft));
+    }
+
+    /** Sends another code for a signup already in flight. */
+    @Transactional(noRollbackFor = OtpException.class)
+    public PendingRegistrationResponse resendRegistrationOtp(ResendOtpRequest request) {
+        return PendingRegistrationResponse.from(
+                registrationOtpService.resend(request.getChallengeToken()));
+    }
+
+    /**
+     * Finishes a signup: checks the emailed code and, only then, creates the account.
+     *
+     * <p>The availability check runs again here rather than being trusted from submit time -
+     * minutes may have passed, and someone else may have taken the address in between.
+     *
+     * <p>{@code noRollbackFor} has to be repeated from {@link RegistrationOtpService#verify}:
+     * that method joins this transaction rather than opening its own, so it is this rule that
+     * decides whether a rejected code keeps its attempt count. Without it every wrong guess
+     * would roll back its own increment and the cap would never be reached.
+     */
+    @Transactional(noRollbackFor = OtpException.class)
+    public AuthResponse completeRegistration(VerifyRegistrationRequest request) {
+        PendingRegistration pending =
+                registrationOtpService.verify(request.getChallengeToken(), request.getCode());
+        ensureEmailAvailable(pending.getEmail());
+
+        User user = User.builder()
+                .email(pending.getEmail())
+                .passwordHash(pending.getPasswordHash())
+                .fullName(pending.getFullName())
+                .phone(pending.getPhone())
+                .role(pending.getRole())
+                // Workers can sign in immediately, but stay PENDING until an admin approves
+                // them, which is what gates accepting tasks.
+                .status(pending.getRole() == Role.WORKER ? ApprovalStatus.PENDING : ApprovalStatus.APPROVED)
+                .build();
+        user = userRepository.save(user);
+
+        if (pending.getRole() == Role.WORKER) {
+            workerProfileRepository.save(WorkerProfile.builder()
+                    .user(user)
+                    .skills(pending.getSkills())
+                    .hourlyRate(pending.getHourlyRate())
+                    .location(pending.getLocation())
+                    .bio(pending.getBio())
+                    .build());
+        }
+
+        registrationOtpService.consume(pending);
+
+        // The account is usable straight away; the client sends the user to the sign-in page
+        // to enter the password once rather than being handed a token here.
         return AuthResponse.registered(UserResponse.from(user));
+    }
+
+    /**
+     * Signs in with a Google ID token, creating the account if this is the first time.
+     *
+     * <p>Matching is by verified email address, and an existing account is <em>linked</em>
+     * rather than refused. That is safe precisely because {@link GoogleIdentityService} insists
+     * on {@code email_verified}: both routes into an account then rest on control of the same
+     * mailbox, which is what the signup OTP proves for a password account. A user who forgot
+     * which way they signed up gets in either way instead of hitting a dead end.
+     *
+     * <p>A brand-new account is always a CUSTOMER. Google supplies neither a role nor a phone
+     * number, and becoming a worker means document upload and admin approval - a flow that
+     * belongs on the worker signup form, not behind a one-click button.
+     */
+    @Transactional
+    public GoogleSignInOutcome loginWithGoogle(GoogleSignInRequest request, DeviceContext device) {
+        GoogleIdentity identity = googleIdentityService.verify(request.getCredential());
+
+        Optional<User> existing = userRepository.findByEmail(identity.email());
+        if (existing.isPresent()) {
+            User user = existing.get();
+            if (user.isSuspended()) {
+                throw new SuspendedAccountException(user.getSuspensionReason());
+            }
+            link(user, identity);
+            return new GoogleSignInOutcome.SignedIn(buildAuthResponse(user, device));
+        }
+
+        String phone = request.getPhone();
+        if (phone == null || phone.isBlank()) {
+            return new GoogleSignInOutcome.NeedsProfile(GoogleSignupResponse.from(identity));
+        }
+
+        // A half-finished OTP signup for this address can never be completed now. Left alone it
+        // would keep a live code pointing at an account that exists by another route.
+        registrationOtpService.discard(identity.email());
+
+        User user = User.builder()
+                .email(identity.email())
+                // No password at all, rather than one nobody can use: see User.passwordHash.
+                .passwordHash(null)
+                .fullName(identity.fullName())
+                .phone(phone.trim())
+                .avatarUrl(identity.avatarUrl())
+                .role(Role.CUSTOMER)
+                .status(ApprovalStatus.APPROVED)
+                .authProvider(AuthProvider.GOOGLE)
+                .providerId(identity.subject())
+                .build();
+        user = userRepository.save(user);
+
+        return new GoogleSignInOutcome.Created(buildAuthResponse(user, device));
+    }
+
+    /**
+     * Records the Google account against an existing user so later sign-ins can be pinned to
+     * the subject rather than the address alone.
+     */
+    private void link(User user, GoogleIdentity identity) {
+        boolean changed = false;
+
+        if (!Objects.equals(user.getProviderId(), identity.subject())) {
+            user.setProviderId(identity.subject());
+            changed = true;
+        }
+
+        // Only fills a gap. Overwriting would silently replace a picture the user deliberately
+        // uploaded with whatever their Google profile happens to show.
+        if (user.getAvatarUrl() == null && identity.avatarUrl() != null) {
+            user.setAvatarUrl(identity.avatarUrl());
+            changed = true;
+        }
+
+        if (changed) {
+            userRepository.save(user);
+        }
     }
 
     /**
@@ -104,13 +242,24 @@ public class AuthService {
             );
         }
 
+        // An account created through Google has no password to check. Saying so plainly does
+        // confirm the address is registered, but signing up already does that with its 409, so
+        // nothing new leaks - and leaving them to guess would be pointless when there is no
+        // password to guess. Forgot-password is the other way out: it will happily give such
+        // an account a password (PasswordResetService.reset).
+        if (user.getPasswordHash() == null) {
+            throw new InvalidCredentialsException(
+                    "This account signs in with Google. Use the Google button, "
+                            + "or use Forgot password to set one.");
+        }
+
         if (!passwordEncoder.matches(request.getPassword(), user.getPasswordHash())) {
             registerFailedAttempt(user);
             throw new InvalidCredentialsException();
         }
 
         if (user.isSuspended()) {
-            throw new SuspendedAccountException();
+            throw new SuspendedAccountException(user.getSuspensionReason());
         }
 
         if (user.getFailedLoginAttempts() > 0 || user.getLockedUntil() != null) {
@@ -169,7 +318,7 @@ public class AuthService {
         // end the session rather than be renewed straight past.
         if (user.isSuspended()) {
             refreshTokenService.revokeAllForUser(user.getId());
-            throw new SuspendedAccountException();
+            throw new SuspendedAccountException(user.getSuspensionReason());
         }
 
         return AuthResponse.refreshed(

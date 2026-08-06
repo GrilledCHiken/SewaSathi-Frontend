@@ -21,8 +21,9 @@ export async function approveWorker(id) {
   return data;
 }
 
-export async function rejectWorker(id) {
-  const { data } = await httpClient.patch(`/admin/workers/${id}/reject`);
+/** The reason is mandatory: the server emails it to the applicant and stores it for their banner. */
+export async function rejectWorker(id, reason) {
+  const { data } = await httpClient.patch(`/admin/workers/${id}/reject`, { reason });
   return data;
 }
 
@@ -53,13 +54,18 @@ export async function getUser(id) {
   return data;
 }
 
-export async function suspendUser(id) {
-  const { data } = await httpClient.patch(`/admin/users/${id}/suspend`);
+/**
+ * `reason` is mandatory server-side: it is emailed to the account holder verbatim and
+ * repeated on the login screen when they next try to sign in.
+ */
+export async function suspendUser(id, reason) {
+  const { data } = await httpClient.patch(`/admin/users/${id}/suspend`, { reason });
   return data;
 }
 
-export async function unsuspendUser(id) {
-  const { data } = await httpClient.patch(`/admin/users/${id}/unsuspend`);
+/** `note` is optional and only enriches the reinstatement email. */
+export async function unsuspendUser(id, note) {
+  const { data } = await httpClient.patch(`/admin/users/${id}/unsuspend`, { note });
   return data;
 }
 

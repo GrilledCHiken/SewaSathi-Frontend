@@ -11,6 +11,9 @@ import ProtectedRoute from "./components/ProtectedRoute";
 const Signupoption = lazy(() => import("./pages/User/SignupOption"));
 const UserSignup = lazy(() => import("./pages/User/UserSignup"));
 const WorkerSignup = lazy(() => import("./pages/Worker/WorkerSignup"));
+const VerifySignupOtp = lazy(() => import("./pages/VerifySignupOtp"));
+const CompleteGoogleSignup = lazy(() => import("./pages/CompleteGoogleSignup"));
+const ForgotPassword = lazy(() => import("./pages/ForgotPassword"));
 const WorkerVerifyStep = lazy(() => import("./pages/Worker/WorkerVerifyStep"));
 const WorkerSignupSuccess = lazy(() => import("./pages/Worker/WorkerSignupSuccess"));
 const Services = lazy(() => import("./pages/User/Services"));
@@ -83,9 +86,19 @@ function App() {
           }
         />
         <Route path="/login" element={<Login />} />
+        {/* Necessarily public: whoever needs it has lost the only credential they had. All
+            three steps live on this one route — the challenge token is held in memory, so
+            there is nothing a deep link to a later step could resume. */}
+        <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/signup" element={<Signupoption />} />
         <Route path="/signup/user" element={<UserSignup />} />
         <Route path="/signup/worker" element={<WorkerSignup />} />
+        {/* Shared by both signup flows. Public, because the account it finishes creating
+            does not exist until the code posted here is accepted. */}
+        <Route path="/signup/verify" element={<VerifySignupOtp />} />
+        {/* Collects the phone number Google cannot supply. Public: the account it creates
+            does not exist until this form is submitted. */}
+        <Route path="/signup/google" element={<CompleteGoogleSignup />} />
         {/* Step 2 of worker signup. Authenticated because it uploads documents —
             WorkerSignup signs the new account in before routing here. */}
         <Route

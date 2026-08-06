@@ -115,6 +115,14 @@ public class UserProfileService {
     public void changePassword(String email, ChangePasswordRequest request) {
         User user = requireUser(email);
 
+        // An account created through Google has no current password to check. Without this the
+        // encoder would simply not match and the user would be told their password is wrong,
+        // which is both untrue and unactionable.
+        if (user.getPasswordHash() == null) {
+            throw new InvalidOperationException(
+                    "This account signs in with Google, so it has no password to change");
+        }
+
         // Reported as a 400, not a 401: the caller's session is perfectly valid, and the
         // client treats a 401 as an expired token and signs the user out - which is not what
         // a mistyped password should do.

@@ -33,7 +33,13 @@ public class User {
     @Column(nullable = false, unique = true, length = 255)
     private String email;
 
-    @Column(name = "password_hash", nullable = false, length = 255)
+    /**
+     * BCrypt hash of the password, or null for an account that has only ever signed in with
+     * Google. Null is the honest representation: the alternative, an unmatchable sentinel
+     * string, claims a password exists and leaves every reader to guess which strings are real.
+     * {@code AuthService.login} checks for it explicitly rather than letting the encoder decide.
+     */
+    @Column(name = "password_hash", length = 255)
     private String passwordHash;
 
     @Column(name = "full_name", nullable = false, length = 150)
@@ -59,8 +65,41 @@ public class User {
     @Column(nullable = false, length = 20)
     private ApprovalStatus status;
 
+    /**
+     * Which route created this account. See {@link AuthProvider} - it does not govern how the
+     * account signs in.
+     */
+    @Enumerated(EnumType.STRING)
+    @Column(name = "auth_provider", nullable = false, length = 20)
+    @Builder.Default
+    private AuthProvider authProvider = AuthProvider.LOCAL;
+
+    /**
+     * Google's immutable {@code sub} for the linked account, or null if none is linked. Pinned
+     * rather than trusting the email alone, because a Workspace address can be reassigned to a
+     * different person while the subject never changes.
+     */
+    @Column(name = "provider_id", length = 128)
+    private String providerId;
+
     @Column(nullable = false, columnDefinition = "TINYINT(1) DEFAULT 0")
     private boolean suspended;
+
+    /**
+     * Why an admin suspended this account. Shown to the person at their next sign-in attempt
+     * and in the suspension email, so it is written for them rather than as an internal note.
+     * Cleared on unsuspend - a restored account must not carry a stale reason.
+     */
+    @Column(name = "suspension_reason", length = 500)
+    private String suspensionReason;
+
+    /**
+     * Why an admin turned this worker's application down. Emailed to them verbatim and repeated
+     * in the banner they see when they sign in, so it is written for them rather than as an
+     * internal note. Cleared on approval - an approved worker must not carry a stale reason.
+     */
+    @Column(name = "rejection_reason", length = 500)
+    private String rejectionReason;
 
     @Column(name = "failed_login_attempts", nullable = false, columnDefinition = "INT DEFAULT 0")
     @Builder.Default

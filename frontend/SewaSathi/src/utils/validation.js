@@ -38,6 +38,13 @@ export const sanitizePhone = (value = '') => {
   return digits.slice(0, 10)
 }
 
+// The six-digit code emailed at the end of signup. Same shape the backend's @Pattern checks.
+export const OTP_LENGTH = 6
+
+// As sanitizePhone, for the verification code: the field can only ever hold something the
+// pattern check could accept, so a pasted "123 456" corrects itself instead of being rejected.
+export const sanitizeOtp = (value = '') => value.replace(/\D/g, '').slice(0, OTP_LENGTH)
+
 // Fields the signup forms render an inline error slot for. A server message is only
 // attached to the field when it names one of these, so an unrelated error can never
 // leave a message pinned under an input the user cannot act on.

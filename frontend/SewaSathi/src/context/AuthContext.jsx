@@ -61,17 +61,74 @@ export function AuthProvider({ children }) {
     return { status: "authenticated", user: sessionUser };
   }, []);
 
-  // Registration creates the account and returns no token. The account is usable right
-  // away; the signup pages send the user to /login to enter their password once.
-  const registerCustomer = useCallback(async (payload) => {
-    const { user } = await authApi.registerCustomer(payload);
+  /**
+   * Signs in with a Google ID token.
+   *
+   * Returns `{ status: "authenticated", user }` when a session came back — the same shape
+   * `login` returns, so callers can route on it identically — or
+   * `{ status: "profileCompletionRequired", ...details }` when Google checked out but the
+   * account still needs the phone number Google does not supply.
+   */
+  const loginWithGoogle = useCallback(async ({ credential, phone } = {}) => {
+    const { data, status } = await authApi.signInWithGoogle({ credential, phone });
+
+    if (status === 202) {
+      return { status: "profileCompletionRequired", ...data };
+    }
+
+    setTokens(data);
+    const sessionUser = toSessionUser(data.user);
+    setSession(sessionUser);
+    return { status: "authenticated", user: sessionUser, created: status === 201 };
+  }, []);
+
+  // Registering no longer creates anything. It emails a six-digit code and returns the
+  // challenge that identifies it; the account comes into existence at verifyRegistration,
+  // which is why these two hand back a challenge rather than a user.
+  const registerCustomer = useCallback(
+    (payload) => authApi.registerCustomer(payload),
+    [],
+  );
+
+  const registerWorker = useCallback(
+    (payload) => authApi.registerWorker(payload),
+    [],
+  );
+
+  /**
+   * Spends the emailed code and creates the account. Still returns no token — the account
+   * is usable right away, and the signup pages send the user to /login to enter their
+   * password once (the worker flow signs in itself, because step two needs a session).
+   */
+  const verifyRegistration = useCallback(async (payload) => {
+    const { user } = await authApi.verifyRegistration(payload);
     return toSessionUser(user);
   }, []);
 
-  const registerWorker = useCallback(async (payload) => {
-    const { user } = await authApi.registerWorker(payload);
-    return toSessionUser(user);
-  }, []);
+  const resendRegistrationOtp = useCallback(
+    (payload) => authApi.resendRegistrationOtp(payload),
+    [],
+  );
+
+  // Password reset. None of these touch the session — the whole point is that the caller has
+  // no credential — so they are plain passthroughs; they live here only because this is the
+  // one file that talks to authApi.
+  const requestPasswordReset = useCallback(
+    (payload) => authApi.requestPasswordReset(payload),
+    [],
+  );
+
+  const resendPasswordResetOtp = useCallback(
+    (payload) => authApi.resendPasswordResetOtp(payload),
+    [],
+  );
+
+  const verifyPasswordResetOtp = useCallback(
+    (payload) => authApi.verifyPasswordResetOtp(payload),
+    [],
+  );
+
+  const resetPassword = useCallback((payload) => authApi.resetPassword(payload), []);
 
   const logout = useCallback(async () => {
     const refreshToken = getRefreshToken();
@@ -117,20 +174,34 @@ export function AuthProvider({ children }) {
       isCustomerAuthenticated: Boolean(session) && session.role === "CUSTOMER",
       initializing,
       login,
+      loginWithGoogle,
       logoutCustomer: logout,
       logoutEverywhere,
       registerCustomer,
       registerWorker,
+      verifyRegistration,
+      resendRegistrationOtp,
+      requestPasswordReset,
+      resendPasswordResetOtp,
+      verifyPasswordResetOtp,
+      resetPassword,
       applyUserUpdate,
     }),
     [
       session,
       initializing,
       login,
+      loginWithGoogle,
       logout,
       logoutEverywhere,
       registerCustomer,
       registerWorker,
+      verifyRegistration,
+      resendRegistrationOtp,
+      requestPasswordReset,
+      resendPasswordResetOtp,
+      verifyPasswordResetOtp,
+      resetPassword,
       applyUserUpdate,
     ],
   );

@@ -122,34 +122,49 @@ Worth knowing before changing either flow:
 
 ## Authentication
 
-Email + password, and nothing else. `POST /api/auth/register/{customer,worker}` creates an
-active account and returns it **without** a token; the SPA then sends the user to `/login` to
-sign in once. `POST /api/auth/login` returns a short-lived JWT plus a rotating refresh token
-(see `RefreshTokenService`). Five consecutive wrong passwords lock the account for 15 minutes.
+Email + password, plus Google sign-in. `POST /api/auth/register/{customer,worker}` creates
+nothing: it parks the submitted signup in `pending_registrations`, emails a six-digit code and
+answers **202** with a challenge. The account is written only when `POST
+/api/auth/register/verify` accepts that code (`RegistrationOtpService`,
+`AuthService.completeRegistration`). `POST /api/auth/login` returns a short-lived JWT plus a
+rotating refresh token (see `RefreshTokenService`). Five consecutive wrong passwords lock the
+account for 15 minutes.
 
 Workers sign in immediately but stay `PENDING` until an admin approves them, which is what
 gates accepting tasks.
 
-There is deliberately **no** email verification, no two-factor challenge, no new-device OTP,
-and no social sign-in. Nothing has to be configured to run the app locally beyond the database
-and JWT secret.
+There is deliberately **no** two-factor challenge on sign-in and no new-device OTP. An account
+created through Google has a null `users.password_hash` until it sets one.
 
-### No outbound email
+### Password reset
 
-The application sends no mail at all — there is no `EmailService`, no `spring.mail.*`
-configuration, and no `spring-boot-starter-mail` dependency. User-facing notices go to the
-in-app feed instead (`NotificationService`, delivered over WebSocket and surfaced by
-`NotificationBell.jsx`).
+`POST /api/auth/password/{forgot,resend,verify,reset}` — the same OTP shape as signup, over
+`password_reset_challenges` (`PasswordResetService`). Ask with an email, prove the code, then
+post a new password against the verified challenge; the reset clears any login lockout and
+revokes every refresh token for the account, and answers 204 rather than a session, so the
+user signs in with the password they just chose. A Google-only account may use this and simply
+gains a password — Google sign-in keeps working alongside it.
 
-**Consequence: there is no self-service password reset.** A user who forgets their password
-cannot recover it — a reset link has no delivery channel — and there is no admin reset path
-either, so recovering an account means updating `users.password_hash` directly with a BCrypt
-hash of the new password.
+An unknown address is answered with 404 rather than a generic reply: signing up already
+discloses whether an address is registered (409), so hiding it here would buy nothing and
+would leave a user who mistyped their own email staring at a code screen.
+
+### Outbound email
+
+`EmailService` has two implementations chosen by `app.mail.enabled`: `SmtpEmailService`
+(JavaMailSender + Thymeleaf, one retry) and `ConsoleEmailService`, the default, which still
+renders the template and logs it — so a broken template fails locally rather than in
+production. Templates live in `src/main/resources/templates/email/`; `otp.html` is shared by
+signup and password reset, varying only its `reason`. Delivery failures surface as 502, never
+swallowed. In-app notices are separate and go to `NotificationService` over WebSocket.
 
 ### Removing the old schema
 
-2FA, verification, OAuth and password-reset left four tables and four `users` columns behind
-that `ddl-auto=update` will never drop.
+An earlier 2FA/verification/OAuth/password-reset implementation left four tables and four
+`users` columns behind that `ddl-auto=update` will never drop. None of them are the tables the
+current flows use — `pending_registrations` and `password_reset_challenges` are new, and are
+created by [`add-signup-otp.sql`](src/main/resources/db/add-signup-otp.sql) and
+[`add-password-reset.sql`](src/main/resources/db/add-password-reset.sql).
 [`src/main/resources/db/remove-auth-extras.sql`](src/main/resources/db/remove-auth-extras.sql)
 clears them. This is housekeeping rather than a prerequisite — registration was verified
 working against an un-migrated database — but leaving unused `NOT NULL` columns in place is a

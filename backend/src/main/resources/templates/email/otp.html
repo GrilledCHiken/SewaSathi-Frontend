@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{email/fragments/layout :: page(
+          'Your sign-in code',
+          'Enter this code to finish signing in.',
+          ~{::#content})}">
+<head><meta charset="UTF-8"/><title>Your sign-in code</title></head>
+<body>
+<div id="content">
+
+    <p style="margin:0 0 12px;font-size:15px;line-height:1.65;color:#334155;">
+        Hi <span th:text="${name}">there</span>,
+    </p>
+    <p style="margin:0;font-size:15px;line-height:1.65;color:#334155;" th:text="${reason}">
+        Enter this code to finish signing in.
+    </p>
+
+    <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:24px 0;">
+        <tr>
+            <td align="center"
+                style="background-color:#f1f5f9;border:1px solid #cbd5e1;border-radius:10px;padding:18px 32px;">
+                <span th:text="${code}"
+                      style="font-family:'Courier New',Consolas,monospace;font-size:32px;font-weight:700;letter-spacing:10px;color:#05070a;">
+                    000000
+                </span>
+            </td>
+        </tr>
+    </table>
+
+    <p style="margin:0;font-size:14px;line-height:1.65;color:#64748b;">
+        The code expires in <strong th:text="${expiryMinutes}">5</strong> minutes and can be used once.
+    </p>
+
+    <th:block th:replace="~{email/fragments/components :: warning(
+        'Sewa Sathi will never ask you for this code by phone, chat, or email. If you did not try
+         to sign in, do not share it - change your password instead.')}"/>
+
+</div>
+</body>
+</html>

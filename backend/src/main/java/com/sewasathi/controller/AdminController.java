@@ -1,5 +1,8 @@
 package com.sewasathi.controller;
 
+import com.sewasathi.dto.request.RejectWorkerRequest;
+import com.sewasathi.dto.request.SuspendUserRequest;
+import com.sewasathi.dto.request.UnsuspendUserRequest;
 import com.sewasathi.dto.response.AdminAnalyticsResponse;
 import com.sewasathi.dto.response.AdminOverviewResponse;
 import com.sewasathi.dto.response.AdminUserDetailResponse;
@@ -14,6 +17,7 @@ import com.sewasathi.service.AdminService;
 import com.sewasathi.service.ContactService;
 import com.sewasathi.service.ReportService;
 import com.sewasathi.service.ReportType;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ContentDisposition;
@@ -25,6 +29,7 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -70,9 +75,10 @@ public class AdminController {
         return adminService.approveWorker(id);
     }
 
+    /** The reason is mandatory: it is emailed to the applicant and shown in their banner. */
     @PatchMapping("/workers/{id}/reject")
-    public UserResponse rejectWorker(@PathVariable Long id) {
-        return adminService.rejectWorker(id);
+    public UserResponse rejectWorker(@PathVariable Long id, @Valid @RequestBody RejectWorkerRequest request) {
+        return adminService.rejectWorker(id, request.getReason());
     }
 
     /**
@@ -110,13 +116,19 @@ public class AdminController {
     }
 
     @PatchMapping("/users/{id}/suspend")
-    public AdminUserResponse suspendUser(@PathVariable Long id) {
-        return adminService.suspendUser(id);
+    public AdminUserResponse suspendUser(@PathVariable Long id, @Valid @RequestBody SuspendUserRequest request) {
+        return adminService.suspendUser(id, request.getReason().trim());
     }
 
+    /**
+     * The body is optional here where it is mandatory on suspend: the note only enriches the
+     * reinstatement email, so an older client that sends nothing still restores the account.
+     */
     @PatchMapping("/users/{id}/unsuspend")
-    public AdminUserResponse unsuspendUser(@PathVariable Long id) {
-        return adminService.unsuspendUser(id);
+    public AdminUserResponse unsuspendUser(
+            @PathVariable Long id,
+            @Valid @RequestBody(required = false) UnsuspendUserRequest request) {
+        return adminService.unsuspendUser(id, request == null ? null : request.getNote());
     }
 
     /**

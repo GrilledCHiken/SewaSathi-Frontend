@@ -3,6 +3,7 @@ import { toast } from "react-toastify";
 import AdminHeader from "../../components/Admin/AdminHeader";
 import AdminSearchInput from "../../components/Admin/AdminSearchInput";
 import AdminUserDetailModal from "../../components/Admin/AdminUserDetailModal";
+import SuspendUserDialog from "../../components/Admin/SuspendUserDialog";
 import { listUsers, suspendUser, unsuspendUser } from "../../api/adminApi";
 
 // "All" deliberately means customers and workers: administrators are bootstrap accounts
@@ -44,6 +45,8 @@ export default function AdminUserManagement() {
   const [search, setSearch] = useState("");
   const [actioningId, setActioningId] = useState(null);
   const [detailUserId, setDetailUserId] = useState(null);
+  // The row awaiting a reason in the suspend/restore dialog, or null when it is closed.
+  const [pendingUser, setPendingUser] = useState(null);
 
   // Switching filters refetches, so the spinner is raised here rather than inside the effect;
   // re-picking the current filter would otherwise leave it up with nothing to clear it.
@@ -86,19 +89,27 @@ export default function AdminUserManagement() {
     );
   }, [users, query]);
 
-  const handleToggleSuspend = async (user) => {
-    if (!user.suspended) {
-      const confirmed = window.confirm(
-        `Suspend ${user.fullName}? They won't be able to log in until unsuspended.`,
-      );
-      if (!confirmed) return;
-    }
-
+  // Both directions go through the dialog: suspending needs a reason to email, and restoring
+  // offers an optional note on the same trip, so neither is a bare one-click action any more.
+  const handleConfirmSuspension = async (message) => {
+    const user = pendingUser;
     setActioningId(user.id);
     try {
-      const updated = user.suspended ? await unsuspendUser(user.id) : await suspendUser(user.id);
+      const updated = user.suspended
+        ? await unsuspendUser(user.id, message)
+        : await suspendUser(user.id, message);
+
       setUsers((prev) => prev.map((u) => (u.id === user.id ? updated : u)));
-      toast.success(updated.suspended ? `${user.fullName} suspended.` : `${user.fullName} unsuspended.`);
+      setPendingUser(null);
+
+      const done = updated.suspended ? "suspended" : "restored";
+      // The account changed either way; the email is what may not have. Saying so matters -
+      // the admin would otherwise assume the person had been told why.
+      if (updated.emailSent === false) {
+        toast.warning(`${user.fullName} ${done}, but the notification email could not be sent.`);
+      } else {
+        toast.success(`${user.fullName} ${done}. They have been emailed.`);
+      }
     } catch (err) {
       toast.error(err.response?.data?.message || "That action failed. Please try again.");
     } finally {
@@ -196,7 +207,7 @@ export default function AdminUserManagement() {
                           <button
                             type="button"
                             disabled={actioningId === user.id}
-                            onClick={() => handleToggleSuspend(user)}
+                            onClick={() => setPendingUser(user)}
                             className={[
                               "whitespace-nowrap rounded-lg px-3 py-1.5 text-xs font-semibold transition disabled:cursor-not-allowed disabled:opacity-60",
                               user.suspended
@@ -229,6 +240,13 @@ export default function AdminUserManagement() {
       {detailUserId && (
         <AdminUserDetailModal userId={detailUserId} onClose={() => setDetailUserId(null)} />
       )}
+
+      <SuspendUserDialog
+        user={pendingUser}
+        submitting={pendingUser != null && actioningId === pendingUser.id}
+        onCancel={() => setPendingUser(null)}
+        onConfirm={handleConfirmSuspension}
+      />
     </div>
   );
 }
