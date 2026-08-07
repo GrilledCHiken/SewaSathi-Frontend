@@ -36,18 +36,9 @@ public class AuthController {
 
     private final AuthService authService;
 
-    /**
-     * The reset flow issues no session, so it does not belong behind {@code AuthService} -
-     * routing it through would be four pure passthroughs. {@code UserProfileService} already
-     * sets the precedent for a password being written outside {@code AuthService}.
-     */
     private final PasswordResetService passwordResetService;
 
-    /**
-     * Starts a signup. Answers 202, not 201: nothing has been created yet. The response is a
-     * challenge, and the account only comes into existence at {@link #verifyRegistration}
-     * once the code emailed to the address has been sent back.
-     */
+
     @PostMapping("/register/customer")
     public ResponseEntity<PendingRegistrationResponse> registerCustomer(
             @Valid @RequestBody RegisterCustomerRequest request) {
@@ -60,10 +51,7 @@ public class AuthController {
         return ResponseEntity.accepted().body(authService.registerWorker(request));
     }
 
-    /**
-     * Completes a signup by proving the email address. This is the call that creates the
-     * account, which is why it - and not the register call above - answers 201.
-     */
+   
     @PostMapping("/register/verify")
     public ResponseEntity<AuthResponse> verifyRegistration(
             @Valid @RequestBody VerifyRegistrationRequest request) {
@@ -77,14 +65,6 @@ public class AuthController {
         return ResponseEntity.ok(authService.resendRegistrationOtp(request));
     }
 
-    /**
-     * Signs in with a Google ID token obtained by the browser.
-     *
-     * <p>Three outcomes, three status codes: 200 for an existing account, 201 when this call
-     * created one, and 202 when the identity checks out but we still need the phone number
-     * Google does not supply - in which case nothing has been created and the client posts the
-     * same credential back with a phone.
-     */
     @PostMapping("/google")
     public ResponseEntity<?> google(@Valid @RequestBody GoogleSignInRequest request,
                                     HttpServletRequest httpRequest) {
@@ -110,13 +90,7 @@ public class AuthController {
         return ResponseEntity.ok(authService.login(request, DeviceContext.from(httpRequest)));
     }
 
-    /**
-     * Exchanges a refresh token for a fresh access/refresh pair (requirement #2).
-     *
-     * <p>Public by necessity: the access token it exists to replace has expired by the time
-     * a client needs this, so it cannot be used to authenticate the call. The refresh token
-     * in the body is the credential.
-     */
+   
     @PostMapping("/refresh")
     public ResponseEntity<AuthResponse> refresh(@Valid @RequestBody RefreshTokenRequest request,
                                                 HttpServletRequest httpRequest) {
@@ -124,30 +98,19 @@ public class AuthController {
                 request.getRefreshToken(), DeviceContext.from(httpRequest)));
     }
 
-    /**
-     * Ends this session by revoking its refresh token. Always answers 204, even for a token
-     * that was already invalid - a client signing out has nothing useful to do with an error,
-     * and reporting one would leak whether the token was real.
-     */
+    
     @PostMapping("/logout")
     public ResponseEntity<Void> logout(@Valid @RequestBody RefreshTokenRequest request) {
         authService.logout(request.getRefreshToken());
         return ResponseEntity.noContent().build();
     }
-
-    /** Ends every session for the signed-in account, on all devices. */
     @PostMapping("/logout-all")
     public ResponseEntity<Void> logoutEverywhere(@AuthenticationPrincipal UserPrincipal principal) {
         authService.logoutEverywhere(principal.getUsername());
         return ResponseEntity.noContent().build();
     }
 
-    /**
-     * Starts a password reset by emailing a code to the address given.
-     *
-     * <p>202, not 200: the password has not changed and will not until {@link #resetPassword},
-     * two calls away. Public, necessarily - the caller has lost the only credential they had.
-     */
+   
     @PostMapping("/password/forgot")
     public ResponseEntity<PasswordResetChallengeResponse> forgotPassword(
             @Valid @RequestBody ForgotPasswordRequest request) {
@@ -155,7 +118,6 @@ public class AuthController {
                 .body(PasswordResetChallengeResponse.from(passwordResetService.request(request.getEmail())));
     }
 
-    /** Issues a fresh code for a reset already in flight, subject to the same cooldown. */
     @PostMapping("/password/resend")
     public ResponseEntity<PasswordResetChallengeResponse> resendPasswordResetOtp(
             @Valid @RequestBody ResendOtpRequest request) {
@@ -163,10 +125,6 @@ public class AuthController {
                 passwordResetService.resend(request.getChallengeToken())));
     }
 
-    /**
-     * Proves control of the mailbox. Answers with the same challenge carrying a refreshed
-     * expiry, which is the window the caller now has to choose a password.
-     */
     @PostMapping("/password/verify")
     public ResponseEntity<PasswordResetChallengeResponse> verifyPasswordReset(
             @Valid @RequestBody VerifyPasswordResetRequest request) {
@@ -174,13 +132,6 @@ public class AuthController {
                 passwordResetService.verify(request.getChallengeToken(), request.getCode())));
     }
 
-    /**
-     * Sets the new password and ends every existing session for the account.
-     *
-     * <p>204 with no session in the body on purpose: signing the caller straight in would
-     * mean an emailed code alone had produced a login, and would undo the sign-out that is
-     * half the point of resetting. They sign in with the password they just chose.
-     */
     @PostMapping("/password/reset")
     public ResponseEntity<Void> resetPassword(@Valid @RequestBody ResetPasswordRequest request) {
         passwordResetService.reset(request.getChallengeToken(), request.getNewPassword());

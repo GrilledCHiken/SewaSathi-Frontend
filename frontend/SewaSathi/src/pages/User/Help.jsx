@@ -1,10 +1,16 @@
 import { Link } from "react-router-dom";
 import Reveal from "../../components/User/Reveal";
 
+/**
+ * There are no help articles behind these topics, and writing six is a different
+ * job than this one. Each card points at the page that already explains it, so a
+ * card that looks clickable is clickable.
+ */
 const TOPICS = [
   {
     title: "Getting Started",
     description: "Creating an account, posting your first task, and how matching works.",
+    to: "/how-it-works",
     icon: (
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.75} d="M12 6v6l4 2m6-2a10 10 0 1 1-20 0 10 10 0 0 1 20 0z" />
     ),
@@ -12,6 +18,7 @@ const TOPICS = [
   {
     title: "Payments",
     description: "How task budgets work and what happens once a job is marked complete.",
+    to: "/contact#faq",
     icon: (
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.75} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
     ),
@@ -19,6 +26,7 @@ const TOPICS = [
   {
     title: "Becoming a Worker",
     description: "Signing up, getting approved, and browsing tasks near you.",
+    to: "/work-with-us",
     icon: (
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.75} d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2M9 11a4 4 0 100-8 4 4 0 000 8zM23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75" />
     ),
@@ -26,6 +34,7 @@ const TOPICS = [
   {
     title: "Trust & Safety",
     description: "How worker verification, reviews, and account suspensions work.",
+    to: "/safety",
     icon: (
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.75} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
     ),
@@ -33,6 +42,7 @@ const TOPICS = [
   {
     title: "Messaging",
     description: "Chatting with your customer or worker once a task is assigned.",
+    to: "/contact#faq",
     icon: (
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.75} d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" />
     ),
@@ -40,6 +50,7 @@ const TOPICS = [
   {
     title: "Account & Login",
     description: "Resetting your password, verifying your email, and account lockouts.",
+    to: "/contact#faq",
     icon: (
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.75} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
     ),
@@ -67,9 +78,11 @@ export default function Help() {
           <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
             {TOPICS.map((topic, index) => (
               <Reveal
+                as={Link}
+                to={topic.to}
                 key={topic.title}
                 delay={index % 3}
-                className="rounded-2xl border border-line bg-white p-6 shadow-sm transition hover:border-brand/20 hover:shadow-md"
+                className="block rounded-2xl border border-line bg-white p-6 shadow-sm transition hover:border-brand/20 hover:shadow-md"
               >
                 <span className="flex h-12 w-12 items-center justify-center rounded-xl bg-brand/10 text-brand">
                   <svg className="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">

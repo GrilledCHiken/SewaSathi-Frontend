@@ -3,12 +3,13 @@ import { Link, Navigate, useLocation, useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 import { useAuth } from "../context/AuthContext";
 import AuthLayout, { AuthFooterLink } from "../components/auth/AuthLayout";
+import BackLink from "../components/ui/BackLink";
 import WorkerAside from "../components/auth/WorkerAside";
 import WorkerSignupSteps from "../components/auth/WorkerSignupSteps";
 import Alert from "../components/ui/Alert";
 import Button from "../components/ui/Button";
 import { Field, Input } from "../components/ui/Field";
-import { ArrowLeftIcon, ArrowRightIcon, MailIcon } from "../components/ui/icons";
+import { ArrowRightIcon, MailIcon } from "../components/ui/icons";
 import { takeSignupPassword } from "../utils/signupHandoff";
 import { OTP_LENGTH, sanitizeOtp } from "../utils/validation";
 
@@ -167,13 +168,7 @@ function VerifySignupOtp() {
       topBar={
         <div className="space-y-5">
           <div className="flex items-center justify-between gap-3">
-            <Link
-              to={backTo}
-              className="inline-flex items-center gap-1.5 rounded-field px-1 py-0.5 text-sm font-medium text-ink-faint transition hover:text-ink-body focus-ring"
-            >
-              <ArrowLeftIcon className="h-4 w-4" />
-              Back
-            </Link>
+            <BackLink to={backTo} />
             <span className="inline-flex items-center gap-1.5 rounded-full bg-brand-50 px-3 py-1 text-xs font-semibold text-brand-700">
               <MailIcon className="h-3.5 w-3.5" />
               Email verification

@@ -8,10 +8,10 @@ import AuthLayout, { AuthFooterLink } from '../../components/auth/AuthLayout'
 import GoogleSignInButton from '../../components/auth/GoogleSignInButton'
 import { routeForRole } from '../../utils/authRouting'
 import { stashGoogleCredential } from '../../utils/signupHandoff'
+import BackLink from '../../components/ui/BackLink'
 import Button from '../../components/ui/Button'
 import { Field, Input } from '../../components/ui/Field'
 import {
-  ArrowLeftIcon,
   ArrowRightIcon,
   CheckIcon,
   EyeIcon,
@@ -144,13 +144,7 @@ function UserSignup() {
       subtitle="Post tasks and get matched with verified workers in minutes."
       topBar={
         <div className="flex items-center justify-between gap-3">
-          <Link
-            to="/signup"
-            className="inline-flex items-center gap-1.5 rounded-field px-1 py-0.5 text-sm font-medium text-ink-faint transition hover:text-ink-body focus-ring"
-          >
-            <ArrowLeftIcon className="h-4 w-4" />
-            Back
-          </Link>
+          <BackLink to="/signup" />
           <span className="inline-flex items-center gap-1.5 rounded-full bg-brand-50 px-3 py-1 text-xs font-semibold text-brand-700">
             <TaskIcon />
             Customer Account

@@ -2,18 +2,19 @@ import { useOutletContext } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import NotificationBell from "../NotificationBell";
 import UserMenu from "../UserMenu";
+import BackLink from "../ui/BackLink";
 import { MenuIcon } from "../ui/icons";
 
 /**
  * Admin header. Height comes from `--dash-header-h` at sm and up, matching the
  * customer and worker headers.
  */
-function AdminHeader({ title = "Admin Dashboard" }) {
+function AdminHeader({ title = "Admin Dashboard", backTo = "/admin", showBack = true }) {
   const { user } = useAuth();
   const outletContext = useOutletContext();
   const openMobileMenu = outletContext?.openMobileMenu;
 
-  const displayId = user?.email || user?.name || "Admin";
+  const displayName = user?.name || "Admin";
 
   return (
     <header className="sticky top-0 z-30 border-b border-line bg-surface/85 px-4 py-3 shadow-inset-line backdrop-blur-md sm:h-[var(--dash-header-h)] sm:px-6 sm:py-0 lg:px-8">
@@ -27,6 +28,7 @@ function AdminHeader({ title = "Admin Dashboard" }) {
           >
             <MenuIcon className="h-6 w-6" />
           </button>
+          {showBack && <BackLink iconOnly to={backTo} />}
           <h1 className="truncate text-lg font-bold tracking-tight text-ink sm:text-xl">
             {title}
           </h1>
@@ -36,7 +38,7 @@ function AdminHeader({ title = "Admin Dashboard" }) {
           {/* The customer and worker headers have always carried the bell; the admin one now
               does too, because a contact-form inquiry has no other way to announce itself. */}
           <NotificationBell />
-          <UserMenu initials={user?.initials || "AD"} displayName={displayId} avatarClassName="bg-brand" />
+          <UserMenu initials={user?.initials || "AD"} displayName={displayName} avatarClassName="bg-brand" />
         </div>
       </div>
     </header>

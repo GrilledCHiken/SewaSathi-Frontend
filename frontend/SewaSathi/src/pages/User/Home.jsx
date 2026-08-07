@@ -16,7 +16,7 @@ import {
   formatRating,
   formatRupees,
 } from "../../utils/formatStats";
-import heroImage from "../../assets/images/hero-moving.jpg";
+import heroImage from "../../assets/images/hero-moving.jpeg";
 import testimonialImage from "../../assets/images/testimonial.jpg";
 
 const HOW_IT_WORKS_STEPS = [

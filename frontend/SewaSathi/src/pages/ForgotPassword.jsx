@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Link, useLocation, useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 import { useAuth } from "../context/AuthContext";
 import AuthLayout, { AuthFooterLink } from "../components/auth/AuthLayout";
 import PasswordChecklist from "../components/PasswordChecklist";
 import Alert from "../components/ui/Alert";
+import BackLink from "../components/ui/BackLink";
 import Button from "../components/ui/Button";
 import { Field, Input } from "../components/ui/Field";
 import {
@@ -279,13 +280,7 @@ function ForgotPassword() {
       topBar={
         <div className="flex items-center justify-between gap-3">
           {step === "email" ? (
-            <Link
-              to="/login"
-              className="inline-flex items-center gap-1.5 rounded-field px-1 py-0.5 text-sm font-medium text-ink-faint transition hover:text-ink-body focus-ring"
-            >
-              <ArrowLeftIcon className="h-4 w-4" />
-              Back to sign in
-            </Link>
+            <BackLink to="/login" label="Back to sign in" />
           ) : (
             <button
               type="button"
