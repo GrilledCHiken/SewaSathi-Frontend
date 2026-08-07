@@ -27,7 +27,6 @@ import Alert from "../components/ui/Alert";
 import Button from "../components/ui/Button";
 import RadioCard from "../components/ui/RadioCard";
 import Skeleton from "../components/ui/Skeleton";
-import { ArrowLeftIcon } from "../components/ui/icons";
 
 const ADVANCE_PERCENT = `${Math.round(ADVANCE_RATE * 100)}%`;
 
@@ -250,22 +249,19 @@ export default function CustomerCheckout() {
   const confirmed = status === "assigned" || status === "in progress";
   const paidInFull = status === "completed";
 
-  const header = <DashboardHeader title="Checkout" searchPlaceholder="Search workers..." />;
-
-  const backLink = (
-    <Link
-      to="/dashboard/tasks"
-      className="inline-flex items-center gap-1.5 rounded-field px-1 py-0.5 text-sm font-semibold text-ink-muted transition hover:text-brand focus-ring"
-    >
-      <ArrowLeftIcon className="h-4 w-4" />
-      Back to My Tasks
-    </Link>
+  // The back affordance now lives in DashboardHeader, which every /dashboard route
+  // gets; `backTo` is only the fallback for someone who deep-linked straight here.
+  const header = (
+    <DashboardHeader
+      title="Checkout"
+      searchPlaceholder="Search workers..."
+      backTo="/dashboard/tasks"
+    />
   );
 
   return (
     <PageShell header={header} width="lg">
       <PageHeader
-        back={<div className="mb-2">{backLink}</div>}
         title={mode === "balance" ? "Settle Your Task" : "Confirm Your Task"}
         description={
           mode === "balance"

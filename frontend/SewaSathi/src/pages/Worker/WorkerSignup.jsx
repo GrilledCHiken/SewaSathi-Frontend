@@ -13,10 +13,10 @@ import AuthLayout, { AuthFooterLink } from "../../components/auth/AuthLayout";
 import WorkerAside from "../../components/auth/WorkerAside";
 import WorkerSignupSteps from "../../components/auth/WorkerSignupSteps";
 import Alert from "../../components/ui/Alert";
+import BackLink from "../../components/ui/BackLink";
 import Button from "../../components/ui/Button";
 import { Field, Input } from "../../components/ui/Field";
 import {
-  ArrowLeftIcon,
   ArrowRightIcon,
   CheckIcon,
   EyeIcon,
@@ -142,13 +142,7 @@ function WorkerSignup() {
       topBar={
         <div className="space-y-5">
           <div className="flex items-center justify-between gap-3">
-            <Link
-              to="/signup"
-              className="inline-flex items-center gap-1.5 rounded-field px-1 py-0.5 text-sm font-medium text-ink-faint transition hover:text-ink-body focus-ring"
-            >
-              <ArrowLeftIcon className="h-4 w-4" />
-              Back
-            </Link>
+            <BackLink to="/signup" />
             <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700">
               <BriefcaseIcon />
               Worker Account

@@ -5,6 +5,7 @@ import { useAuth } from '../context/AuthContext'
 import AuthLayout, { AuthFooterLink } from '../components/auth/AuthLayout'
 import GoogleSignInButton from '../components/auth/GoogleSignInButton'
 import Alert from '../components/ui/Alert'
+import BackLink from '../components/ui/BackLink'
 import Button from '../components/ui/Button'
 import { Field, Input } from '../components/ui/Field'
 import { ArrowRightIcon, EyeIcon, LockIcon, MailIcon } from '../components/ui/icons'
@@ -85,6 +86,7 @@ function Login() {
     <AuthLayout
       title="Welcome back"
       subtitle="Sign in to your SewaSathi account"
+      topBar={<BackLink to="/" />}
       notice={
         arrivalNotice &&
         (arrivalNotice.passwordReset ? (

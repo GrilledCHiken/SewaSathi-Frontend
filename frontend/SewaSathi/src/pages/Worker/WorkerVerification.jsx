@@ -3,6 +3,7 @@ import { toast } from "react-toastify";
 import { useAuth } from "../../context/AuthContext";
 import { submitWorkerVerification } from "../../api/workerProfileApi";
 import { SKILL_OPTIONS, LOCATION_OPTIONS, EXPERIENCE_OPTIONS } from "../../constants/workerOptions";
+import BackLink from "../../components/ui/BackLink";
 import Brandmark from "../../components/ui/Brandmark";
 import Button from "../../components/ui/Button";
 import FileDropzone from "../../components/ui/FileDropzone";
@@ -126,6 +127,15 @@ export default function WorkerVerification({
       <Brandmark to="/" size="sm" className="mb-6" />
 
       <div className="w-full max-w-2xl animate-fade-up rounded-panel border border-line bg-surface p-6 shadow-e3 sm:p-10">
+        {/* Signup only. The "gate" variant is the takeover shown to a PENDING worker
+            who never filed a verification, and it deliberately has no way past it
+            but submitting — a back button there would just be an exit. */}
+        {isSignup && (
+          <div className="mb-5">
+            <BackLink to="/signup/worker" />
+          </div>
+        )}
+
         {isSignup && <WorkerSignupSteps current={2} className="mb-8" />}
 
         <div className="text-center">

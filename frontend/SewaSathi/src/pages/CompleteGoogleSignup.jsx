@@ -3,10 +3,11 @@ import { Link, Navigate, useLocation, useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 import { useAuth } from "../context/AuthContext";
 import AuthLayout, { AuthFooterLink } from "../components/auth/AuthLayout";
+import BackLink from "../components/ui/BackLink";
 import Alert from "../components/ui/Alert";
 import Button from "../components/ui/Button";
 import { Field, Input } from "../components/ui/Field";
-import { ArrowLeftIcon, ArrowRightIcon, PhoneIcon } from "../components/ui/icons";
+import { ArrowRightIcon, PhoneIcon } from "../components/ui/icons";
 import { routeForRole } from "../utils/authRouting";
 import { takeGoogleCredential } from "../utils/signupHandoff";
 import { NEPAL_MOBILE_REGEX, sanitizePhone } from "../utils/validation";
@@ -72,13 +73,7 @@ function CompleteGoogleSignup() {
       subtitle="We just need a phone number so the workers you book can reach you."
       topBar={
         <div className="flex items-center justify-between gap-3">
-          <Link
-            to="/login"
-            className="inline-flex items-center gap-1.5 rounded-field px-1 py-0.5 text-sm font-medium text-ink-faint transition hover:text-ink-body focus-ring"
-          >
-            <ArrowLeftIcon className="h-4 w-4" />
-            Back
-          </Link>
+          <BackLink to="/login" />
         </div>
       }
       notice={

@@ -1,20 +1,52 @@
 import { useMemo, useState } from 'react'
-import { useSearchParams } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import Reveal from '../../components/User/Reveal'
 import ServiceIcon from '../../components/User/ServiceIcon'
+import Button from '../../components/ui/Button'
 import { SkeletonCard } from '../../components/ui/Skeleton'
+import { useAuth } from '../../context/AuthContext'
 import { serviceDisplay } from '../../data/services'
 import { usePublicServices } from '../../hooks/usePublicData'
+import { routeForRole } from '../../utils/authRouting'
 import { formatCount, formatRating, formatRupees } from '../../utils/formatStats'
 
 /** How many category chips the "Popular:" row offers. */
 const TAG_COUNT = 5
 
 function Services() {
-  const [searchParams] = useSearchParams()
-  const [search, setSearch] = useState(() => searchParams.get('search') || '')
+  // The URL owns the search term, so a filtered list stays shareable and the Back
+  // button returns to wherever the visitor came from. Reading it into state instead
+  // meant the box and the address bar drifted apart the moment anyone typed.
+  const [searchParams, setSearchParams] = useSearchParams()
+  const search = searchParams.get('search') ?? ''
   const [activeTag, setActiveTag] = useState('All')
   const { services, loading } = usePublicServices()
+  const { user, isCustomerAuthenticated } = useAuth()
+
+  const setSearch = (next) => {
+    setSearchParams(
+      (prev) => {
+        const params = new URLSearchParams(prev)
+        // Drop the key rather than leave a bare `?search=` behind.
+        if (next) params.set('search', next)
+        else params.delete('search')
+        return params
+      },
+      // Per keystroke, so typing a query does not bury the previous page under a
+      // dozen history entries.
+      { replace: true },
+    )
+  }
+
+  /**
+   * Where a "book this" CTA belongs, given who is reading the page. A visitor has no
+   * dashboard to deep-link into yet; a worker or admin has one, but not this one.
+   */
+  const ctaTarget = (customerPath) => {
+    if (isCustomerAuthenticated) return customerPath
+    if (user) return routeForRole(user)
+    return '/signup'
+  }
 
   // Ranked by real demand, so the chips and the "most popular" row follow what
   // people actually book. Ties keep the catalogue's own order, which means a
@@ -169,12 +201,9 @@ function Services() {
                   : `${filteredServices.length} services matched your search`}
               </p>
             </div>
-            <button
-              type="button"
-              className="mt-1 inline-flex items-center justify-center rounded-full bg-brand px-4 py-2 text-sm font-semibold text-white shadow-brand transition hover:bg-brand-dark active:scale-[0.98]"
-            >
+            <Button as={Link} to={ctaTarget('/dashboard/post-task')} className="mt-1">
               + Post a Task
-            </button>
+            </Button>
           </div>
 
           <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -246,12 +275,19 @@ function Services() {
                             ? `Starting from ${formatRupees(service.startingRate)}/hr`
                             : 'Rate on request'}
                         </span>
-                        <button
-                          type="button"
-                          className="inline-flex items-center justify-center rounded-full border border-line px-3 py-1.5 text-xs font-medium text-ink-body transition hover:border-brand/40 hover:bg-brand/5 hover:text-brand"
+                        {/* Lands on the worker list already filtered to this skill —
+                            CustomerBrowseWorkers reads the same `search` param the
+                            dashboard header's search box writes. */}
+                        <Button
+                          as={Link}
+                          to={ctaTarget(
+                            `/dashboard/workers?search=${encodeURIComponent(service.name)}`,
+                          )}
+                          variant="secondary"
+                          size="xs"
                         >
                           Book Now
-                        </button>
+                        </Button>
                       </div>
                     </Reveal>
                   )
@@ -281,18 +317,23 @@ function Services() {
           </p>
 
           <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row sm:gap-4">
-            <button
-              type="button"
-              className="inline-flex w-full items-center justify-center rounded-full bg-brand px-6 py-3 text-sm font-semibold text-white shadow-md shadow-brand/25 transition hover:bg-brand-dark active:scale-[0.98] sm:w-auto"
+            <Button
+              as={Link}
+              to={ctaTarget('/dashboard/post-task')}
+              size="lg"
+              className="w-full sm:w-auto"
             >
               Post a Custom Task
-            </button>
-            <button
-              type="button"
-              className="inline-flex w-full items-center justify-center rounded-full border border-line px-6 py-3 text-sm font-semibold text-ink-body transition hover:border-line-strong hover:bg-surface-muted sm:w-auto"
+            </Button>
+            <Button
+              as={Link}
+              to="/how-it-works"
+              variant="secondary"
+              size="lg"
+              className="w-full sm:w-auto"
             >
               How It Works
-            </button>
+            </Button>
           </div>
         </div>
       </section>

@@ -3,6 +3,7 @@ import { useNavigate, useOutletContext } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import NotificationBell from "../NotificationBell";
 import UserMenu from "../UserMenu";
+import BackLink from "../ui/BackLink";
 import { MenuIcon, SearchIcon } from "../ui/icons";
 
 /**
@@ -24,14 +25,19 @@ import { MenuIcon, SearchIcon } from "../ui/icons";
  * Mobile keeps the two-row stack and is therefore taller — which is fine,
  * because the sticky filter bar only engages at sm and up.
  */
-function DashboardHeader({ title = "Customer Dashboard", searchPlaceholder = "Search..." }) {
+function DashboardHeader({
+  title = "Customer Dashboard",
+  searchPlaceholder = "Search...",
+  backTo = "/dashboard",
+  showBack = true,
+}) {
   const { customer } = useAuth();
   const outletContext = useOutletContext();
   const openMobileMenu = outletContext?.openMobileMenu;
   const [searchQuery, setSearchQuery] = useState("");
   const navigate = useNavigate();
 
-  const displayId = customer?.email || customer?.name || "Customer";
+  const displayName = customer?.name || "Customer";
 
   const handleSearch = (e) => {
     e.preventDefault();
@@ -52,6 +58,7 @@ function DashboardHeader({ title = "Customer Dashboard", searchPlaceholder = "Se
           >
             <MenuIcon className="h-6 w-6" />
           </button>
+          {showBack && <BackLink iconOnly to={backTo} />}
           <h1 className="truncate text-lg font-bold tracking-tight text-ink sm:text-xl">
             {title}
           </h1>
@@ -80,7 +87,7 @@ function DashboardHeader({ title = "Customer Dashboard", searchPlaceholder = "Se
 
           <UserMenu
             initials={customer?.initials || "CU"}
-            displayName={displayId}
+            displayName={displayName}
             avatarClassName="bg-brand"
           />
         </div>

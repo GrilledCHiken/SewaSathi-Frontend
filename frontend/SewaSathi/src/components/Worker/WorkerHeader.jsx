@@ -2,6 +2,7 @@ import { useOutletContext } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import NotificationBell from "../NotificationBell";
 import UserMenu from "../UserMenu";
+import BackLink from "../ui/BackLink";
 import { MenuIcon } from "../ui/icons";
 
 /**
@@ -9,12 +10,12 @@ import { MenuIcon } from "../ui/icons";
  * customer and admin headers — the worker Browse Tasks filter bar offsets its
  * sticky position by that same token.
  */
-function WorkerHeader({ title = "Worker Dashboard" }) {
+function WorkerHeader({ title = "Worker Dashboard", backTo = "/worker", showBack = true }) {
   const { customer } = useAuth();
   const outletContext = useOutletContext();
   const openMobileMenu = outletContext?.openMobileMenu;
 
-  const displayId = customer?.email || customer?.name || "Worker";
+  const displayName = customer?.name || "Worker";
 
   return (
     <header className="sticky top-0 z-30 border-b border-line bg-surface/85 px-4 py-3 shadow-inset-line backdrop-blur-md sm:h-[var(--dash-header-h)] sm:px-6 sm:py-0 lg:px-8">
@@ -28,6 +29,7 @@ function WorkerHeader({ title = "Worker Dashboard" }) {
           >
             <MenuIcon className="h-6 w-6" />
           </button>
+          {showBack && <BackLink iconOnly to={backTo} />}
           <h1 className="truncate text-lg font-bold tracking-tight text-ink sm:text-xl">
             {title}
           </h1>
@@ -38,7 +40,7 @@ function WorkerHeader({ title = "Worker Dashboard" }) {
               invisible until they happened to open the right page. */}
           <NotificationBell />
 
-          <UserMenu initials={customer?.initials || "WK"} displayName={displayId} avatarClassName="bg-emerald-600" />
+          <UserMenu initials={customer?.initials || "WK"} displayName={displayName} avatarClassName="bg-emerald-600" />
         </div>
       </div>
     </header>

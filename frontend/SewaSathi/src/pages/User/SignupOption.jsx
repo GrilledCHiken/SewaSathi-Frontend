@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import { AuthFooterLink } from "../../components/auth/AuthLayout";
+import BackLink from "../../components/ui/BackLink";
 import Brandmark from "../../components/ui/Brandmark";
 import { ArrowRightIcon, CheckIcon } from "../../components/ui/icons";
 
@@ -98,6 +99,13 @@ function SignupOption() {
     <div className="relative flex min-h-svh flex-col items-center overflow-hidden bg-surface-muted px-4 py-12">
       <div className="pointer-events-none absolute -left-24 -top-24 h-72 w-72 rounded-full bg-brand/10 blur-3xl" />
       <div className="pointer-events-none absolute -right-24 top-1/3 h-72 w-72 rounded-full bg-emerald-400/10 blur-3xl" />
+
+      {/* Sits above the centred column rather than inside it: the two-up grid is
+          what's centred here, and a back link nudged into that flow would drag
+          the logo off-axis. */}
+      <div className="relative mb-4 flex w-full max-w-3xl">
+        <BackLink to="/" />
+      </div>
 
       <Brandmark to="/" size="md" className="relative mb-8" />
 

@@ -104,7 +104,7 @@ function Header() {
               </Link>
               <UserMenu
                 initials={user?.initials || "CU"}
-                displayName={user?.email || user?.name || "Account"}
+                displayName={user?.name || "Account"}
                 avatarClassName={avatarClassName}
               />
             </>
