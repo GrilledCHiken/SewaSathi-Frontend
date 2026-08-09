@@ -3,6 +3,7 @@ import { useSearchParams } from "react-router-dom";
 import { toast } from "react-toastify";
 import { useAuth } from "../../context/AuthContext";
 import { useChat } from "../../context/ChatContext";
+import { useBodyScrollLock } from "../../hooks/useBodyScrollLock";
 import AuthedImage from "../AuthedImage";
 import DocumentViewerModal from "../DocumentViewerModal";
 import { downloadFile } from "../../api/fileApi";
@@ -341,6 +342,12 @@ function MessageBubble({ message, isSelf, otherInitials, otherPalette, selfIniti
 }
 
 export default function ChatPage({ renderHeader }) {
+  // The chat is a fixed full-viewport shell: only the thread and the
+  // conversation list scroll. Without this the document is still a live scroll
+  // container on these routes, and focusing the composer (or any ancestor
+  // ending up a hair taller than the viewport) drags the header out of view.
+  useBodyScrollLock();
+
   const { user } = useAuth();
   const {
     connected,
@@ -577,8 +584,10 @@ export default function ChatPage({ renderHeader }) {
   );
 
   return (
-    <div className="flex h-svh flex-col overflow-hidden">
-      {renderHeader?.()}
+    // `h-dvh`, not `h-svh`: the shell has to track the mobile toolbar collapsing
+    // and the on-screen keyboard, otherwise the composer ends up below the fold.
+    <div className="flex h-dvh flex-col overflow-hidden">
+      <div className="shrink-0">{renderHeader?.()}</div>
 
       <main className="flex min-h-0 flex-1 flex-col px-4 py-4 sm:px-6 lg:px-8">
         <div className="mx-auto flex min-h-0 w-full max-w-6xl flex-1 overflow-hidden rounded-card border border-line bg-surface shadow-e1">
@@ -589,7 +598,7 @@ export default function ChatPage({ renderHeader }) {
               mobileShowChat ? "hidden lg:flex" : "flex",
             ].join(" ")}
           >
-            <div className="border-b border-line px-4 py-4">
+            <div className="shrink-0 border-b border-line px-4 py-4">
               <h2 className="text-lg font-bold text-ink">Messages</h2>
               <div className="relative mt-3">
                 <svg
@@ -612,7 +621,7 @@ export default function ChatPage({ renderHeader }) {
               </div>
             </div>
 
-            <ul className="min-h-0 flex-1 space-y-1 overflow-y-auto p-2">
+            <ul className="min-h-0 flex-1 space-y-1 overflow-y-auto overscroll-contain p-2">
               {loadingConversations ? (
                 <li className="px-3 py-6 text-center text-sm text-ink-muted">Loading...</li>
               ) : filteredConversations.length === 0 ? (
@@ -681,7 +690,7 @@ export default function ChatPage({ renderHeader }) {
                 <div
                   ref={scrollRef}
                   onScroll={handleMessagesScroll}
-                  className="min-h-0 flex-1 overflow-y-auto bg-surface-muted px-4 py-4"
+                  className="min-h-0 flex-1 overflow-y-auto overscroll-contain bg-surface-muted px-4 py-4"
                 >
                   {loadingMessages ? (
                     <p className="text-center text-sm text-ink-muted">Loading messages...</p>

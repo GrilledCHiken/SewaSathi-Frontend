@@ -251,13 +251,7 @@ export default function CustomerCheckout() {
 
   // The back affordance now lives in DashboardHeader, which every /dashboard route
   // gets; `backTo` is only the fallback for someone who deep-linked straight here.
-  const header = (
-    <DashboardHeader
-      title="Checkout"
-      searchPlaceholder="Search workers..."
-      backTo="/dashboard/tasks"
-    />
-  );
+  const header = <DashboardHeader title="Checkout" backTo="/dashboard/tasks" />;
 
   return (
     <PageShell header={header} width="lg">

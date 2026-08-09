@@ -79,7 +79,7 @@ export default function KhaltiCallback() {
 
   return (
     <PageShell
-      header={<DashboardHeader title="Payment" searchPlaceholder="Search workers..." />}
+      header={<DashboardHeader title="Payment" />}
       width="sm"
     >
       <PageHeader title="Payment" />

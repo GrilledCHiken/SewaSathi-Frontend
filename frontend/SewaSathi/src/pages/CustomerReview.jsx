@@ -235,7 +235,7 @@ export default function CustomerReview() {
 
   return (
     <PageShell
-      header={<DashboardHeader title="Reviews" searchPlaceholder="Search workers..." />}
+      header={<DashboardHeader title="Reviews" />}
       width="md"
     >
       <PageHeader

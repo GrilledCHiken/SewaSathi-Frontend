@@ -146,7 +146,7 @@ export default function CustomerPostTask() {
     }
   };
 
-  const header = <DashboardHeader title="Post a Task" searchPlaceholder="Search workers..." />;
+  const header = <DashboardHeader title="Post a Task" />;
 
   if (submitted) {
     return (
