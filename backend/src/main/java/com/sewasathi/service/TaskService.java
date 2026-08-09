@@ -13,17 +13,23 @@ import com.sewasathi.exception.ResourceNotFoundException;
 import com.sewasathi.repository.TaskRepository;
 import com.sewasathi.repository.UserRepository;
 import com.sewasathi.repository.WorkerProfileRepository;
-import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 @Service
-@RequiredArgsConstructor
 public class TaskService {
+
+    private static final Logger log = LoggerFactory.getLogger(TaskService.class);
 
     // AWAITING_PAYMENT counts as active: the work is done but the job is not closed until
     // the balance settles, and until then it still needs the customer's attention.
@@ -40,6 +46,34 @@ public class TaskService {
     private final UserRepository userRepository;
     private final WorkerProfileRepository workerProfileRepository;
     private final NotificationService notificationService;
+    private final EmailService emailService;
+    private final String frontendUrl;
+    private final BigDecimal advanceRate;
+
+    /**
+     * Written out rather than left to {@code @RequiredArgsConstructor}: Lombok does not copy
+     * {@link Value} onto the parameters it generates without a {@code lombok.config} saying so,
+     * and the two injected properties would arrive null. {@link PaymentService} is constructed
+     * the same way for the same reason.
+     */
+    @Autowired
+    public TaskService(
+            TaskRepository taskRepository,
+            UserRepository userRepository,
+            WorkerProfileRepository workerProfileRepository,
+            NotificationService notificationService,
+            EmailService emailService,
+            @Value("${app.frontend-url}") String frontendUrl,
+            @Value("${app.esewa.advance-rate:0.10}") BigDecimal advanceRate
+    ) {
+        this.taskRepository = taskRepository;
+        this.userRepository = userRepository;
+        this.workerProfileRepository = workerProfileRepository;
+        this.notificationService = notificationService;
+        this.emailService = emailService;
+        this.frontendUrl = trimTrailingSlash(frontendUrl);
+        this.advanceRate = advanceRate;
+    }
 
     /**
      * The checks bean validation cannot express: a value list, and a comparison between two
@@ -203,7 +237,9 @@ public class TaskService {
         task.setAssignedWorker(worker);
         // Stays ACCEPTED until the customer pays the advance; PaymentService moves it to ASSIGNED.
         task.setStatus(TaskStatus.ACCEPTED);
-        return TaskResponse.from(taskRepository.save(task));
+        Task saved = taskRepository.save(task);
+        announceAcceptance(saved, worker);
+        return TaskResponse.from(saved);
     }
 
     /** The yes half of a direct hire. Only the worker who was asked can answer. */
@@ -211,13 +247,54 @@ public class TaskService {
         ensureAssignedTo(task, worker);
         task.setStatus(TaskStatus.ACCEPTED);
         Task saved = taskRepository.save(task);
+        announceAcceptance(saved, worker);
+        return saved;
+    }
 
+    /**
+     * Tells the customer their job has been taken. Shared by both doors into
+     * {@link TaskStatus#ACCEPTED} so the two cannot drift - a worker claiming an open task used
+     * to announce nothing at all, leaving the customer to discover it by opening My Tasks.
+     *
+     * <p>The advance is the point of the message: nothing moves until it is paid.
+     */
+    private void announceAcceptance(Task task, User worker) {
+        // "your task" rather than "your request": on the open-feed path the customer never
+        // asked this worker for anything, they simply picked the job up.
         notificationService.notify(task.getCustomer(), "TASK_ACCEPTED",
-                worker.getFullName() + " accepted your request",
+                worker.getFullName() + " accepted your task",
                 "Pay the advance on \"" + task.getTitle() + "\" to confirm the booking.",
                 "/dashboard/tasks");
 
-        return saved;
+        emailAcceptance(task, worker);
+    }
+
+    /**
+     * The same news by email, for a customer who is not looking at the app.
+     *
+     * <p>Delivery failures are swallowed rather than allowed to escape: this runs inside the
+     * {@code @Transactional} accept, and an {@link com.sewasathi.exception.EmailDeliveryException}
+     * crossing the proxy boundary would mark the transaction rollback-only - undoing the worker's
+     * acceptance because the mail server was unreachable. The in-app notification has already
+     * landed either way.
+     */
+    private void emailAcceptance(Task task, User worker) {
+        User customer = task.getCustomer();
+        try {
+            emailService.sendTemplate(
+                    customer.getEmail(),
+                    "Your task has been accepted",
+                    "email/task-accepted",
+                    Map.of(
+                            "name", firstName(customer.getFullName()),
+                            "workerName", worker.getFullName(),
+                            "taskTitle", task.getTitle(),
+                            "advancePercent", advancePercentLabel(),
+                            "tasksUrl", frontendUrl + "/dashboard/tasks"));
+        } catch (RuntimeException ex) {
+            log.warn("Could not email {} that task {} was accepted: {}",
+                    customer.getEmail(), task.getId(), ex.getMessage());
+        }
     }
 
     /**
@@ -314,6 +391,21 @@ public class TaskService {
     }
 
     // --- helpers ---
+
+    /** The configured rate as something an email can print, e.g. 0.10 becomes "10%". */
+    private String advancePercentLabel() {
+        return advanceRate.movePointRight(2).stripTrailingZeros().toPlainString() + "%";
+    }
+
+    private static String firstName(String fullName) {
+        String trimmed = fullName == null ? "" : fullName.trim();
+        int space = trimmed.indexOf(' ');
+        return space > 0 ? trimmed.substring(0, space) : trimmed;
+    }
+
+    private static String trimTrailingSlash(String url) {
+        return url != null && url.endsWith("/") ? url.substring(0, url.length() - 1) : url;
+    }
 
     private User getUser(String email) {
         return userRepository.findByEmail(email)

@@ -67,7 +67,7 @@ export default function MyProfile() {
         isAdmin ? (
           <AdminHeader title="My Profile" />
         ) : (
-          <DashboardHeader title="My Profile" searchPlaceholder="Search workers..." />
+          <DashboardHeader title="My Profile" />
         )
       }
     >

@@ -1,5 +1,6 @@
 import { useEffect, useId, useRef } from "react";
 import { createPortal } from "react-dom";
+import { useBodyScrollLock } from "../../hooks/useBodyScrollLock";
 import { cn } from "../../utils/cn";
 import { XIcon } from "./icons";
 
@@ -65,17 +66,10 @@ export default function Modal({
     target?.focus();
   }, [open, initialFocusRef]);
 
-  // Opt-in scroll lock. Restores whatever overflow the page had, rather than
-  // assuming it was the default — a nested modal would otherwise unlock early.
-  useEffect(() => {
-    if (!open || !lockScroll) return undefined;
-
-    const previous = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    return () => {
-      document.body.style.overflow = previous;
-    };
-  }, [open, lockScroll]);
+  // Opt-in scroll lock, shared with the chat shell. The hook restores whatever
+  // overflow the page had rather than assuming it was the default, so a modal
+  // opened over an already-locked surface does not unlock it on close.
+  useBodyScrollLock(open && lockScroll);
 
   // Opt-in focus trap: cycle Tab within the dialog.
   useEffect(() => {

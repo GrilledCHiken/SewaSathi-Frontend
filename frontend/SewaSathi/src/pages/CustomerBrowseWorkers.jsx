@@ -422,7 +422,7 @@ export default function CustomerBrowseWorkers() {
 
   return (
     <PageShell
-      header={<DashboardHeader title="Browse Workers" searchPlaceholder="Search workers..." />}
+      header={<DashboardHeader title="Browse Workers" />}
     >
       <PageHeader
         title="Browse Workers"

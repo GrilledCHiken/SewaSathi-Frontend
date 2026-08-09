@@ -156,7 +156,7 @@ export default function CustomerDashboard() {
   }, []);
 
   return (
-    <PageShell header={<DashboardHeader title="Dashboard" searchPlaceholder="Search workers..." />}>
+    <PageShell header={<DashboardHeader title="Dashboard" />}>
       {loading ? (
         <DashboardSkeleton />
       ) : (

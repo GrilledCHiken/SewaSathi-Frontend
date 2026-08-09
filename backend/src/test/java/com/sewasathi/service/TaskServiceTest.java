@@ -8,6 +8,7 @@ import com.sewasathi.entity.Task;
 import com.sewasathi.entity.TaskStatus;
 import com.sewasathi.entity.User;
 import com.sewasathi.entity.WorkerProfile;
+import com.sewasathi.exception.EmailDeliveryException;
 import com.sewasathi.exception.InvalidOperationException;
 import com.sewasathi.exception.ResourceNotFoundException;
 import com.sewasathi.repository.TaskRepository;
@@ -23,13 +24,16 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyMap;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.never;
@@ -51,6 +55,9 @@ class TaskServiceTest {
     @Mock
     private NotificationService notificationService;
 
+    @Mock
+    private EmailService emailService;
+
     private TaskService taskService;
 
     private User customer;
@@ -60,7 +67,8 @@ class TaskServiceTest {
     @BeforeEach
     void setUp() {
         taskService = new TaskService(
-                taskRepository, userRepository, workerProfileRepository, notificationService);
+                taskRepository, userRepository, workerProfileRepository, notificationService,
+                emailService, "http://localhost:5173", new BigDecimal("0.10"));
 
         customer = User.builder()
                 .id(1L).email("customer@example.com").fullName("Customer One")
@@ -386,6 +394,25 @@ class TaskServiceTest {
         assertThat(response.getAssignedWorker().getId()).isEqualTo(3L);
     }
 
+    /**
+     * Claiming off the open feed used to tell the customer nothing at all, so the only way to
+     * find out was to open My Tasks - with the job blocked on an advance they did not know
+     * was due. It now announces exactly as a direct hire does.
+     */
+    @Test
+    void acceptTask_open_tellsTheCustomerTheirAdvanceIsDue() {
+        Task task = openTaskOwnedBy(customer);
+        when(userRepository.findByEmail("worker@example.com")).thenReturn(Optional.of(approvedWorker));
+        when(taskRepository.findById(100L)).thenReturn(Optional.of(task));
+
+        taskService.acceptTask(100L, "worker@example.com");
+
+        verify(notificationService).notify(
+                eq(customer), eq("TASK_ACCEPTED"), anyString(), anyString(), eq("/dashboard/tasks"));
+        verify(emailService).sendTemplate(
+                eq("customer@example.com"), anyString(), eq("email/task-accepted"), anyMap());
+    }
+
     @Test
     void acceptTask_ownRequest_movesItToAcceptedAndNotifiesTheCustomer() {
         Task task = requestedTask();
@@ -396,6 +423,48 @@ class TaskServiceTest {
 
         assertThat(response.getStatus()).isEqualTo(TaskStatus.ACCEPTED);
         assertThat(response.getAssignedWorker().getId()).isEqualTo(3L);
+        verify(notificationService).notify(
+                eq(customer), eq("TASK_ACCEPTED"), anyString(), anyString(), eq("/dashboard/tasks"));
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void acceptTask_emailsTheCustomerTheWorkerTaskAndAdvanceShare() {
+        Task task = requestedTask();
+        when(userRepository.findByEmail("worker@example.com")).thenReturn(Optional.of(approvedWorker));
+        when(taskRepository.findById(100L)).thenReturn(Optional.of(task));
+
+        taskService.acceptTask(100L, "worker@example.com");
+
+        ArgumentCaptor<Map<String, Object>> model = ArgumentCaptor.forClass(Map.class);
+        verify(emailService).sendTemplate(
+                eq("customer@example.com"), anyString(), eq("email/task-accepted"), model.capture());
+        assertThat(model.getValue())
+                .containsEntry("name", "Customer")
+                .containsEntry("workerName", "Worker One")
+                .containsEntry("taskTitle", task.getTitle())
+                // Rendered from the injected rate rather than hardcoded, so the email cannot
+                // quote a share the checkout page does not charge.
+                .containsEntry("advancePercent", "10%")
+                .containsEntry("tasksUrl", "http://localhost:5173/dashboard/tasks");
+    }
+
+    /**
+     * The acceptance is the business fact; the email is a courtesy. Letting an
+     * EmailDeliveryException escape the transactional accept would mark it rollback-only and
+     * silently undo the worker's yes because the mail server was down.
+     */
+    @Test
+    void acceptTask_whenTheEmailCannotBeSent_stillAcceptsTheTask() {
+        Task task = requestedTask();
+        when(userRepository.findByEmail("worker@example.com")).thenReturn(Optional.of(approvedWorker));
+        when(taskRepository.findById(100L)).thenReturn(Optional.of(task));
+        doThrow(new EmailDeliveryException("smtp down", null))
+                .when(emailService).sendTemplate(anyString(), anyString(), anyString(), anyMap());
+
+        TaskResponse response = taskService.acceptTask(100L, "worker@example.com");
+
+        assertThat(response.getStatus()).isEqualTo(TaskStatus.ACCEPTED);
         verify(notificationService).notify(
                 eq(customer), eq("TASK_ACCEPTED"), anyString(), anyString(), eq("/dashboard/tasks"));
     }
@@ -414,7 +483,7 @@ class TaskServiceTest {
         assertThatThrownBy(() -> taskService.acceptTask(100L, "other-worker@example.com"))
                 .isInstanceOf(ResourceNotFoundException.class);
         assertThat(task.getAssignedWorker()).isEqualTo(approvedWorker);
-        verifyNoInteractions(notificationService);
+        verifyNoInteractions(notificationService, emailService);
     }
 
     @Test

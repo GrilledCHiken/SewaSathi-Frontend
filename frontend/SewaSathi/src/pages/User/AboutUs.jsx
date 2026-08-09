@@ -3,7 +3,7 @@ import Reveal from "../../components/User/Reveal";
 import Skeleton from "../../components/ui/Skeleton";
 import { usePublicStats } from "../../hooks/usePublicData";
 import { formatCount, formatPercent } from "../../utils/formatStats";
-import missionImage from "../../assets/images/hero-moving.jpg";
+import missionImage from "../../assets/images/hero-moving.jpeg";
 
 const CORE_VALUES = [
   {

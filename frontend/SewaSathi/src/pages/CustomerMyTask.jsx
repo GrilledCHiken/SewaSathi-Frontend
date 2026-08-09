@@ -286,7 +286,7 @@ export default function CustomerMyTask() {
 
   return (
     <PageShell
-      header={<DashboardHeader title="My Tasks" searchPlaceholder="Search workers..." />}
+      header={<DashboardHeader title="My Tasks" />}
       width="md"
     >
       <div className="mb-5">

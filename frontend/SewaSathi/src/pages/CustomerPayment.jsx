@@ -336,7 +336,7 @@ export default function CustomerPayment() {
 
   return (
     <PageShell
-      header={<DashboardHeader title="Payments" searchPlaceholder="Search workers..." />}
+      header={<DashboardHeader title="Payments" />}
       width="lg"
     >
       <PageHeader
