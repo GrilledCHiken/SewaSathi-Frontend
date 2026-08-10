@@ -31,8 +31,11 @@ const fit = (buf, size, opts = {}) => {
 };
 
 (async () => {
-  const color = await master("color");
-  const onDark = await master("on-dark");
+  // The artwork's own colours. Swap these for "color" / "on-dark" to go back to
+  // the site-palette rotation — but change both, or the favicon stops matching
+  // the mark the app renders.
+  const color = await master("original");
+  const onDark = await master("original-on-dark");
 
   const wrote = [];
   const w = (p, buf) => {

@@ -32,14 +32,14 @@ import { PlusIcon } from "../components/ui/icons";
 
 const STATUS_FILTERS = [
   { key: "all", label: "All" },
-  { key: "open", label: "open" },
-  { key: "requested", label: "requested" },
-  { key: "accepted", label: "accepted" },
-  { key: "assigned", label: "assigned" },
-  { key: "in progress", label: "in progress" },
-  { key: "awaiting payment", label: "awaiting payment" },
-  { key: "completed", label: "completed" },
-  { key: "cancelled", label: "cancelled" },
+  { key: "open", label: "Open" },
+  { key: "requested", label: "Requested" },
+  { key: "accepted", label: "Accepted" },
+  { key: "assigned", label: "Assigned" },
+  { key: "in progress", label: "In Progress" },
+  { key: "awaiting payment", label: "Awaiting Payment" },
+  { key: "completed", label: "Completed" },
+  { key: "cancelled", label: "Cancelled" },
 ];
 
 function AdvanceNotice({ count }) {

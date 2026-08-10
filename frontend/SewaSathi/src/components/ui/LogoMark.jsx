@@ -34,7 +34,10 @@ export default function LogoMark({
       src={SRC[variant] || SRC.color}
       width={size}
       height={size}
-      // The art is square and pre-centred, so the box needs no object-fit.
+      // No object-fit: `recolor.js` trims each generated variant to its ink and
+      // pads it back to a square, so the art arrives pre-centred. Never point
+      // this at `SewaSathi-logo.png` directly — that file is 432x327 and would
+      // be squashed into the box, silently, at every call site.
       alt={title || ""}
       aria-hidden={title ? undefined : "true"}
       className={className}
