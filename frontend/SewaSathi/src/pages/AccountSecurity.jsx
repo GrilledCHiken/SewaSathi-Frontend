@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 import { useAuth } from "../context/AuthContext";
+import useConfirm from "../hooks/useConfirm";
 import useDesktopNotifications from "../hooks/useDesktopNotifications";
 import DashboardHeader from "../components/User/DashboardHeader";
 import PageShell, { PageHeader } from "../components/ui/PageShell";
@@ -12,6 +13,7 @@ import { BellIcon, ShieldIcon } from "../components/ui/icons";
 
 export default function AccountSecurity() {
   const [signingOutEverywhere, setSigningOutEverywhere] = useState(false);
+  const [confirm, confirmDialog] = useConfirm();
   const desktopAlerts = useDesktopNotifications();
   const { logoutEverywhere } = useAuth();
   const navigate = useNavigate();
@@ -31,6 +33,15 @@ export default function AccountSecurity() {
   };
 
   const handleLogoutEverywhere = async () => {
+    const ok = await confirm({
+      title: "Sign out of every device?",
+      body: "Every phone, tablet and browser signed in to this account is signed out, including this one. You'll need to sign in again to carry on.",
+      confirmLabel: "Sign out everywhere",
+      cancelLabel: "Stay signed in",
+      tone: "danger",
+    });
+    if (!ok) return;
+
     setSigningOutEverywhere(true);
     try {
       await logoutEverywhere();
@@ -120,6 +131,8 @@ export default function AccountSecurity() {
           </div>
         </div>
       </Panel>
+
+      {confirmDialog}
     </PageShell>
   );
 }

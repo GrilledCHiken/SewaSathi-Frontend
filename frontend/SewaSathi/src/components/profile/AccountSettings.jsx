@@ -14,6 +14,7 @@ import {
   isPasswordStrong,
   sanitizePhone,
 } from "../../utils/validation";
+import useConfirm from "../../hooks/useConfirm";
 import Avatar from "../Avatar";
 import PasswordChecklist from "../PasswordChecklist";
 import { DetailField } from "../detailUi";
@@ -69,6 +70,7 @@ export default function AccountSettings({ accent = "brand" }) {
 
   const fileInputRef = useRef(null);
   const [photoBusy, setPhotoBusy] = useState(false);
+  const [confirm, confirmDialog] = useConfirm();
 
   const [details, setDetails] = useState({
     fullName: user?.fullName || user?.name || "",
@@ -112,6 +114,15 @@ export default function AccountSettings({ accent = "brand" }) {
   };
 
   const handlePhotoRemove = async () => {
+    const ok = await confirm({
+      title: "Remove your profile photo?",
+      body: "Your account falls back to your initials everywhere it's shown. You can upload a new photo whenever you like.",
+      confirmLabel: "Remove photo",
+      cancelLabel: "Keep it",
+      tone: "danger",
+    });
+    if (!ok) return;
+
     setPhotoBusy(true);
     try {
       applyUserUpdate(await removeMyAvatar());
@@ -178,6 +189,17 @@ export default function AccountSettings({ accent = "brand" }) {
     }
     setPasswordErrors(errors);
     if (Object.keys(errors).length > 0) return false;
+
+    /* Changing the password revokes every refresh token, so it signs this device out too.
+       That is the part worth warning about — until now it just happened. */
+    const ok = await confirm({
+      title: "Change your password?",
+      body: "Every device signed in to this account is signed out, including this one, so you'll be sent back to the login screen to sign in with the new password.",
+      confirmLabel: "Change password",
+      cancelLabel: "Go back",
+      tone: "danger",
+    });
+    if (!ok) return false;
 
     setSavingPassword(true);
     try {
@@ -437,6 +459,8 @@ export default function AccountSettings({ accent = "brand" }) {
           show={passwords.newPassword.length > 0}
         />
       </EditableCard>
+
+      {confirmDialog}
     </div>
   );
 }

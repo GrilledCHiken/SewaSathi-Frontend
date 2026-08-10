@@ -13,12 +13,14 @@ import {
   formatMoney,
 } from "../../components/tasks/taskUi";
 import { acceptTask, listOpenTasks } from "../../api/workerTaskApi";
+import useConfirm from "../../hooks/useConfirm";
 
 export default function WorkerBrowseTasks() {
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [acceptingId, setAcceptingId] = useState(null);
   const [search, setSearch] = useState("");
+  const [confirm, confirmDialog] = useConfirm();
 
   useEffect(() => {
     listOpenTasks()
@@ -28,6 +30,16 @@ export default function WorkerBrowseTasks() {
   }, []);
 
   const handleAccept = async (id) => {
+    const task = tasks.find((t) => t.id === id);
+    const ok = await confirm({
+      title: "Accept this task?",
+      body: `You're taking on "${task?.title}" for ${formatMoney(task?.budget)}. The customer is told straight away, and it's confirmed once they pay their advance.`,
+      confirmLabel: "Accept task",
+      cancelLabel: "Keep browsing",
+      tone: "emerald",
+    });
+    if (!ok) return;
+
     setAcceptingId(id);
     try {
       await acceptTask(id);
@@ -138,6 +150,8 @@ export default function WorkerBrowseTasks() {
           )}
         </div>
       </main>
+
+      {confirmDialog}
     </div>
   );
 }

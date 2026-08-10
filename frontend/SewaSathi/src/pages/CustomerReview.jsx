@@ -3,6 +3,7 @@ import { useSearchParams } from "react-router-dom";
 import { toast } from "react-toastify";
 import DashboardHeader from "../components/User/DashboardHeader";
 import { createReview, listMyReviews, listReviewableTasks } from "../api/reviewApi";
+import useConfirm from "../hooks/useConfirm";
 import PageShell, { PageHeader } from "../components/ui/PageShell";
 import Card, { Panel } from "../components/ui/Card";
 import Button from "../components/ui/Button";
@@ -140,6 +141,7 @@ export default function CustomerReview() {
   const [reviewText, setReviewText] = useState("");
   const [formError, setFormError] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [confirm, confirmDialog] = useConfirm();
 
   const loadData = () => {
     return Promise.all([listMyReviews(), listReviewableTasks()])
@@ -215,6 +217,17 @@ export default function CustomerReview() {
       setFormError("Please write your review.");
       return;
     }
+
+    // A review is public the moment it posts and there is no way to edit or pull it back,
+    // so the star count is repeated here as a last look.
+    const ok = await confirm({
+      title: "Post this review?",
+      body: `Your ${rating}-star review goes on the worker's public profile for anyone to read, and it can't be edited or taken down afterwards.`,
+      confirmLabel: "Post review",
+      cancelLabel: "Keep editing",
+      tone: "primary",
+    });
+    if (!ok) return;
 
     setSubmitting(true);
     try {
@@ -398,6 +411,8 @@ export default function CustomerReview() {
           </ul>
         )}
       </div>
+
+      {confirmDialog}
     </PageShell>
   );
 }

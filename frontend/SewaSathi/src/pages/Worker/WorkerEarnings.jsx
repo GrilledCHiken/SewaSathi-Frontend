@@ -31,6 +31,11 @@ import {
   confirmCashPayment,
   rejectCashPayment,
 } from "../../api/workerPaymentApi";
+import useConfirm from "../../hooks/useConfirm";
+import {
+  cashNotReceivedConfirm,
+  cashReceivedConfirm,
+} from "../../utils/confirmMessages";
 
 /**
  * One server read, `GET /worker/earnings`. A job counts for its whole budget the moment the
@@ -217,6 +222,7 @@ export default function WorkerEarnings() {
   const [loading, setLoading] = useState(true);
   const [workingId, setWorkingId] = useState(null);
   const [filter, setFilter] = useState("All");
+  const [confirm, confirmDialog] = useConfirm();
 
   useEffect(() => {
     getMyEarnings()
@@ -228,7 +234,14 @@ export default function WorkerEarnings() {
   /* Answering a claim moves money between `received` and `outstanding` and can close a job,
      so the whole payload is reread rather than patched — half a dozen derived totals would
      otherwise have to be kept in step by hand. */
-  const handleCashAnswer = async (taskId, received) => {
+  const handleCashAnswer = async (job, received) => {
+    const details = { title: job.title, amount: job.balanceAmount };
+    const ok = await confirm(
+      received ? cashReceivedConfirm(details) : cashNotReceivedConfirm(details),
+    );
+    if (!ok) return;
+
+    const taskId = job.taskId;
     setWorkingId(taskId);
     try {
       if (received) {
@@ -349,8 +362,8 @@ export default function WorkerEarnings() {
                         key={job.taskId}
                         job={job}
                         working={workingId === job.taskId}
-                        onConfirm={() => handleCashAnswer(job.taskId, true)}
-                        onReject={() => handleCashAnswer(job.taskId, false)}
+                        onConfirm={() => handleCashAnswer(job, true)}
+                        onReject={() => handleCashAnswer(job, false)}
                       />
                     ))}
                   </ul>
@@ -429,6 +442,8 @@ export default function WorkerEarnings() {
           </>
         )}
       </div>
+
+      {confirmDialog}
     </PageShell>
   );
 }

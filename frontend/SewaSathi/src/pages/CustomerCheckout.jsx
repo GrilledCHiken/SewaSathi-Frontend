@@ -21,6 +21,7 @@ import {
   initiateBalancePayment,
   listMyPayments,
 } from "../api/paymentApi";
+import useConfirm from "../hooks/useConfirm";
 import PageShell, { PageHeader } from "../components/ui/PageShell";
 import Card, { Panel } from "../components/ui/Card";
 import Alert from "../components/ui/Alert";
@@ -170,6 +171,7 @@ export default function CustomerCheckout() {
   const [loading, setLoading] = useState(true);
   const [method, setMethod] = useState("ESEWA");
   const [paying, setPaying] = useState(false);
+  const [confirm, confirmDialog] = useConfirm();
 
   useEffect(() => {
     Promise.all([getTask(taskId), listMyPayments()])
@@ -209,6 +211,28 @@ export default function CustomerCheckout() {
   const palette = paletteFor(worker?.id);
 
   const handlePay = async () => {
+    // Cash is a claim about money that has already changed hands and the worker is asked to
+    // vouch for it; a gateway leg hands the customer off to somebody else's site. Both are
+    // worth a beat before they happen.
+    const ok = await confirm(
+      payingCash
+        ? {
+            title: `Confirm you paid ${formatMoney(dueNow)} in cash?`,
+            body: `${worker?.fullName || "Your worker"} will be asked to confirm they received it. Only say yes if you've actually handed the money over.`,
+            confirmLabel: "Yes, I paid in cash",
+            cancelLabel: "Not yet",
+            tone: "danger",
+          }
+        : {
+            title: `Pay ${formatMoney(dueNow)} with ${selected.name}?`,
+            body: `You'll be taken to ${selected.name} to finish the payment, then brought back here.`,
+            confirmLabel: `Continue to ${selected.name}`,
+            cancelLabel: "Go back",
+            tone: "primary",
+          },
+    );
+    if (!ok) return;
+
     setPaying(true);
     try {
       if (payingCash) {
@@ -422,6 +446,8 @@ export default function CustomerCheckout() {
           </div>
         )}
       </div>
+
+      {confirmDialog}
     </PageShell>
   );
 }

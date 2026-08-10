@@ -24,6 +24,7 @@ import {
 import { cancelTask, listMyTasks } from "../api/taskApi";
 import { listMyPayments } from "../api/paymentApi";
 import { listReviewableTasks } from "../api/reviewApi";
+import useConfirm from "../hooks/useConfirm";
 import PageShell, { PageHeader } from "../components/ui/PageShell";
 import Alert from "../components/ui/Alert";
 import Button from "../components/ui/Button";
@@ -212,6 +213,7 @@ export default function CustomerMyTask() {
   const [cancelingId, setCancelingId] = useState(null);
   const [activeFilter, setActiveFilter] = useState("all");
   const [taskSearch, setTaskSearch] = useState("");
+  const [confirm, confirmDialog] = useConfirm();
 
   // Payments come along for one reason: an `awaiting payment` task looks the same whether
   // the customer still owes the balance or has already declared it paid in cash, and only
@@ -228,6 +230,21 @@ export default function CustomerMyTask() {
   }, []);
 
   const handleCancel = async (id) => {
+    // Only `open` and `requested` tasks offer a Cancel button. The second one has a worker
+    // sitting on the request, which is worth saying out loud before it is withdrawn.
+    const task = tasks.find((t) => t.id === id);
+    const pendingWorker = formatStatus(task?.status) === "requested";
+    const ok = await confirm({
+      title: "Cancel this task?",
+      body: pendingWorker
+        ? `"${task?.title}" is withdrawn and ${task?.assignedWorker?.fullName || "the worker you asked"} is told the request is off. You'd have to post it again to bring it back.`
+        : `"${task?.title}" is withdrawn and stops being visible to workers. You'd have to post it again to bring it back.`,
+      confirmLabel: "Cancel task",
+      cancelLabel: "Keep task",
+      tone: "danger",
+    });
+    if (!ok) return;
+
     setCancelingId(id);
     try {
       const updated = await cancelTask(id);
@@ -418,6 +435,8 @@ export default function CustomerMyTask() {
               })}
         </ul>
       )}
+
+      {confirmDialog}
     </PageShell>
   );
 }
