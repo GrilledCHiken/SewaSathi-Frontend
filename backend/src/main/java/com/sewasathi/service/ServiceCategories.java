@@ -6,13 +6,10 @@ import java.util.Set;
 /**
  * The service catalogue: the categories a task may be posted under.
  *
- * <p>This used to live as a private constant inside {@link TaskService}, where it did one job -
- * rejecting an unknown category on the way in. The public pages now publish the same list, so it
- * sits here instead of being copied. A duplicate would drift, and the visible symptom would be a
- * catalogue advertising a category the post-a-task form refuses to accept.
- *
- * <p>{@link #ORDERED} keeps the display order used by SERVICE_CATEGORIES in the frontend's
- * {@code utils/taskValidation.js}; {@link #ALLOWED} is the same values as a set, for validation.
+ * <p>Shared by {@link TaskService}, which rejects unknown categories, and the public pages,
+ * which publish the list - a duplicate would drift into advertising a category the post-a-task
+ * form refuses. {@link #ORDERED} keeps the display order used by SERVICE_CATEGORIES in the
+ * frontend's {@code utils/taskValidation.js}; {@link #ALLOWED} is the same values as a set.
  */
 public final class ServiceCategories {
 

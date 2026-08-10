@@ -10,6 +10,7 @@ import FileDropzone from "../../components/ui/FileDropzone";
 import { CharCount, Field, Input, Select, Textarea } from "../../components/ui/Field";
 import { ArrowRightIcon, ShieldIcon } from "../../components/ui/icons";
 import WorkerSignupSteps from "../../components/auth/WorkerSignupSteps";
+import useConfirm from "../../hooks/useConfirm";
 import { cn } from "../../utils/cn";
 
 const MAX_BIO_LENGTH = 500;
@@ -57,6 +58,20 @@ export default function WorkerVerification({
   const [bio, setBio] = useState(profile?.bio || "");
   const [submitting, setSubmitting] = useState(false);
   const [errors, setErrors] = useState({});
+  const [confirm, confirmDialog] = useConfirm();
+
+  /* Deferring is easy to click past without realising it costs you every job until you
+     come back and finish it, so it gets asked about. */
+  const handleSkip = async () => {
+    const ok = await confirm({
+      title: "Skip verification for now?",
+      body: "Your account stays pending until this is filed and approved, so you won't be able to take on any jobs. You can come back to it from your dashboard.",
+      confirmLabel: "Skip for now",
+      cancelLabel: "Finish it now",
+      tone: "primary",
+    });
+    if (ok) onSkip?.();
+  };
 
   /** Setter wrapper that clears the field's error as soon as it's touched. */
   const withClear = (field, set) => (value) => {
@@ -366,7 +381,7 @@ export default function WorkerVerification({
               <div className="mt-4 text-center">
                 <button
                   type="button"
-                  onClick={onSkip}
+                  onClick={handleSkip}
                   disabled={submitting}
                   className="rounded-field px-2 py-1 text-sm font-semibold text-ink-muted transition hover:text-ink-body focus-ring disabled:opacity-60"
                 >
@@ -382,6 +397,8 @@ export default function WorkerVerification({
           </div>
         </form>
       </div>
+
+      {confirmDialog}
     </div>
   );
 }

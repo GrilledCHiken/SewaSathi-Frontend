@@ -10,11 +10,9 @@ import java.time.format.TextStyle;
 import java.util.Locale;
 
 /**
- * One row of the revenue report: a month's completed payments through one gateway.
- *
- * <p>A JavaBean with public getters because that is what JasperReports'
- * {@code JRBeanCollectionDataSource} reflects over - a field named {@code grossAmount} is
- * reachable from the template as {@code $F{grossAmount}}.
+ * One row of the revenue report: a month's completed payments through one gateway. A JavaBean
+ * with public getters because JasperReports' {@code JRBeanCollectionDataSource} reflects over
+ * them - {@code grossAmount} is reachable from the template as {@code $F{grossAmount}}.
  */
 @Getter
 @AllArgsConstructor

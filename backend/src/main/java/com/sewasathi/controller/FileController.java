@@ -24,12 +24,9 @@ import java.util.Locale;
 import java.util.Map;
 
 /**
- * Authenticated download endpoint for uploaded files (requirement #12).
- *
- * <p>Replaces the static {@code /uploads/**} resource handler, which served every upload -
- * including workers' citizenship documents and police clearance certificates - to anonymous
- * callers. {@link FileAccessService} now authorises each read against whatever record
- * references the file.
+ * Authenticated download endpoint for uploaded files (requirement #12). The only route to an
+ * upload: {@link FileAccessService} authorises each read against whatever record references
+ * the file, so identity documents cannot be fetched by URL alone.
  */
 @RestController
 @RequestMapping("/api/files")
@@ -40,10 +37,8 @@ public class FileController {
     private final FileAccessService fileAccessService;
 
     /**
-     * Fallback for when {@link Files#probeContentType} cannot identify a file. The probe is
-     * platform-dependent - on Windows it reads the registry and frequently returns null - and an
-     * {@code application/octet-stream} answer, combined with the {@code nosniff} header below,
-     * means the browser downloads the file instead of showing it. Covers the same set
+     * Fallback for when {@link Files#probeContentType} cannot identify a file - it is
+     * platform-dependent and returns null often on Windows. Covers the same set
      * {@code FileStorageService.ALLOWED_CONTENT_TYPES} accepts on upload.
      */
     private static final Map<String, String> CONTENT_TYPE_BY_EXTENSION = Map.of(
@@ -69,9 +64,8 @@ public class FileController {
 
         MediaType contentType = probeContentType(file);
 
-        // Images render inline (the chat shows them in the thread); documents download.
-        // "attachment" for anything non-image also stops a crafted upload from being
-        // rendered as HTML in the site's own origin.
+        // Images render inline for the chat thread; everything else is "attachment", which
+        // also stops a crafted upload rendering as HTML in the site's own origin.
         String disposition = (download || !contentType.getType().equals("image"))
                 ? "attachment" : "inline";
 

@@ -10,14 +10,10 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 /**
  * Error handling for the server-rendered console (requirement #8).
  *
- * <p>The counterpart to {@link GlobalExceptionHandler}, which answers the REST API in JSON.
- * A browser asking for an HTML page needs an HTML page back, so these handlers return view
- * names under {@code templates/error/} instead.
- *
- * <p>Scoped to {@code com.sewasathi.controller.web}, which is where the {@code @Controller}
- * beans live. {@link com.sewasathi.controller.web.AdminWebApiController} is a
- * {@code @RestController} and is intentionally left to the JSON handler - its callers are
- * {@code fetch()} requests that parse the response body.
+ * <p>The counterpart to {@link GlobalExceptionHandler}: these handlers return view names under
+ * {@code templates/error/} rather than JSON. Scoped to {@code com.sewasathi.controller.web}.
+ * {@link com.sewasathi.controller.web.AdminWebApiController} is a {@code @RestController} and
+ * is left to the JSON handler, since its callers parse the response body.
  */
 @ControllerAdvice(basePackages = "com.sewasathi.controller.web")
 public class WebExceptionHandler {

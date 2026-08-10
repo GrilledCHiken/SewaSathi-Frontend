@@ -1,11 +1,6 @@
 // Presentation details for the service catalogue — an icon and a line of copy
-// per category.
-//
-// This file used to hold the catalogue itself, including per-service ratings,
-// review counts, task counts and worker counts, all invented. Those figures now
-// come from GET /api/public/services, counted from the database, so what is left
-// here is only what a database cannot supply: which glyph to draw and how to
-// describe the work.
+// per category. Counts and ratings come from GET /api/public/services; what is
+// here is only what the database cannot supply.
 //
 // The keys are the category names the backend publishes (ServiceCategories in
 // the API, SERVICE_CATEGORIES in utils/taskValidation.js). A category with no

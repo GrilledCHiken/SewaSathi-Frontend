@@ -7,10 +7,8 @@ import lombok.Getter;
 import java.time.LocalDateTime;
 
 /**
- * One contact-form inquiry as the admin console sees it.
- *
- * <p>The full message body travels with the list row rather than behind a detail endpoint: it is
- * capped at 2000 characters, so the inbox can open one without a second request.
+ * One contact-form inquiry as the admin console sees it. The body is capped at 2000 characters
+ * and travels with the list row, so the inbox can open one without a second request.
  */
 @Getter
 @AllArgsConstructor

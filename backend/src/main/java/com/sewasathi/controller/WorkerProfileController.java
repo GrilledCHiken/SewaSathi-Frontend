@@ -88,9 +88,8 @@ public class WorkerProfileController {
     /**
      * Files a replacement police clearance report, which has to be renewed every six months.
      *
-     * <p>Separate from {@code /verification} because that endpoint demands the citizenship document
-     * as well and resets the whole submission; a worker renewing a report only has the one new file
-     * to hand in, and stays approved while an admin reviews it.
+     * <p>Separate from {@code /verification}, which demands the citizenship document too and
+     * resets the whole submission. A renewing worker hands in one file and stays approved.
      */
     @PostMapping(value = "/police-clearance", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public WorkerSummaryResponse renewPoliceClearance(

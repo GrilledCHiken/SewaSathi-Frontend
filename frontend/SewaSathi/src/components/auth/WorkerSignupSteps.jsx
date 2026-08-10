@@ -2,13 +2,9 @@ import { cn } from "../../utils/cn";
 import { CheckIcon } from "../ui/icons";
 
 /**
- * Progress header for the two-screen worker signup: account details, then
- * verification.
- *
- * Worth having because the two screens are different shapes — the account form
- * sits in AuthLayout's narrow card, the verification form in its own wide one —
- * and without a shared marker the second screen reads as an unrelated wall of
- * uploads rather than the rest of signing up.
+ * Progress header for the two-screen worker signup: account details, then verification. The
+ * two screens are different shapes — a narrow AuthLayout card, then a wide one — so without
+ * this marker the second reads as an unrelated wall of uploads.
  */
 
 const STEPS = ["Account", "Verification"];

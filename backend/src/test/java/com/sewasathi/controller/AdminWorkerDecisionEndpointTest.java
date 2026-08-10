@@ -22,9 +22,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 /**
  * The approve/reject endpoints behind the React admin's verification queue.
  *
- * <p>What is worth pinning here is the reason: it is emailed to the applicant and repeated in the
- * banner they get at their next sign-in, so a rejection that carries none would leave them shut
- * out with nothing to act on. The endpoint refuses one rather than inventing wording.
+ * <p>Pins the reason requirement: it is shown to the applicant verbatim and is all they have to
+ * act on, so the endpoint refuses a rejection without one rather than inventing wording.
  */
 @SpringBootTest
 @AutoConfigureMockMvc

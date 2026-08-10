@@ -6,12 +6,8 @@ import lombok.Builder;
 import lombok.Getter;
 
 /**
- * A password reset in progress. Shaped like {@link PendingRegistrationResponse} and kept
- * separate from it on purpose: the two flows happen to need the same four fields today, but
- * the reset contract has no business changing because registration's did.
- *
- * <p>The two countdowns are sent as durations rather than timestamps so the client does not
- * have to trust its own clock against the server's to render them.
+ * A password reset in progress. The countdowns are durations rather than timestamps, so the
+ * client need not trust its own clock against the server's.
  */
 @Getter
 @Builder

@@ -3,19 +3,14 @@ import { cn } from "../../utils/cn";
 import LogoMark from "./LogoMark";
 
 /**
- * Logo + wordmark + optional subtitle — the composite every shell wants.
+ * Logo + wordmark + optional subtitle — the composite every shell wants: the public header,
+ * the footer, the three dashboard sidebars and the auth screens.
  *
- * The public header, the footer, the three dashboard sidebars and the four auth
- * screens each used to assemble this by hand around their own copy of the mark,
- * which is how it ended up at three different sizes.
+ * `LogoMark` carries its own colour and silhouette, so there is no backing tile; the glyph
+ * sizes below are set to keep the optical weight of the header and sidebar rows.
  *
- * The mark used to sit in a solid `bg-brand` tile because it was a single white
- * glyph and needed something to sit on. `LogoMark` carries its own colour and
- * silhouette, so the tile is gone — the glyph sizes below grew to keep the same
- * optical weight in the header and sidebar rows the tile used to occupy.
- *
- * `tone="dark"` is for navy surfaces (sidebar rail, footer, auth aside);
- * `tone="light"` for white ones.
+ * `tone="dark"` is for navy surfaces (sidebar rail, footer, auth aside); `tone="light"` for
+ * white ones.
  */
 
 const SIZES = Object.freeze({

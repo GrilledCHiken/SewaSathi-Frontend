@@ -172,8 +172,7 @@ function Home() {
     navigate(trimmed ? `/services?search=${encodeURIComponent(trimmed)}` : "/services");
   };
 
-  // The grid used to be split by a hand-set `featured` flag on two services.
-  // It now follows real demand, so the wide cards are genuinely the most booked.
+  // The wide cards follow real demand rather than a hand-set flag.
   const byPopularity = useMemo(
     () => [...services].sort((a, b) => b.taskCount - a.taskCount),
     [services],
@@ -570,7 +569,7 @@ function Home() {
 
       {/* ---------------------------------------------------------------- */}
       {/* Testimonials — real reviews only, so the section disappears until  */}
-      {/* there are some. The three it used to show were invented.          */}
+      {/* there are some.                                                    */}
       {/* ---------------------------------------------------------------- */}
       {testimonials.length > 0 && (
       <section className="bg-white py-20 lg:py-28">
@@ -709,12 +708,7 @@ function Home() {
               </Reveal>
             </div>
 
-            {/* Work actually waiting on the platform right now.
-                This card used to show a mocked-up earnings statement — "Rs 18,400
-                this week", "next payout in 2 days" — figures that belong to one
-                worker's account and mean nothing to a visitor who has none. The
-                open tasks below are real and are the honest version of the same
-                pitch: here is work you could pick up. */}
+            {/* Work actually waiting on the platform right now. */}
             <Reveal delay={1} className="relative">
               <div className="rounded-3xl border border-line bg-white p-6 shadow-2xl shadow-emerald-900/5 sm:p-8">
                 <div className="flex items-start justify-between gap-4">

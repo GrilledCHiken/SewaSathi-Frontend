@@ -15,10 +15,7 @@ public class AnalyticsBreakdownRow {
     private final long taskCount;
     private final BigDecimal totalValue;
 
-    /**
-     * Built straight from a JPQL constructor expression, so the sum arrives null when every
-     * budget in the group is null. Normalising here keeps the null out of the JSON.
-     */
+    /** From a JPQL constructor expression: the sum is null when every budget in the group is. */
     public AnalyticsBreakdownRow(String label, Long taskCount, BigDecimal totalValue) {
         this.label = label != null ? label : "Unspecified";
         this.taskCount = taskCount != null ? taskCount : 0L;

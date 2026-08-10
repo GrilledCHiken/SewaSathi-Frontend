@@ -11,14 +11,10 @@ import java.time.LocalDateTime;
 /**
  * Revokes a token chain in a transaction of its own.
  *
- * <p>Exists because of an ordering trap: {@link RefreshTokenService#rotate} revokes a
- * compromised chain and then throws to reject the request. Sharing the caller's transaction
- * means that throw rolls the revocation straight back, so the stolen token keeps working -
- * the exact opposite of what reuse detection is for.
- *
- * <p>A separate bean rather than a method on {@code RefreshTokenService}: {@code REQUIRES_NEW}
- * is applied by Spring's proxy, and a service calling its own method never goes through that
- * proxy, so the annotation would be silently ignored.
+ * <p>{@link RefreshTokenService#rotate} revokes a compromised chain and then throws. Sharing
+ * the caller's transaction would roll the revocation back with it, leaving the stolen token
+ * working. A separate bean because {@code REQUIRES_NEW} is applied by Spring's proxy, which a
+ * self-call would bypass.
  */
 @Service
 @RequiredArgsConstructor

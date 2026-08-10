@@ -4,6 +4,7 @@ import AdminHeader from "../../components/Admin/AdminHeader";
 import AdminSearchInput from "../../components/Admin/AdminSearchInput";
 import AdminInquiryDetailModal from "../../components/Admin/AdminInquiryDetailModal";
 import { listInquiries, reopenInquiry, resolveInquiry } from "../../api/adminApi";
+import useConfirm from "../../hooks/useConfirm";
 
 // The server takes a boolean, so each pill carries the params it filters with rather than the
 // page translating a label at the call site.
@@ -29,6 +30,7 @@ export default function AdminInquiries() {
   const [search, setSearch] = useState("");
   const [actioningId, setActioningId] = useState(null);
   const [detailId, setDetailId] = useState(null);
+  const [confirm, confirmDialog] = useConfirm();
 
   // Switching filters refetches, so the spinner is raised here rather than inside the effect;
   // re-picking the current filter would otherwise leave it up with nothing to clear it.
@@ -75,6 +77,25 @@ export default function AdminInquiries() {
   const detailInquiry = detailId == null ? null : visible.find((i) => i.id === detailId);
 
   const handleToggleHandled = async (inquiry) => {
+    const ok = await confirm(
+      inquiry.handled
+        ? {
+            title: "Reopen this inquiry?",
+            body: `${inquiry.name}'s message goes back into the New queue for someone to answer.`,
+            confirmLabel: "Reopen inquiry",
+            cancelLabel: "Leave it",
+            tone: "primary",
+          }
+        : {
+            title: "Mark this inquiry resolved?",
+            body: `${inquiry.name}'s message moves out of the New queue. Only do this once they've actually been answered.`,
+            confirmLabel: "Mark resolved",
+            cancelLabel: "Leave it",
+            tone: "primary",
+          },
+    );
+    if (!ok) return;
+
     setActioningId(inquiry.id);
     try {
       const updated = inquiry.handled
@@ -222,6 +243,8 @@ export default function AdminInquiries() {
           onClose={() => setDetailId(null)}
         />
       )}
+
+      {confirmDialog}
     </div>
   );
 }

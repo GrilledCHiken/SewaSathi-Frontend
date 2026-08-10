@@ -15,11 +15,16 @@ import {
   rejectWorker,
 } from "../../api/adminApi";
 import { formatDate } from "../../utils/dates";
+import useConfirm from "../../hooks/useConfirm";
 
 const TABS = [
   { value: "applications", label: "New applications" },
   { value: "renewals", label: "Clearance renewals" },
 ];
+
+/** Both queues hand their handlers an id; a confirmation reads better with the person's name. */
+const nameOf = (rows, id) =>
+  rows.find((worker) => worker.id === id)?.fullName || "this worker";
 
 /**
  * Two queues, because there are two reasons a worker's documents land on an admin's desk.
@@ -42,6 +47,7 @@ export default function AdminVerificationQueue() {
   const [rejecting, setRejecting] = useState(null);
   // A set rather than a single id so several cards can be opened and compared side by side.
   const [expandedIds, setExpandedIds] = useState(() => new Set());
+  const [confirm, confirmDialog] = useConfirm();
 
   useEffect(() => {
     Promise.all([listPendingWorkers(), listClearanceRenewals()])
@@ -94,6 +100,15 @@ export default function AdminVerificationQueue() {
   // Either decision emails the worker, so the toast says so — the send is best-effort on the
   // server and never blocks the decision, which is why a failed email is not surfaced here.
   const handleApprove = async (id) => {
+    const ok = await confirm({
+      title: `Approve ${nameOf(workers, id)}?`,
+      body: "They can start taking jobs immediately and are emailed to say they're in. Check their documents before you do this.",
+      confirmLabel: "Approve worker",
+      cancelLabel: "Not yet",
+      tone: "emerald",
+    });
+    if (!ok) return;
+
     setActioningId(id);
     try {
       await approveWorker(id);
@@ -124,7 +139,29 @@ export default function AdminVerificationQueue() {
     }
   };
 
+  /* Unlike an application, neither renewal decision collects a reason, so this dialog is the
+     only thing standing between a mis-click and a swapped or discarded clearance report. */
   const handleRenewalAction = async (id, action) => {
+    const name = nameOf(renewals, id);
+    const ok = await confirm(
+      action === "approve"
+        ? {
+            title: `Accept ${name}'s new clearance report?`,
+            body: "It replaces the report on file and counts as valid for the next six months.",
+            confirmLabel: "Accept report",
+            cancelLabel: "Not yet",
+            tone: "emerald",
+          }
+        : {
+            title: `Reject ${name}'s renewal?`,
+            body: "The new report is discarded and their previous one stands, so it will expire on its original date. They keep working in the meantime.",
+            confirmLabel: "Reject renewal",
+            cancelLabel: "Go back",
+            tone: "danger",
+          },
+    );
+    if (!ok) return;
+
     setActioningId(id);
     try {
       if (action === "approve") {
@@ -367,6 +404,8 @@ export default function AdminVerificationQueue() {
         onCancel={() => setRejecting(null)}
         onConfirm={handleReject}
       />
+
+      {confirmDialog}
     </div>
   );
 }

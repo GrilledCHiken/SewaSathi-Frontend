@@ -113,8 +113,6 @@ class AdminAnalyticsTest {
                 .build());
     }
 
-    // ---------- headline figures ----------
-
     @Test
     void countsTasksAndSignUpsInTheWindow() {
         AdminAnalyticsResponse analytics = adminService.getAnalytics(today.minusYears(1), today);
@@ -156,8 +154,6 @@ class AdminAnalyticsTest {
         assertThat(after.getPaidBookings()).isEqualTo(before.getPaidBookings());
     }
 
-    // ---------- top lists ----------
-
     @Test
     void ranksCategoriesAndLocationsByTaskVolume() {
         AdminAnalyticsResponse analytics = adminService.getAnalytics(today.minusYears(1), today);
@@ -187,8 +183,6 @@ class AdminAnalyticsTest {
                 .extracting(AnalyticsBreakdownRow::getTaskCount)
                 .isSortedAccordingTo((a, b) -> Long.compare(b, a));
     }
-
-    // ---------- windowing ----------
 
     @Test
     void aWindowWithNoActivityReportsZeroesRatherThanNulls() {

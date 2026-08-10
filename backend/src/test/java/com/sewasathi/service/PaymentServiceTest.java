@@ -169,8 +169,6 @@ class PaymentServiceTest {
                 "signature");
     }
 
-    // --- initiate ---
-
     @Test
     void initiateAdvance_chargesTenPercentOfTheBudget() {
         Task task = acceptedTask();
@@ -342,8 +340,6 @@ class PaymentServiceTest {
                 .isInstanceOf(ResourceNotFoundException.class);
     }
 
-    // --- initiate balance ---
-
     @Test
     void initiateBalance_chargesWhatIsLeftAfterTheAdvance() {
         Task task = awaitingPaymentTask();
@@ -454,8 +450,6 @@ class PaymentServiceTest {
                 .isInstanceOf(ResourceNotFoundException.class);
     }
 
-    // --- complete ---
-
     @Test
     void completeEsewa_forTheBalance_closesTheJobOutAndTellsTheWorker() {
         // A gateway verifies itself, so there is nothing for the worker to confirm - the
@@ -479,8 +473,6 @@ class PaymentServiceTest {
                 anyString(), anyString(), anyString(),
                 org.mockito.ArgumentMatchers.eq("/worker/earnings"));
     }
-
-    // --- cash ---
 
     @Test
     void declareCashBalance_recordsAClaimNobodyHasConfirmedYet() {
@@ -754,8 +746,6 @@ class PaymentServiceTest {
         assertThat(task.getStatus()).isEqualTo(TaskStatus.ACCEPTED);
     }
 
-    // --- complete (Khalti) ---
-
     @Test
     void completeKhalti_promotesTheTaskToAssigned() {
         Task task = acceptedTask();
@@ -852,8 +842,6 @@ class PaymentServiceTest {
         assertThat(task.getStatus()).isEqualTo(TaskStatus.ACCEPTED);
         verify(khaltiService, never()).lookup(anyString());
     }
-
-    // --- fail ---
 
     @Test
     void markFailed_leavesTheTaskPayableForAnotherAttempt() {

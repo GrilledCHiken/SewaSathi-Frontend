@@ -5,12 +5,8 @@ import lombok.Getter;
 
 /**
  * What travels over the chat socket, on both {@code /topic/conversations/{key}} and the
- * per-user {@code /user/queue/chat} stream.
- *
- * <p>The topic used to carry a bare {@link MessageResponse}. Read receipts have to reach the
- * same subscribers, so the payload is tagged rather than left for the client to identify by
- * guessing at which fields are present. Exactly one of {@code message} and {@code read} is set,
- * per {@code type}.
+ * per-user {@code /user/queue/chat} stream. Tagged by {@code type} because messages and read
+ * receipts reach the same subscribers; exactly one of {@code message} and {@code read} is set.
  */
 @Getter
 @AllArgsConstructor

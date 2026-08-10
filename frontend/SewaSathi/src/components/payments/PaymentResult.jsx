@@ -6,10 +6,6 @@ import { cn } from "../../utils/cn";
  * The outcome cards both gateway callback pages land on. eSewa and Khalti differ
  * only in how they hand the browser back, so everything the customer actually sees
  * lives here rather than being written twice.
- *
- * The PRIMARY_BTN / SECONDARY_BTN class-string constants this file used to export
- * are gone — callers use <Button> instead, which is also what removed the
- * react-refresh/only-export-components warning this file used to carry.
  */
 
 export function CheckIcon() {

@@ -17,15 +17,10 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 
 /**
- * Talks to Khalti's ePayment (KPG-2) gateway.
- *
- * <p>The shape is quite different from eSewa's: instead of signing a form the browser
- * POSTs, we call Khalti server-to-server to open a payment, get a {@code payment_url}
- * back and simply send the customer there. Nothing is signed, because nothing needs to
- * be — the secret key never leaves the backend, and the lookup API is what decides
- * whether a payment settled.
- *
- * <p>Amounts are in <em>paisa</em> throughout Khalti's API, never rupees.
+ * Talks to Khalti's ePayment (KPG-2) gateway. Unlike eSewa, the payment is opened
+ * server-to-server and the customer is sent to the returned {@code payment_url}. Nothing is
+ * signed: the secret key never leaves the backend and the lookup API decides whether a payment
+ * settled. Amounts are in <em>paisa</em> throughout Khalti's API, never rupees.
  */
 @Service
 public class KhaltiService {
@@ -34,8 +29,8 @@ public class KhaltiService {
     public static final long MIN_PAISA = 1_000L;
 
     /**
-     * Khalti does not document a length limit on {@code purchase_order_name}; task
-     * titles are free text, so they are trimmed rather than risking a 400 at checkout.
+     * Khalti documents no length limit on {@code purchase_order_name}, so free-text task
+     * titles are trimmed rather than risking a 400 at checkout.
      */
     private static final int MAX_ORDER_NAME = 100;
 
@@ -61,8 +56,8 @@ public class KhaltiService {
     }
 
     /**
-     * Khalti counts in paisa. Rounding here rather than at the call site keeps the
-     * amount we open the payment with identical to the one we later compare against.
+     * Khalti counts in paisa. Rounding here rather than at the call site keeps the opening
+     * amount identical to the one compared against later.
      */
     public long toPaisa(BigDecimal rupees) {
         return rupees.movePointRight(2).setScale(0, RoundingMode.HALF_UP).longValueExact();
@@ -114,8 +109,7 @@ public class KhaltiService {
                     .retrieve()
                     .body(KhaltiInitiateResponse.class);
         } catch (RestClientResponseException e) {
-            // Khalti explains itself in the body (e.g. "Amount should be greater than
-            // Rs. 10"), and that detail is worth having in the log when checkout breaks.
+            // Khalti explains itself in the body, e.g. "Amount should be greater than Rs. 10".
             log.warn("Khalti rejected the checkout for {}: {} {}",
                     purchaseOrderId, e.getStatusCode(), e.getResponseBodyAsString());
             throw new InvalidOperationException("Khalti could not start this payment. Please try again.");
@@ -153,9 +147,8 @@ public class KhaltiService {
     }
 
     /**
-     * The sandbox key is defaulted in {@code application.properties}, so this only bites
-     * in production, where {@code KHALTI_SECRET_KEY} has no default. Saying the server is
-     * unconfigured beats letting the customer see a bare 401 from the gateway.
+     * Only bites in production, where {@code KHALTI_SECRET_KEY} has no default. Reporting an
+     * unconfigured server beats showing the customer a bare 401 from the gateway.
      */
     private void requireConfigured() {
         if (secretKey.isEmpty()) {

@@ -6,6 +6,8 @@ import WorkerVerification from "../../pages/Worker/WorkerVerification";
 import { useAuth } from "../../context/AuthContext";
 import { ChatProvider } from "../../context/ChatContext";
 import { getMyWorkerProfile } from "../../api/workerProfileApi";
+import useConfirm from "../../hooks/useConfirm";
+import { signOutConfirm } from "../../utils/confirmMessages";
 
 const STATUS_MESSAGES = {
   PENDING: {
@@ -29,7 +31,12 @@ function WorkerLayout() {
   const [profile, setProfile] = useState(null);
   const [profileChecked, setProfileChecked] = useState(false);
   const { user, logoutCustomer } = useAuth();
+  const [confirm, confirmDialog] = useConfirm();
   const needsProfileCheck = user?.status === "PENDING";
+
+  const handleSignOut = async () => {
+    if (await confirm(signOutConfirm())) logoutCustomer();
+  };
 
   useEffect(() => {
     if (needsProfileCheck) {
@@ -81,14 +88,14 @@ function WorkerLayout() {
           </Link>
           <button
             type="button"
-            onClick={() => {
-              logoutCustomer();
-            }}
+            onClick={handleSignOut}
             className="rounded-full bg-brand px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-brand-dark"
           >
             Sign Out
           </button>
         </div>
+
+        {confirmDialog}
       </div>
     );
   }

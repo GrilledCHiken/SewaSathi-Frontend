@@ -11,10 +11,8 @@ import { formatCount, formatNameList } from "../../utils/formatStats";
  * Shown until GET /api/public/contact-info answers.
  *
  * These match the server's own defaults in ContactProperties, so the page reads
- * correctly from the first paint and simply confirms itself a moment later. The
- * support address and number used to be written out in four separate places on
- * this page — the cards plus three FAQ answers — and could drift apart. Now
- * there is one source and everything below reads from it.
+ * correctly from the first paint and confirms itself a moment later. Everything
+ * below — the cards and the FAQ answers — reads from this one source.
  */
 const DEFAULT_CONTACT = {
   supportEmail: "support@sewasathi.com",
@@ -58,7 +56,7 @@ function buildContactCards(info) {
     {
       title: "Visit Us",
       highlight: info.address,
-      // Opens a map rather than the dead "#visit" anchor this used to point at.
+      // Opens a map rather than an on-page anchor.
       href: `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(info.address)}`,
       external: true,
       description: `Drop by during business hours (${info.hours}) — we'd love to meet you!`,

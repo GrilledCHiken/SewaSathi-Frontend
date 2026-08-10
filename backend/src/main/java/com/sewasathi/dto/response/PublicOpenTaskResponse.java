@@ -7,10 +7,8 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 /**
- * An unclaimed task, shown to visitors as evidence that there is work available.
- *
- * <p>Deliberately anonymous: no customer, no task id, no street address. It is a sample of
- * demand, not a way for an unauthenticated caller to enumerate who posted what.
+ * An unclaimed task shown to visitors. Deliberately anonymous - no customer, no task id, no
+ * street address - so an unauthenticated caller cannot enumerate who posted what.
  */
 @Getter
 @AllArgsConstructor

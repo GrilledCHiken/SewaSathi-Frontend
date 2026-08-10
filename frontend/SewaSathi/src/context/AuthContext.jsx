@@ -82,9 +82,8 @@ export function AuthProvider({ children }) {
     return { status: "authenticated", user: sessionUser, created: status === 201 };
   }, []);
 
-  // Registering no longer creates anything. It emails a six-digit code and returns the
-  // challenge that identifies it; the account comes into existence at verifyRegistration,
-  // which is why these two hand back a challenge rather than a user.
+  // Registering creates nothing: it emails a six-digit code and returns the challenge that
+  // identifies it. The account exists only after verifyRegistration.
   const registerCustomer = useCallback(
     (payload) => authApi.registerCustomer(payload),
     [],
@@ -110,9 +109,8 @@ export function AuthProvider({ children }) {
     [],
   );
 
-  // Password reset. None of these touch the session — the whole point is that the caller has
-  // no credential — so they are plain passthroughs; they live here only because this is the
-  // one file that talks to authApi.
+  // Password reset. None of these touch the session, since the caller has no credential;
+  // they live here only because this is the one file that talks to authApi.
   const requestPasswordReset = useCallback(
     (payload) => authApi.requestPasswordReset(payload),
     [],
@@ -147,10 +145,8 @@ export function AuthProvider({ children }) {
   }, []);
 
   /**
-   * Folds a fresh /users/me-shaped payload into the session.
-   *
-   * Profile edits answer with the updated account, so the header avatar and name can be
-   * corrected from the response the page already has rather than by refetching.
+   * Folds a fresh /users/me-shaped payload into the session, so the header avatar and name
+   * update from the response a profile edit already returned rather than by refetching.
    */
   const applyUserUpdate = useCallback((user) => {
     setSession(toSessionUser(user));

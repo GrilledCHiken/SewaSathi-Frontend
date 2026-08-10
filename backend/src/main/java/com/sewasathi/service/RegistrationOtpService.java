@@ -19,17 +19,11 @@ import java.util.Map;
 import java.util.UUID;
 
 /**
- * The verification code that stands between a submitted signup and a real account.
- *
- * <p>Registration parks what the user typed in {@link PendingRegistration} and mails them a
- * six-digit code; only when that code comes back does {@link AuthService} write the
- * {@code users} row. This class owns the code's whole life - issuing, checking, resending
- * and expiring it - so {@code AuthService} keeps dealing in accounts.
- *
- * <p>Three things bound how much an attacker gets out of a challenge: the code is checked
- * against a BCrypt hash rather than a stored value, wrong guesses are capped by
- * {@code app.otp.max-attempts} (the row is destroyed at the cap, so guessing cannot simply
- * be resumed), and the whole challenge dies after {@code app.otp.expiry-minutes}.
+ * The verification code standing between a submitted signup and a real account. Owns the
+ * code's whole life - issuing, checking, resending, expiring - so {@link AuthService} keeps
+ * dealing in accounts. The code is checked against a BCrypt hash, wrong guesses are capped by
+ * {@code app.otp.max-attempts} (the row is destroyed at the cap), and the challenge dies after
+ * {@code app.otp.expiry-minutes}.
  */
 @Service
 @RequiredArgsConstructor
@@ -61,15 +55,10 @@ public class RegistrationOtpService {
     }
 
     /**
-     * Stores a submitted signup and emails its code.
-     *
-     * <p>Any earlier attempt on the same address is dropped first: someone who mistyped, gave
-     * up, and came back must not be turned away by the unique index on a row they can no
-     * longer complete.
-     *
-     * <p>The send happens inside the transaction on purpose. If the mail server refuses the
-     * message the whole thing rolls back, so there is no pending row holding an address
-     * hostage for a code that was never delivered.
+     * Stores a submitted signup and emails its code. Any earlier attempt on the same address is
+     * dropped first, so the unique index cannot turn away someone who gave up and came back.
+     * The send is inside the transaction: a refusal rolls the pending row back rather than
+     * stranding the address behind a code that never arrived.
      */
     @Transactional
     public Challenge issue(PendingRegistration draft) {
@@ -79,9 +68,8 @@ public class RegistrationOtpService {
     }
 
     /**
-     * Re-sends a fresh code for an in-flight challenge. The previous code stops working, and
-     * the attempt counter resets with it - the user is being given a new puzzle, not another
-     * go at the old one.
+     * Re-sends a fresh code for an in-flight challenge. The previous code stops working and the
+     * attempt counter resets with it.
      */
     @Transactional(noRollbackFor = OtpException.class)
     public Challenge resend(String challengeToken) {
@@ -107,10 +95,8 @@ public class RegistrationOtpService {
      * succeeds would strand the user with nothing to retry.
      */
     /**
-     * {@code noRollbackFor} is load-bearing, not tidiness: every rejection here throws, and a
-     * plain rollback would undo the very bookkeeping the rejection exists to record - the
-     * attempt counter would reset on each wrong guess, and a burnt challenge would come back
-     * to life. Same reason {@code AuthService.login} carries it for failed sign-ins.
+     * {@code noRollbackFor} is load-bearing: every rejection throws, and a plain rollback would
+     * undo the attempt increment and revive a burnt challenge.
      */
     @Transactional(noRollbackFor = OtpException.class)
     public PendingRegistration verify(String challengeToken, String code) {
@@ -148,19 +134,15 @@ public class RegistrationOtpService {
     }
 
     /**
-     * Throws away any challenge outstanding for an address, for when the account gets created
-     * some other way - signing up with Google, say. The abandoned row could do no harm on its
-     * own, but leaving it means a stale code stays live for an account that now exists.
+     * Throws away any challenge outstanding for an address, for when the account is created
+     * another way. Otherwise a stale code stays live for an account that now exists.
      */
     @Transactional
     public void discard(String email) {
         pendingRegistrationRepository.deleteByEmail(email);
     }
 
-    /**
-     * Abandoned signups are worth nothing to anyone once expired, and nothing else ever
-     * deletes them - a user who walks away never comes back to spend the row.
-     */
+    /** Nothing else deletes abandoned signups - a user who walks away never spends the row. */
     @Scheduled(cron = "0 15 3 * * *")
     @Transactional
     public void purgeExpired() {
@@ -173,7 +155,7 @@ public class RegistrationOtpService {
     private PendingRegistration require(String challengeToken) {
         return pendingRegistrationRepository.findByChallengeToken(challengeToken)
                 // An unknown token reads exactly like a wrong code, so this endpoint cannot
-                // be used to find out whether a signup is in flight for someone.
+                // reveal whether a signup is in flight.
                 .orElseThrow(() -> OtpException.invalid(0));
     }
 

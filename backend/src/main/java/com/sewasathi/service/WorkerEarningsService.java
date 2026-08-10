@@ -26,19 +26,10 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * What a worker has earned.
- *
- * <p>Earnings are read from finished tasks rather than from a running total on the worker's
- * profile. There is no balance to drift out of step with the payments that produced it, and a
- * job that is cancelled or corrected simply stops being counted.
- *
- * <p>"Finished" spans both {@link TaskStatus#AWAITING_PAYMENT} and {@link TaskStatus#COMPLETED}:
- * the work is done in either case, and the unsettled ones are the whole point of the
- * outstanding figure - as well as where the worker answers a cash claim.
- *
- * <p>Nothing here is exposed under {@code /api/payments/**} - that is customer-only in
- * SecurityConfig, and a worker has no business reading another party's transaction rows. This
- * lives under {@code /api/worker/**}, which is already role-gated, and returns only the legs
+ * What a worker has earned, read from finished tasks rather than a running total, so there is
+ * no balance to drift out of step. "Finished" spans both {@link TaskStatus#AWAITING_PAYMENT}
+ * and {@link TaskStatus#COMPLETED} - the unsettled ones are what the outstanding figure is for.
+ * Served under {@code /api/worker/**}, not {@code /api/payments/**}, and returns only the legs
  * of tasks assigned to the caller.
  */
 @Service
@@ -86,9 +77,8 @@ public class WorkerEarningsService {
             Payment balance = legs.get(PaymentType.BALANCE);
             boolean cashDeclared = balance == null && cashClaims.containsKey(task.getId());
 
-            // What each leg is worth is computed from the budget, not read off the payment -
-            // an unpaid leg has no payment row to read, and that is exactly the case the
-            // outstanding figure exists for.
+            // Computed from the budget, not read off the payment: an unpaid leg has no
+            // payment row, and that is the case the outstanding figure exists for.
             BigDecimal advanceAmount = paymentService.advanceFor(task.getBudget());
             BigDecimal balanceAmount = paymentService.balanceFor(task.getBudget());
 

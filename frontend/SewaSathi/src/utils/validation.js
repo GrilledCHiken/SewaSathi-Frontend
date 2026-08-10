@@ -26,10 +26,9 @@ export const getPasswordRuleState = (value = '') =>
 
 export const isPasswordStrong = (value = '') => PASSWORD_RULES.every((rule) => rule.test(value))
 
-// Strips everything but digits and caps the length, so the phone field can only ever
-// hold something the pattern check could accept. A leading 977 is only treated as the
-// country code when there are too many digits for it to be the number itself - 9771234567
-// is a valid 10-digit number in its own right.
+// Strips everything but digits and caps the length, so the field can only hold something the
+// pattern check could accept. A leading 977 is only the country code when there are too many
+// digits for it to be the number itself - 9771234567 is a valid 10-digit number.
 export const sanitizePhone = (value = '') => {
   let digits = value.replace(/\D/g, '')
   if (digits.length > 10 && digits.startsWith('977')) {
@@ -45,18 +44,14 @@ export const OTP_LENGTH = 6
 // pattern check could accept, so a pasted "123 456" corrects itself instead of being rejected.
 export const sanitizeOtp = (value = '') => value.replace(/\D/g, '').slice(0, OTP_LENGTH)
 
-// Fields the signup forms render an inline error slot for. A server message is only
-// attached to the field when it names one of these, so an unrelated error can never
-// leave a message pinned under an input the user cannot act on.
+// Fields with an inline error slot. A server message is attached only when it names one of
+// these, so nothing lands under an input the user cannot act on.
 const SIGNUP_ERROR_FIELDS = ['fullName', 'email', 'phone', 'password']
 
 /**
- * Turns a failed request into { field, message } so the error can land under the input that
- * caused it rather than only in a toast.
- *
- * The backend's bean-validation handler formats its 400 body as "email: <message>" - useful,
- * but the raw field name should not be shown to a user. `fields` is the caller's list of
- * inputs that actually have an error slot; anything else comes back unattached.
+ * Turns a failed request into { field, message } so the error lands under the input that
+ * caused it. The backend formats its 400 body as "email: <message>"; `fields` is the caller's
+ * list of inputs with an error slot, and anything else comes back unattached.
  */
 export const parseFieldError = (err, fields = []) => {
   const raw = err?.response?.data?.message

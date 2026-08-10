@@ -21,11 +21,10 @@ import java.util.Map;
 /**
  * JSON endpoints backing the admin console's AJAX interactions (requirement #4).
  *
- * <p>These live under {@code /admin/api} rather than reusing {@code /api/admin} on purpose:
- * the console authenticates with a session cookie, and {@code /api/admin} sits on the
- * stateless bearer-token chain, which would reject every one of these calls. Being inside the
- * admin chain also means each mutation below must carry a CSRF token (requirement #7) - the
- * page supplies it from a {@code <meta>} tag as the {@code X-CSRF-TOKEN} header.
+ * <p>Under {@code /admin/api} rather than {@code /api/admin}: the console authenticates with a
+ * session cookie, which the stateless bearer-token chain would reject. Being inside the admin
+ * chain, each mutation must carry a CSRF token (requirement #7), supplied by the page from a
+ * {@code <meta>} tag as the {@code X-CSRF-TOKEN} header.
  */
 @RestController
 @RequestMapping("/admin/api")

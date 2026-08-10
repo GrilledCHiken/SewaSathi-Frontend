@@ -70,8 +70,8 @@ export async function resetPassword(payload) {
  *   200 — existing account, signed in
  *   201 — account created and signed in (sent with a `phone`)
  *   202 — verified, but no account yet; the body asks for a phone number
- * The status is returned alongside the body because 202 is not a failure and the caller has
- * to tell it apart from the two that carry a session.
+ * The status comes back alongside the body: 202 is not a failure, and the caller has to tell
+ * it apart from the two that carry a session.
  */
 export async function signInWithGoogle(payload) {
   const { data, status } = await httpClient.post("/auth/google", payload);
@@ -84,10 +84,8 @@ export async function getCurrentUser() {
 }
 
 /**
- * Ends this session server-side by revoking its refresh token.
- *
- * Without it, clearing localStorage only forgets the credential — the refresh token would
- * stay valid for its full seven days, so anyone who had captured it could keep renewing.
+ * Ends this session server-side by revoking its refresh token. Clearing localStorage alone
+ * only forgets the credential; the token would stay renewable for its full seven days.
  */
 export async function logout(refreshToken) {
   await httpClient.post("/auth/logout", { refreshToken });

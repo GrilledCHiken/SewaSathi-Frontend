@@ -21,14 +21,10 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /**
- * The password reset end to end, against the real transaction manager.
- *
- * <p>Two things here cannot be seen from {@link com.sewasathi.service.PasswordResetServiceTest}.
- * First, the same rollback trap the signup challenge has: every rejection throws, and rejecting
- * a code is also when the attempt counter is written, so with default rollback rules the two
- * cancel out and the code stays open to unlimited guessing. Second, whether the new password
- * actually signs anyone in - the point of the whole flow, and something no amount of asserting
- * on a hash proves.
+ * The password reset end to end, against the real transaction manager. Covers two things
+ * {@link com.sewasathi.service.PasswordResetServiceTest} cannot see: the rollback trap, where
+ * a rejection throws away the attempt increment it just wrote and leaves the code open to
+ * unlimited guessing, and whether the new password actually signs anyone in.
  */
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -58,8 +54,6 @@ class PasswordResetIntegrationTest {
         SignupFlow.registerCustomer(
                 mockMvc, emailService, "Reset Person", email, "9800000055", OLD_PASSWORD);
     }
-
-    // --- helpers -------------------------------------------------------------------------
 
     private String startReset() throws Exception {
         MvcResult result = mockMvc.perform(post("/api/auth/password/forgot")
@@ -110,8 +104,6 @@ class PasswordResetIntegrationTest {
         return challengeToken;
     }
 
-    // --- tests ---------------------------------------------------------------------------
-
     @Test
     void theWholeFlow_leavesTheAccountOnTheNewPassword() throws Exception {
         String challengeToken = resetToTheNewPassword();
@@ -129,8 +121,7 @@ class PasswordResetIntegrationTest {
 
         submitCode(challengeToken, "000000", 400);
         // The second rejection must know about the first. If the counter rolled back with the
-        // exception that carried it, this would report four again and go on doing so for as
-        // many guesses as anyone cared to make.
+        // exception that carried it, this would report four again indefinitely.
         mockMvc.perform(post("/api/auth/password/verify")
                         .contentType("application/json")
                         .content("""

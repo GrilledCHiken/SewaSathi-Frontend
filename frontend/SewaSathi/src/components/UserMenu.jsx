@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import useConfirm from "../hooks/useConfirm";
+import { signOutConfirm } from "../utils/confirmMessages";
 import Avatar from "./Avatar";
 
 /** Where "My Profile" goes, per role. Each dashboard hosts its own profile route. */
@@ -60,6 +62,7 @@ function UserMenu({ initials, displayName, avatarClassName = "bg-brand" }) {
   const [open, setOpen] = useState(false);
   const menuRef = useRef(null);
   const { user, logoutCustomer } = useAuth();
+  const [confirm, confirmDialog] = useConfirm();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -73,8 +76,12 @@ function UserMenu({ initials, displayName, avatarClassName = "bg-brand" }) {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [open]);
 
-  const handleSignOut = () => {
+  // The dropdown is dismissed first: leaving it open behind the dialog would put two
+  // layers of chrome over the same decision, and the outside-click listener would fight
+  // the dialog's own backdrop.
+  const handleSignOut = async () => {
     setOpen(false);
+    if (!(await confirm(signOutConfirm()))) return;
     logoutCustomer();
     navigate("/login", { replace: true });
   };
@@ -131,6 +138,8 @@ function UserMenu({ initials, displayName, avatarClassName = "bg-brand" }) {
           </button>
         </div>
       )}
+
+      {confirmDialog}
     </div>
   );
 }

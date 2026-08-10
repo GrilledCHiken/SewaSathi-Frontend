@@ -21,10 +21,9 @@ import java.util.Map;
  * Gmail by default - see {@code spring.mail.*} in application.properties; Gmail requires an
  * App Password, not the account password.
  *
- * <p>Sends are synchronous and failures propagate as {@link EmailDeliveryException}. The
- * caller that matters here is registration, which cannot usefully continue without the code
- * having been delivered - so the handshake is worth waiting for, and the SMTP timeouts in
- * application.properties bound how long that wait can be. One retry covers a transient
+ * <p>Sends are synchronous and failures propagate as {@link EmailDeliveryException}, because
+ * registration cannot continue without the code being delivered. The SMTP timeouts in
+ * application.properties bound the wait. One retry covers a transient
  * connection reset; anything that survives it is reported.
  */
 @Service

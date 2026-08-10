@@ -1,13 +1,8 @@
 import { DefaultAside } from "./AuthLayout";
 
 /**
- * The worker-facing marketing panel, in place of the customer one the shell
- * defaults to.
- *
- * Lives here rather than in WorkerSignup.jsx because the worker signup is no
- * longer a single screen: the verification step and the success screen that
- * follow it show the same panel, and a second copy would be exactly the drift
- * AuthLayout was written to stop.
+ * The worker-facing marketing panel, in place of the customer one the shell defaults to.
+ * Shared by all three screens of worker signup: the account form, verification and success.
  */
 export default function WorkerAside() {
   return (

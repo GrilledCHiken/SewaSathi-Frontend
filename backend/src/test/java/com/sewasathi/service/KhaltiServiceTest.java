@@ -84,8 +84,6 @@ class KhaltiServiceTest {
         return json.readValue(received.getLast().body(), Map.class);
     }
 
-    // --- amounts ---
-
     @Test
     void toPaisa_convertsRupeesToTheOnlyUnitKhaltiUnderstands() {
         assertThat(khaltiService.toPaisa(new BigDecimal("250.00"))).isEqualTo(25_000L);
@@ -93,8 +91,6 @@ class KhaltiServiceTest {
         assertThat(khaltiService.toPaisa(new BigDecimal("199.90"))).isEqualTo(19_990L);
         assertThat(khaltiService.toPaisa(new BigDecimal("123.456"))).isEqualTo(12_346L);
     }
-
-    // --- initiate ---
 
     @Test
     void initiate_authorisesWithTheKeySchemeAndSendsPaisa() {
@@ -190,8 +186,6 @@ class KhaltiServiceTest {
 
         assertThat(received).isEmpty();
     }
-
-    // --- lookup ---
 
     @Test
     void lookup_readsTheStatusPayloadKhaltiReturns() {

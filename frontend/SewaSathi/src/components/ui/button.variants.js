@@ -1,13 +1,9 @@
 /**
- * Button variant and size class maps.
+ * Button variant and size class maps. Kept in a `.js` sibling so Button.jsx exports
+ * components only, satisfying react-refresh/only-export-components.
  *
- * Kept in a `.js` sibling rather than inside Button.jsx so that file exports
- * components only — the react-refresh/only-export-components trap that
- * `payments/PaymentResult.jsx` already falls into by exporting PRIMARY_BTN.
- *
- * Every entry is a complete literal class string. Tailwind's JIT scans source
- * text, so a fragment like `bg-${tone}-100` would compile to nothing — the same
- * rule `tasks/taskUi.jsx` already follows.
+ * Every entry is a complete literal class string: Tailwind's JIT scans source text, so a
+ * fragment like `bg-${tone}-100` would compile to nothing.
  */
 
 export const BUTTON_SIZES = Object.freeze({

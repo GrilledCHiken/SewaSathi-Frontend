@@ -52,13 +52,9 @@ public interface WorkerProfileRepository extends JpaRepository<WorkerProfile, Lo
      * Per-worker performance for the report in {@link com.sewasathi.service.ReportService}
      * (requirement #14).
      *
-     * <p>Earnings come from a correlated subquery rather than another join. Joining payments
-     * alongside the profile would repeat the profile row once per payment, and every counter
-     * selected from it would be multiplied by the number of payments.
-     *
-     * <p>The subquery counts advances only. It sums {@code taskTotal}, the budget snapshot,
-     * which both legs of a task carry - so without the type filter every task the customer
-     * paid off in full would contribute its value twice.
+     * <p>Earnings come from a correlated subquery, not a join: joining payments would repeat
+     * the profile row per payment and multiply every counter. It counts advances only, since
+     * both legs carry the same {@code taskTotal} snapshot and would otherwise double-count.
      */
     @Query("""
             select new com.sewasathi.dto.report.WorkerPerformanceRow(

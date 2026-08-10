@@ -2,21 +2,12 @@ import { useId } from "react";
 import { cn } from "../../utils/cn";
 
 /**
- * Form primitives.
+ * Form primitives — wrappers, not a form library. The consumer still owns `value`, `onChange`,
+ * `name` and validation. What these own is the wiring: the label/control `id` link,
+ * `aria-invalid`, and `aria-describedby` pointing at both the hint and the error.
  *
- * These are wrappers, NOT a form library. The consumer still owns `value`,
- * `onChange`, `name` and validation exactly as before — every page keeps its
- * existing `useState` + `utils/validation.js` flow untouched.
- *
- * What they do own is the boring wiring that was being retyped (and
- * occasionally forgotten) in five separate form files: the label/control `id`
- * link, `aria-invalid`, and `aria-describedby` pointing at both the hint and
- * the error.
- *
- * Note the `aria-[invalid=true]:` variants on INPUT_BASE. Error styling now
- * derives from the ARIA attribute rather than from a parallel `errorInputClass`
- * string, so the two can no longer disagree — which is what let a field render
- * a red border while still reporting itself as valid to a screen reader.
+ * The `aria-[invalid=true]:` variants on INPUT_BASE derive error styling from the ARIA
+ * attribute, so a field cannot render a red border while reporting itself valid.
  */
 
 export const INPUT_BASE =
@@ -193,11 +184,8 @@ export function Select({ className = "", children, ...rest }) {
 }
 
 /**
- * Live character counter for length-capped textareas.
- *
- * Announced politely rather than assertively — a count that interrupted on
- * every keystroke would make the field unusable with a screen reader. It turns
- * amber near the cap and red once over it.
+ * Live character counter for length-capped textareas. Announced politely, not assertively — a
+ * count interrupting on every keystroke would make the field unusable with a screen reader.
  */
 export function CharCount({ value = "", max, className = "" }) {
   const used = value.length;

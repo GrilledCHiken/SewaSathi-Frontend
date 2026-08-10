@@ -11,7 +11,13 @@ import {
   chatUnlocked,
   formatMoney,
   formatStatus,
+  remainingAfter,
 } from "../../components/tasks/taskUi";
+import useConfirm from "../../hooks/useConfirm";
+import {
+  cashNotReceivedConfirm,
+  cashReceivedConfirm,
+} from "../../utils/confirmMessages";
 import {
   acceptTask,
   completeTask,
@@ -144,6 +150,12 @@ export default function WorkerMyJobs() {
   const [loading, setLoading] = useState(true);
   const [workingId, setWorkingId] = useState(null);
   const [activeFilter, setActiveFilter] = useState("all");
+  const [confirm, confirmDialog] = useConfirm();
+
+  // Every action on this page changes what the customer sees, so each one is asked about
+  // first. The job is looked up by id rather than threaded through JobActions, so the
+  // confirmation can name the task and its money.
+  const jobById = (id) => jobs.find((job) => job.id === id);
 
   /* A task never says how its balance is being paid, so the earnings payload comes along
      to answer the one question this page needs: is there a cash claim on this job waiting
@@ -167,6 +179,27 @@ export default function WorkerMyJobs() {
   /* Accepting keeps the row (it becomes a real job); rejecting hands the task back
      to the open list, so it drops off this worker's list entirely. */
   const handleRespond = async (id, action) => {
+    const job = jobById(id);
+    const declining = action === "decline";
+    const ok = await confirm(
+      declining
+        ? {
+            title: "Reject this request?",
+            body: `"${job?.title}" goes back on the open list for another worker, and it leaves your jobs for good.`,
+            confirmLabel: "Reject request",
+            cancelLabel: "Keep it",
+            tone: "danger",
+          }
+        : {
+            title: "Accept this request?",
+            body: `You're taking on "${job?.title}" for ${formatMoney(job?.budget)}. It's confirmed once the customer pays their advance.`,
+            confirmLabel: "Accept request",
+            cancelLabel: "Not yet",
+            tone: "emerald",
+          },
+    );
+    if (!ok) return;
+
     setWorkingId(id);
     try {
       if (action === "accept") {
@@ -188,6 +221,15 @@ export default function WorkerMyJobs() {
   };
 
   const handleStart = async (id) => {
+    const ok = await confirm({
+      title: "Start this task?",
+      body: `The customer is told work on "${jobById(id)?.title}" has begun.`,
+      confirmLabel: "Start task",
+      cancelLabel: "Not yet",
+      tone: "primary",
+    });
+    if (!ok) return;
+
     setWorkingId(id);
     try {
       const updated = await startTask(id);
@@ -201,6 +243,16 @@ export default function WorkerMyJobs() {
   };
 
   const handleComplete = async (id) => {
+    const job = jobById(id);
+    const ok = await confirm({
+      title: "Mark this work done?",
+      body: `"${job?.title}" is handed over and the customer is asked to settle the ${formatMoney(remainingAfter(job?.budget))} balance. Only do this once the work is finished.`,
+      confirmLabel: "Mark complete",
+      cancelLabel: "Not yet",
+      tone: "emerald",
+    });
+    if (!ok) return;
+
     setWorkingId(id);
     try {
       const updated = await completeTask(id);
@@ -217,6 +269,13 @@ export default function WorkerMyJobs() {
      can be replaced from the response rather than refetched. Confirming closes the job;
      rejecting only clears the claim, leaving the task awaiting payment. */
   const handleCashAnswer = async (id, received) => {
+    const job = jobById(id);
+    const details = { title: job?.title, amount: remainingAfter(job?.budget) };
+    const ok = await confirm(
+      received ? cashReceivedConfirm(details) : cashNotReceivedConfirm(details),
+    );
+    if (!ok) return;
+
     setWorkingId(id);
     try {
       const payment = received
@@ -337,6 +396,8 @@ export default function WorkerMyJobs() {
           )}
         </div>
       </main>
+
+      {confirmDialog}
     </div>
   );
 }

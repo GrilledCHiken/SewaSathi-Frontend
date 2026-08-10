@@ -162,12 +162,9 @@ function ConversationItem({ conversation, active, unread, onSelect }) {
 }
 
 /**
- * Attachments are served by the authenticated /api/files endpoint, so they are fetched
- * through the axios client rather than linked to directly — a bare href would arrive
- * without a token and come back 401.
- *
- * Images open in the viewer; everything else downloads, since no browser renders a Word
- * document inline.
+ * Attachments come from the authenticated /api/files endpoint, so they are fetched through the
+ * axios client — a bare href would arrive without a token and come back 401. Images open in
+ * the viewer; everything else downloads.
  */
 function AttachmentBubble({ message }) {
   const isImage = message.attachmentType?.startsWith("image/");
@@ -214,10 +211,8 @@ function AttachmentBubble({ message }) {
 }
 
 /**
- * Shown under your own bubbles only. There is no delivery acknowledgement anywhere in this
- * system, so the two honest states are "the server stored it" and "they opened the thread" —
- * hence Sent and Seen, rather than borrowing the three-tick vocabulary of apps that really do
- * track handset delivery.
+ * Shown under your own bubbles only. Nothing here acknowledges delivery, so the two honest
+ * states are "the server stored it" and "they opened the thread" — Sent and Seen.
  */
 function ReadReceipt({ readAt }) {
   const seen = Boolean(readAt);
@@ -342,10 +337,8 @@ function MessageBubble({ message, isSelf, otherInitials, otherPalette, selfIniti
 }
 
 export default function ChatPage({ renderHeader }) {
-  // The chat is a fixed full-viewport shell: only the thread and the
-  // conversation list scroll. Without this the document is still a live scroll
-  // container on these routes, and focusing the composer (or any ancestor
-  // ending up a hair taller than the viewport) drags the header out of view.
+  // A fixed full-viewport shell: only the thread and conversation list scroll. Without this
+  // the document stays a live scroll container and focusing the composer hides the header.
   useBodyScrollLock();
 
   const { user } = useAuth();
@@ -358,8 +351,8 @@ export default function ChatPage({ renderHeader }) {
     markConversationRead,
     setActiveConversation,
   } = useChat();
-  // Task pages link here as /messages?taskId=123 to open the thread with that
-  // task's other party — the thread itself spans every task shared with them.
+  // Task pages link here as /messages?taskId=123 to open the thread with that task's other
+  // party; the thread spans every task shared with them.
   const [searchParams] = useSearchParams();
   const requestedTaskId = Number(searchParams.get("taskId")) || null;
 
@@ -446,8 +439,7 @@ export default function ChatPage({ renderHeader }) {
       .then((items) => {
         if (stale) return;
         setThread({ key: selectedKey, items });
-        // Only once the thread is actually rendered — this is also what tells the sender
-        // their messages have been seen.
+        // Only once the thread is rendered; this is also what flips the sender to Seen.
         markConversationRead(selectedKey);
       })
       .catch(() => {
@@ -461,8 +453,7 @@ export default function ChatPage({ renderHeader }) {
         applyReadReceipt(selectedKey, event.read);
         return;
       }
-      // Marking it read is the provider's job — it sees the same message on the personal
-      // stream and knows this thread is the active one.
+      // The provider marks it read: it sees the same message on the personal stream.
       applyMessage(selectedKey, event.message);
     });
 
@@ -474,9 +465,8 @@ export default function ChatPage({ renderHeader }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedKey]);
 
-  // Only the open thread is subscribed to its topic, so previews and ordering for every other
-  // conversation come off the personal stream — otherwise a row could show an unread badge
-  // next to the message that was already there.
+  // Only the open thread subscribes to its topic; previews and ordering for the rest come off
+  // the personal stream.
   useEffect(
     () =>
       onChatEvent((event) => {

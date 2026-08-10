@@ -40,11 +40,7 @@ public class ContactMessage {
     @Column(nullable = false, length = 2000)
     private String message;
 
-    /**
-     * Whether an administrator has dealt with this inquiry. "Unread" and "unresolved" are the
-     * same state here - an inquiry is either outstanding or handled - so one flag carries both
-     * rather than leaving a third state nobody acts on.
-     */
+    /** Whether an administrator has dealt with this inquiry. */
     @Builder.Default
     @Column(nullable = false)
     private boolean handled = false;

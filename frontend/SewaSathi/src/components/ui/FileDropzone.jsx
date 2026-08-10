@@ -3,12 +3,9 @@ import { cn } from "../../utils/cn";
 /**
  * File picker styled as a dropzone.
  *
- * Not a `Field`: the control is the label itself, so the label/`htmlFor`
- * wiring `Field` exists to own doesn't apply. The error message below mirrors
- * `Field`'s so the two read identically in a column.
- *
- * Lives here rather than beside the worker verification form because the same
- * control collects a police clearance renewal on My Profile.
+ * Not a `Field`: the control is the label itself, so the label/`htmlFor` wiring `Field` owns
+ * does not apply. The error message below mirrors `Field`'s so the two read identically in a
+ * column. Shared by the worker verification form and the clearance renewal on My Profile.
  */
 
 function UploadIcon() {

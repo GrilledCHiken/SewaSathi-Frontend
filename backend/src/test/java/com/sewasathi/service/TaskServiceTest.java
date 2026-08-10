@@ -241,8 +241,6 @@ class TaskServiceTest {
         assertThat(response.getStatus()).isEqualTo(TaskStatus.CANCELLED);
     }
 
-    // --- finishing and closing out ---
-
     @Test
     void completeTask_endsTheWorkButNotTheJob() {
         // The distinction the whole balance flow rests on: downing tools is not the same

@@ -5,10 +5,6 @@ import Spinner from "./Spinner";
 /**
  * The app's only button.
  *
- * Replaces a primary-button class string that was repeated ~58 times across 27
- * files in three different shapes, plus the PRIMARY_BTN / SECONDARY_BTN string
- * constants exported from payments/PaymentResult.jsx.
- *
  * `as` renders the same styling as something else without redeclaring it —
  * `<Button as={Link} to="/dashboard/post-task">` for navigation, `as="a"` for
  * external links. Only a real `<button>` gets `type` and `disabled`, since

@@ -34,11 +34,10 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 /**
  * The six-month police clearance renewal, end to end.
  *
- * <p>The point of the design is that renewing does not cost the worker anything while it is being
- * checked: the report they hand in is parked in the profile's pending columns, they stay APPROVED,
- * and only an admin approving it swaps the document on record and restarts the clock. These tests
- * pin that, plus the access rule on the new file - a pending report is an identity document, so it
- * has to be readable by its owner and admins and by nobody else.
+ * <p>Renewing costs the worker nothing while it is checked: the report is parked in the
+ * profile's pending columns, they stay APPROVED, and only an admin approving it swaps the
+ * document on record and restarts the clock. Also pins the access rule on the new file - a
+ * pending report is an identity document, readable by its owner and admins only.
  */
 @SpringBootTest
 @AutoConfigureMockMvc

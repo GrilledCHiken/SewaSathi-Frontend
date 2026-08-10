@@ -6,9 +6,8 @@ import lombok.Getter;
 import lombok.Setter;
 
 /**
- * The reason an administrator is turning a worker's application down. Mandatory: the text is
- * emailed to the applicant verbatim and shown in the banner they get at their next sign-in, so
- * a rejection without one would leave them shut out with nothing to act on.
+ * The reason an administrator is turning a worker's application down. Mandatory, because it is
+ * shown to the applicant verbatim and is all they have to act on.
  */
 @Getter
 @Setter

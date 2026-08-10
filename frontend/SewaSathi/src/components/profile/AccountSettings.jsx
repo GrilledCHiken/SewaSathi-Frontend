@@ -14,6 +14,7 @@ import {
   isPasswordStrong,
   sanitizePhone,
 } from "../../utils/validation";
+import useConfirm from "../../hooks/useConfirm";
 import Avatar from "../Avatar";
 import PasswordChecklist from "../PasswordChecklist";
 import { DetailField } from "../detailUi";
@@ -54,13 +55,11 @@ function FieldError({ message }) {
  * The part of "My Profile" that is identical for customers, workers, and admins: the photo,
  * the name and number on the account, and the password.
  *
- * Kept as a component rather than a page so the worker's profile screen can stack its
- * professional fields (skills, rate, service area) underneath the same account controls
- * instead of splitting a worker's identity across two routes.
+ * A component rather than a page, so the worker's profile screen can stack its professional
+ * fields underneath the same account controls instead of splitting across two routes.
  *
- * Each card reads before it writes — see EditableCard. The form state below is only ever
- * live while a card is open, and it is reseeded from the session on the way in and on
- * cancel, so nothing typed and abandoned survives.
+ * Each card reads before it writes — see EditableCard. The form state below is live only
+ * while a card is open and is reseeded from the session on entry and on cancel.
  */
 export default function AccountSettings({ accent = "brand" }) {
   const { user, applyUserUpdate, logoutCustomer } = useAuth();
@@ -71,6 +70,7 @@ export default function AccountSettings({ accent = "brand" }) {
 
   const fileInputRef = useRef(null);
   const [photoBusy, setPhotoBusy] = useState(false);
+  const [confirm, confirmDialog] = useConfirm();
 
   const [details, setDetails] = useState({
     fullName: user?.fullName || user?.name || "",
@@ -114,6 +114,15 @@ export default function AccountSettings({ accent = "brand" }) {
   };
 
   const handlePhotoRemove = async () => {
+    const ok = await confirm({
+      title: "Remove your profile photo?",
+      body: "Your account falls back to your initials everywhere it's shown. You can upload a new photo whenever you like.",
+      confirmLabel: "Remove photo",
+      cancelLabel: "Keep it",
+      tone: "danger",
+    });
+    if (!ok) return;
+
     setPhotoBusy(true);
     try {
       applyUserUpdate(await removeMyAvatar());
@@ -181,15 +190,25 @@ export default function AccountSettings({ accent = "brand" }) {
     setPasswordErrors(errors);
     if (Object.keys(errors).length > 0) return false;
 
+    /* Changing the password revokes every refresh token, so it signs this device out too.
+       That is the part worth warning about — until now it just happened. */
+    const ok = await confirm({
+      title: "Change your password?",
+      body: "Every device signed in to this account is signed out, including this one, so you'll be sent back to the login screen to sign in with the new password.",
+      confirmLabel: "Change password",
+      cancelLabel: "Go back",
+      tone: "danger",
+    });
+    if (!ok) return false;
+
     setSavingPassword(true);
     try {
       await changeMyPassword({
         currentPassword: passwords.currentPassword,
         newPassword: passwords.newPassword,
       });
-      // The server revoked every refresh token, this device's included, so the tokens in
-      // storage are already dead. Clearing them locally keeps the app from making requests
-      // it cannot recover from on the way to the sign-in page.
+      // The server revoked every refresh token, this device's included, so the stored
+      // tokens are already dead.
       toast.success("Password changed. Please sign in again.");
       await logoutCustomer();
       navigate("/login", { replace: true });
@@ -440,6 +459,8 @@ export default function AccountSettings({ accent = "brand" }) {
           show={passwords.newPassword.length > 0}
         />
       </EditableCard>
+
+      {confirmDialog}
     </div>
   );
 }

@@ -48,9 +48,8 @@ export default function useNotifications(enabled = true) {
   useEffect(() => {
     if (!enabled) return undefined;
 
-    // Loaded inside the effect with a cancellation guard rather than by calling refresh()
-    // directly: the request can outlive the component, and writing state after unmount
-    // would warn (and, on a fast route change, clobber the next mount's data).
+    // Loaded inside the effect with a cancellation guard: the request can outlive the
+    // component, and a late write would clobber the next mount's data.
     let cancelled = false;
     (async () => {
       try {
@@ -71,15 +70,13 @@ export default function useNotifications(enabled = true) {
         client.subscribe("/user/queue/notifications", (frame) => {
           const incoming = JSON.parse(frame.body);
 
-          // Deduplicated against a ref rather than inside the setState updater: React may
-          // run an updater more than once, and firing a desktop notification from there
-          // would show the same alert twice.
+          // Deduplicated against a ref, not inside the setState updater: React may run an
+          // updater twice, which would fire the desktop notification twice.
           if (announcedIds.current.has(incoming.id)) return;
           announcedIds.current.add(incoming.id);
 
           // Mirror to the desktop when the user has opted in and the tab is not in front
-          // of them — a new-device sign-in code is worth surfacing even when Sewa Sathi
-          // is not the tab they are looking at.
+          // of them.
           notifyRef.current?.({
             title: incoming.title,
             body: incoming.body,

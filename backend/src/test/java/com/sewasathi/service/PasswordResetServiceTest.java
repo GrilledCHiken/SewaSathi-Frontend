@@ -248,9 +248,8 @@ class PasswordResetServiceTest {
 
         service.reset(started.challenge().getChallengeToken(), "BrandNew1!");
 
-        // Nothing about the account was Google-specific except the missing hash, so this is
-        // the ordinary path - and it is the only way out for someone who does not remember
-        // signing up with Google.
+        // Nothing about the account was Google-specific except the missing hash, so a reset
+        // is the ordinary path - and the only way in for someone who forgot they used Google.
         assertThat(passwordEncoder.matches("BrandNew1!", user.getPasswordHash())).isTrue();
     }
 
@@ -259,7 +258,7 @@ class PasswordResetServiceTest {
         Started started = start();
 
         // Holding the token proves only that this browser started the reset, not that anyone
-        // read the mailbox - which is the entire point of the code.
+        // read the mailbox.
         assertThatThrownBy(() -> service.reset(started.challenge().getChallengeToken(), "BrandNew1!"))
                 .isInstanceOf(OtpException.class);
         verify(refreshTokenService, never()).revokeAllForUser(any());

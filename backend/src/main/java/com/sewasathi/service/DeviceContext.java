@@ -26,12 +26,9 @@ public record DeviceContext(String userAgent, String ipAddress) {
     }
 
     /**
-     * Stable identifier for this browser-on-network combination.
-     *
-     * <p>The IP is coarsened to its network prefix before hashing: a customer on mobile data
-     * gets a different address constantly, and fingerprinting the exact IP would challenge
-     * them on every single sign-in, training them to approve codes reflexively - which is
-     * worse than not challenging at all.
+     * Stable identifier for this browser-on-network combination. The IP is coarsened to its
+     * network prefix first: on mobile data the exact address changes constantly, and
+     * challenging every sign-in trains people to approve codes reflexively.
      */
     public String fingerprint() {
         String material = userAgent + "|" + coarsenIp(ipAddress);

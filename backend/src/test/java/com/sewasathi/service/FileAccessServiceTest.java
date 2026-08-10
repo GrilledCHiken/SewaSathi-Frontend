@@ -25,12 +25,11 @@ import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.when;
 
 /**
- * Guards the fix for a real data-exposure bug: uploads were served by a static resource
- * handler under a {@code permitAll()} rule, so a worker's citizenship document and police
- * clearance certificate could be read by anyone with the URL.
+ * Guards access control on uploads: a worker's citizenship document and police clearance
+ * certificate must not be readable by anyone holding the URL.
  *
- * <p>The denial tests are the point of this class. If someone later reinstates the static
- * handler or loosens these rules, these fail.
+ * <p>The denial tests are the point of this class - they fail if a static resource handler is
+ * ever reinstated or these rules are loosened.
  */
 @ExtendWith(MockitoExtension.class)
 class FileAccessServiceTest {
@@ -81,8 +80,6 @@ class FileAccessServiceTest {
         lenient().when(messageRepository.findByAttachmentUrl(URL)).thenReturn(Optional.of(message));
     }
 
-    // --- Identity documents: the actual vulnerability ---
-
     @Test
     void identityDocument_isNotReadableByAnUnrelatedUser() {
         knownUser(stranger);
@@ -121,8 +118,6 @@ class FileAccessServiceTest {
                 .doesNotThrowAnyException();
     }
 
-    // --- Chat attachments ---
-
     @Test
     void chatAttachment_isReadableBySender() {
         knownUser(worker);
@@ -152,8 +147,6 @@ class FileAccessServiceTest {
                 .isInstanceOf(ResourceNotFoundException.class);
     }
 
-    // --- Profile photos are public-facing by design ---
-
     @Test
     void profilePhoto_isReadableByAnySignedInUser() {
         knownUser(stranger);
@@ -182,8 +175,6 @@ class FileAccessServiceTest {
         assertThatCode(() -> fileAccessService.assertCanRead(FILE, stranger.getEmail()))
                 .doesNotThrowAnyException();
     }
-
-    // --- Unreferenced files ---
 
     @Test
     void fileNothingReferences_isRefused() {

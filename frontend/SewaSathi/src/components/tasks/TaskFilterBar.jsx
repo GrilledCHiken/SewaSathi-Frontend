@@ -14,8 +14,7 @@ const ACCENTS = {
  * header at sm and up; stays inline on mobile where the header wraps to two rows.
  *
  * `trailing` renders extra controls (e.g. dropdowns) beside the search box —
- * Browse Workers uses it for its location and rate selects. The search keeps
- * `lg:w-80`, which is the width the old `w-full lg:max-w-xs` resolved to.
+ * Browse Workers uses it for its location and rate selects.
  */
 export default function TaskFilterBar({
   filters = [],

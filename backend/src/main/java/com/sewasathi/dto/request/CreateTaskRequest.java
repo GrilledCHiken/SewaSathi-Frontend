@@ -15,12 +15,9 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 
 /**
- * The @Size caps mirror the columns on {@link com.sewasathi.entity.Task}. Without them an
- * over-length title passed bean validation and only failed at the database, which surfaced
- * as a 500 rather than a field error the customer could act on.
- *
- * <p>Rules that span two fields ({@code hourlyRate} against {@code budget}) or need a value
- * list (category, time preference) are enforced in
+ * The @Size caps mirror the columns on {@link com.sewasathi.entity.Task}, so an over-length
+ * value fails as a field error rather than a 500 from the database. Rules spanning two fields
+ * ({@code hourlyRate} against {@code budget}) or needing a value list are enforced in
  * {@link com.sewasathi.service.TaskService#createTask}.
  */
 @Getter
@@ -47,8 +44,8 @@ public class CreateTaskRequest {
     @Size(max = 100, message = "{validation.task.location.tooLong}")
     private String location;
 
-    // The column is precision 10 / scale 2, so @Digits keeps anything that would overflow it
-    // - or carry a third decimal - on the 400 path instead of the 500 one.
+    // The column is precision 10 / scale 2, so @Digits keeps an overflow or a third decimal
+    // on the 400 path instead of the 500 one.
     @NotNull(message = "{validation.task.budget.required}")
     @Positive(message = "{validation.task.budget.range}")
     @DecimalMin(value = "100.00", message = "{validation.task.budget.range}")

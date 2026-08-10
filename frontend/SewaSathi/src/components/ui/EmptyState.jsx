@@ -1,24 +1,17 @@
 import { cn } from "../../utils/cn";
 
 /**
- * "Nothing here yet" panel.
+ * "Nothing here yet" panel. `tasks/TaskEmptyState.jsx` re-exports this one.
  *
- * Generalised from `tasks/TaskEmptyState.jsx`, which was already generic
- * despite its name — that file now re-exports this one so its existing call
- * sites on the customer and worker task surfaces don't have to move.
+ * `action` is a first-class slot: a good empty state says what would be here and offers the
+ * action that fills it.
  *
- * A good empty state says what would be here and offers the action that fills
- * it, which is why `action` is a first-class slot rather than something callers
- * bolt on underneath.
- */
-/**
  * `tone`:
  *   dashed — standalone panel with a dashed outline (the default)
  *   solid  — standalone panel with a solid border and elevation
- *   bare   — no border or background, for use inside a Card/Panel that already
- *            provides them. Exposed as a prop rather than left to callers
- *            passing `border-0`, because cn() does not resolve conflicting
- *            utilities — see utils/cn.js.
+ *   bare   — no border or background, for use inside a Card/Panel that already provides them.
+ *            A prop rather than a caller-passed `border-0`, because cn() does not resolve
+ *            conflicting utilities — see utils/cn.js.
  */
 const TONES = Object.freeze({
   dashed: "border border-dashed border-line-strong bg-surface",

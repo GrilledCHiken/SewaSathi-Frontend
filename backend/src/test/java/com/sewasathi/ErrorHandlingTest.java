@@ -35,8 +35,6 @@ class ErrorHandlingTest {
     @Autowired
     private MockMvc mockMvc;
 
-    // ---------- REST API: JSON ----------
-
     @Test
     void apiValidationFailureReturnsAJsonMessage() throws Exception {
         mockMvc.perform(post("/api/auth/register/customer")
@@ -71,8 +69,6 @@ class ErrorHandlingTest {
                 .andExpect(content().string(not(containsString("com.sewasathi"))));
     }
 
-    // ---------- console: HTML ----------
-
     @Test
     void consoleErrorsRenderAsStyledHtmlNotWhitelabel() throws Exception {
         MvcResult result = mockMvc.perform(get("/admin/denied")
@@ -99,7 +95,7 @@ class ErrorHandlingTest {
                 .andExpect(status().isNotFound());
     }
 
-    // ---------- correlation id (requirement #10) ----------
+    // correlation id (requirement #10)
 
     /**
      * Every response carries the id that tags its log lines, which is what turns "it failed"

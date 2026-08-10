@@ -52,9 +52,7 @@ public class TaskService {
 
     /**
      * Written out rather than left to {@code @RequiredArgsConstructor}: Lombok does not copy
-     * {@link Value} onto the parameters it generates without a {@code lombok.config} saying so,
-     * and the two injected properties would arrive null. {@link PaymentService} is constructed
-     * the same way for the same reason.
+     * {@link Value} onto generated parameters, so the injected properties would arrive null.
      */
     @Autowired
     public TaskService(
@@ -147,8 +145,7 @@ public class TaskService {
         if (!task.getCustomer().getId().equals(customer.getId())) {
             throw new ResourceNotFoundException("No task with id " + taskId);
         }
-        // AWAITING_PAYMENT is past the point of no return too - the worker has already done
-        // the job, so cancelling out of it would be walking away from money that is owed.
+        // AWAITING_PAYMENT is past the point of no return: the work is done and the money owed.
         if (task.getStatus() == TaskStatus.COMPLETED
                 || task.getStatus() == TaskStatus.CANCELLED
                 || task.getStatus() == TaskStatus.AWAITING_PAYMENT) {
@@ -178,9 +175,8 @@ public class TaskService {
             throw new InvalidOperationException("This worker is not currently available");
         }
 
-        // A direct hire is a request, not a booking - the worker still has to say yes. The
-        // task leaves OPEN so nobody else can claim it while they decide, and declining
-        // puts it straight back.
+        // A direct hire is a request, not a booking. The task leaves OPEN so nobody else can
+        // claim it while the worker decides; declining puts it back.
         task.setAssignedWorker(worker);
         task.setStatus(TaskStatus.REQUESTED);
         Task saved = taskRepository.save(task);
@@ -253,14 +249,12 @@ public class TaskService {
 
     /**
      * Tells the customer their job has been taken. Shared by both doors into
-     * {@link TaskStatus#ACCEPTED} so the two cannot drift - a worker claiming an open task used
-     * to announce nothing at all, leaving the customer to discover it by opening My Tasks.
-     *
-     * <p>The advance is the point of the message: nothing moves until it is paid.
+     * {@link TaskStatus#ACCEPTED} so the two cannot drift. The advance is the point of the
+     * message: nothing moves until it is paid.
      */
     private void announceAcceptance(Task task, User worker) {
         // "your task" rather than "your request": on the open-feed path the customer never
-        // asked this worker for anything, they simply picked the job up.
+        // asked this worker for anything.
         notificationService.notify(task.getCustomer(), "TASK_ACCEPTED",
                 worker.getFullName() + " accepted your task",
                 "Pay the advance on \"" + task.getTitle() + "\" to confirm the booking.",
@@ -270,13 +264,10 @@ public class TaskService {
     }
 
     /**
-     * The same news by email, for a customer who is not looking at the app.
-     *
-     * <p>Delivery failures are swallowed rather than allowed to escape: this runs inside the
+     * The same news by email. Delivery failures are swallowed: this runs inside the
      * {@code @Transactional} accept, and an {@link com.sewasathi.exception.EmailDeliveryException}
-     * crossing the proxy boundary would mark the transaction rollback-only - undoing the worker's
-     * acceptance because the mail server was unreachable. The in-app notification has already
-     * landed either way.
+     * crossing the proxy would mark the transaction rollback-only, undoing the acceptance
+     * because the mail server was unreachable.
      */
     private void emailAcceptance(Task task, User worker) {
         User customer = task.getCustomer();
@@ -298,8 +289,8 @@ public class TaskService {
     }
 
     /**
-     * The no half. The task returns to the open pool rather than being cancelled, so it
-     * reappears in the public feed and the customer can pick someone else without reposting.
+     * The no half. The task returns to the open pool rather than being cancelled, so the
+     * customer can pick someone else without reposting.
      */
     @Transactional
     public TaskResponse declineRequest(Long taskId, String workerEmail) {
@@ -336,8 +327,7 @@ public class TaskService {
 
     /**
      * The worker downing tools. This ends the <em>work</em>, not the job: the task lands in
-     * {@link TaskStatus#AWAITING_PAYMENT} and only {@link #markPaidInFull} takes it the rest
-     * of the way, once the closing balance has actually been collected.
+     * {@link TaskStatus#AWAITING_PAYMENT} and only {@link #markPaidInFull} closes it.
      */
     @Transactional
     public TaskResponse completeTask(Long taskId, String workerEmail) {
@@ -360,11 +350,8 @@ public class TaskService {
 
     /**
      * Closes a job out once its balance has been collected. The single place a task becomes
-     * {@link TaskStatus#COMPLETED}, which is why the worker's completed-jobs counter is
-     * incremented here rather than when the work finished - the two stay in step that way.
-     *
-     * <p>A no-op from any other status, so a gateway that delivers the same callback twice
-     * cannot double-count the job.
+     * {@link TaskStatus#COMPLETED}, so the worker's completed-jobs counter is incremented here.
+     * A no-op from any other status, so a repeated gateway callback cannot double-count.
      */
     @Transactional
     public void markPaidInFull(Task task) {

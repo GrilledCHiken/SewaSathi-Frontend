@@ -3,12 +3,9 @@ package com.sewasathi.dto.response;
 import lombok.Getter;
 
 /**
- * Task volume for one service category, across the whole history rather than a window -
- * the marketing pages describe the platform as it stands, not a reporting period.
- *
- * <p>Only categories that have been used at all appear in the query result. The catalogue
- * itself comes from {@link com.sewasathi.service.ServiceCategories}, so an unused category
- * still reaches the client, carrying zeroes.
+ * Task volume for one service category, across the whole history rather than a window. Only
+ * used categories appear in the query result; the catalogue comes from
+ * {@link com.sewasathi.service.ServiceCategories}, so unused ones reach the client as zeroes.
  */
 @Getter
 public class CategoryStatsRow {

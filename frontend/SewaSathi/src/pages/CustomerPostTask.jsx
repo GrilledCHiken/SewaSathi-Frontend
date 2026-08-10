@@ -65,8 +65,8 @@ export default function CustomerPostTask() {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    // Description is no longer truncated at the cap. Silently dropping the tail of a pasted
-    // description is worse than letting CharCount go red and failing the check on submit.
+    // Not truncated at the cap: silently dropping the tail of a pasted description is worse
+    // than letting CharCount go red and failing on submit.
     setForm((prev) => ({ ...prev, [name]: value }));
     if (errors[name]) {
       setErrors((prev) => ({ ...prev, [name]: "" }));

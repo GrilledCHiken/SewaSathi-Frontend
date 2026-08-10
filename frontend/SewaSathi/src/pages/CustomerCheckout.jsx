@@ -21,6 +21,7 @@ import {
   initiateBalancePayment,
   listMyPayments,
 } from "../api/paymentApi";
+import useConfirm from "../hooks/useConfirm";
 import PageShell, { PageHeader } from "../components/ui/PageShell";
 import Card, { Panel } from "../components/ui/Card";
 import Alert from "../components/ui/Alert";
@@ -76,8 +77,7 @@ const METHODS = [
     name: "Cash in hand",
     blurb: "Hand the money to your worker in person",
     available: true,
-    // Balance only. The advance has to clear a real gateway before a booking is confirmed —
-    // there is nobody standing in front of the customer to hand cash to at that point.
+    // Balance only: the advance has to clear a real gateway before a booking is confirmed.
     balanceOnly: true,
     icon: (
       <svg className="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -132,12 +132,9 @@ function Notice({ tone = "neutral", title, body, children }) {
 }
 
 /**
- * Hands the customer over to the gateway.
- *
- * <p>Khalti opens the payment on the backend and returns a ready-made link, so it
- * is a plain navigation. eSewa's ePay v2 instead only accepts a form-encoded POST
- * it can render a page for, so that one has to be a real browser form submission
- * rather than an XHR.
+ * Hands the customer over to the gateway. Khalti returns a ready-made link, so it is a plain
+ * navigation; eSewa's ePay v2 only accepts a form-encoded POST it can render a page for, so
+ * that one has to be a real browser form submission rather than an XHR.
  */
 function redirectToGateway({ formUrl, fields, redirectUrl }) {
   if (redirectUrl) {
@@ -160,17 +157,12 @@ function redirectToGateway({ formUrl, fields, redirectUrl }) {
 }
 
 /**
- * Checkout, for either instalment.
+ * Checkout, for either instalment. One route serves both legs and reads which is due off the
+ * data rather than the URL — `accepted` means the advance, `awaiting payment` the balance —
+ * so the eSewa failure redirect can point back here without knowing which leg failed.
  *
- * <p>A task is paid in two legs — the {@code advance} that confirms the booking, and the
- * {@code balance} owed once the worker has finished. One route serves both, and which one is
- * due is read off the data rather than passed in the URL: `accepted` means the advance,
- * `awaiting payment` means the balance. That is why the eSewa failure redirect can keep
- * pointing straight back here without knowing which leg failed.
- *
- * <p>The balance can also be paid in cash, which is not a checkout at all — nothing is
- * redirected to, and the claim has to wait on the worker's word before the job closes. That
- * case takes over the whole page with a waiting notice rather than a pay button.
+ * <p>The balance can also be paid in cash, which is not a checkout: nothing is redirected to
+ * and the claim waits on the worker, so that case takes over the page with a waiting notice.
  */
 export default function CustomerCheckout() {
   const { taskId } = useParams();
@@ -179,6 +171,7 @@ export default function CustomerCheckout() {
   const [loading, setLoading] = useState(true);
   const [method, setMethod] = useState("ESEWA");
   const [paying, setPaying] = useState(false);
+  const [confirm, confirmDialog] = useConfirm();
 
   useEffect(() => {
     Promise.all([getTask(taskId), listMyPayments()])
@@ -193,9 +186,8 @@ export default function CustomerCheckout() {
   }, [taskId]);
 
   const status = formatStatus(task?.status);
-  // Nothing is due unless one of these two says so, which is what the notices below explain.
-  // A declared-but-unconfirmed cash payment counts as nothing due: the money has changed
-  // hands, so showing a Pay button again would invite paying twice.
+  // Nothing is due unless one of these two says so. A declared-but-unconfirmed cash payment
+  // counts as nothing due, or a Pay button would invite paying twice.
   const awaitingCashConfirmation = task ? cashDeclared(task, payments) : false;
   const mode = !task
     ? null
@@ -205,8 +197,8 @@ export default function CustomerCheckout() {
         ? "balance"
         : null;
 
-  // Cash is only ever an option on the closing leg, and the selection has to be forced back
-  // to a gateway if it somehow survives into an advance — `method` outlives a mode change.
+  // Cash is only an option on the closing leg, and `method` outlives a mode change, so a
+  // stale selection is forced back to a gateway.
   const methods = METHODS.filter(
     (option) => mode === "balance" || !option.balanceOnly,
   );
@@ -219,6 +211,28 @@ export default function CustomerCheckout() {
   const palette = paletteFor(worker?.id);
 
   const handlePay = async () => {
+    // Cash is a claim about money that has already changed hands and the worker is asked to
+    // vouch for it; a gateway leg hands the customer off to somebody else's site. Both are
+    // worth a beat before they happen.
+    const ok = await confirm(
+      payingCash
+        ? {
+            title: `Confirm you paid ${formatMoney(dueNow)} in cash?`,
+            body: `${worker?.fullName || "Your worker"} will be asked to confirm they received it. Only say yes if you've actually handed the money over.`,
+            confirmLabel: "Yes, I paid in cash",
+            cancelLabel: "Not yet",
+            tone: "danger",
+          }
+        : {
+            title: `Pay ${formatMoney(dueNow)} with ${selected.name}?`,
+            body: `You'll be taken to ${selected.name} to finish the payment, then brought back here.`,
+            confirmLabel: `Continue to ${selected.name}`,
+            cancelLabel: "Go back",
+            tone: "primary",
+          },
+    );
+    if (!ok) return;
+
     setPaying(true);
     try {
       if (payingCash) {
@@ -249,8 +263,7 @@ export default function CustomerCheckout() {
   const confirmed = status === "assigned" || status === "in progress";
   const paidInFull = status === "completed";
 
-  // The back affordance now lives in DashboardHeader, which every /dashboard route
-  // gets; `backTo` is only the fallback for someone who deep-linked straight here.
+  // The back affordance lives in DashboardHeader; `backTo` is the fallback for a deep link.
   const header = <DashboardHeader title="Checkout" backTo="/dashboard/tasks" />;
 
   return (
@@ -433,6 +446,8 @@ export default function CustomerCheckout() {
           </div>
         )}
       </div>
+
+      {confirmDialog}
     </PageShell>
   );
 }

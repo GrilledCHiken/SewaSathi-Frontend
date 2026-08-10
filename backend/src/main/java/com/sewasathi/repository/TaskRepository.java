@@ -81,9 +81,8 @@ public interface TaskRepository extends JpaRepository<Task, Long> {
     /**
      * Task volume per service category over the whole history, for the public catalogue.
      *
-     * <p>Unlike {@link #topCategories}, this is neither windowed nor truncated: the marketing
-     * pages describe the platform as it stands, and every category the catalogue lists needs a
-     * figure. Categories nobody has used simply do not come back, and the service fills them in.
+     * <p>Unlike {@link #topCategories}, neither windowed nor truncated. Categories nobody has
+     * used do not come back at all; the service fills them in.
      */
     @Query("""
             select new com.sewasathi.dto.response.CategoryStatsRow(

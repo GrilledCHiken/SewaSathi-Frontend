@@ -20,14 +20,9 @@ import org.hibernate.annotations.CreationTimestamp;
 import java.time.LocalDateTime;
 
 /**
- * A long-lived credential that buys a new short-lived access token (requirement #2).
- *
- * <p>Access tokens are now minutes long, which means a stolen one expires quickly - but it
- * also means the SPA needs something to renew with. That something is stored here so it can
- * be revoked, which a self-contained JWT never can be.
- *
- * <p>Only the SHA-256 hash of the token is persisted. A database leak therefore yields no
- * usable credential, for the same reason password hashes are stored rather than passwords.
+ * A long-lived credential that buys a new short-lived access token (requirement #2). Stored
+ * server-side so it can be revoked, which a self-contained JWT cannot be. Only the SHA-256
+ * hash is persisted, so a database leak yields no usable credential.
  */
 @Entity
 @Table(name = "refresh_tokens", indexes = {
@@ -73,10 +68,7 @@ public class RefreshToken {
     @Column(name = "expires_at", nullable = false)
     private LocalDateTime expiresAt;
 
-    /**
-     * When this token was last exchanged. Drives the idle timeout: a session nobody has
-     * touched for longer than the idle window is finished, however much absolute life is left.
-     */
+    /** When this token was last exchanged. Drives the idle timeout. */
     @Column(name = "last_used_at")
     private LocalDateTime lastUsedAt;
 

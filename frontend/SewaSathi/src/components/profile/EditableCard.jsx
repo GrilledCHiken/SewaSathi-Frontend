@@ -7,21 +7,15 @@ const SAVE_VARIANTS = {
 };
 
 /**
- * A profile card that reads before it writes.
+ * A profile card that reads before it writes: it shows the values, and editing them is a
+ * deliberate act — Edit, then Save or Cancel.
  *
- * The profile screens used to open straight into live inputs: a customer's name, number,
- * skills and rate were editable text boxes at all times, so a stray keystroke changed the
- * account and there was no way back short of reloading. This card shows the values, and
- * editing them is a deliberate act — Edit, then Save or Cancel.
+ * `onOpen` and `onCancel` exist because the form state lives with the consumer, which owns
+ * the validation and the API call; this only owns the toggle and says when to reseed.
  *
- * `onOpen` and `onCancel` exist because the form state lives with the consumer (it owns the
- * validation and the API call); this only owns the toggle, and tells the consumer when to
- * reseed itself from the server.
- *
- * `onSave` resolves to `false` when the values did not pass validation, which keeps the card
- * open so the errors it just rendered are visible. Omit `onSave` entirely for a card whose
- * controls save on their own — the photo card uploads the moment a file is picked — and the
- * footer becomes a single Done button instead of Cancel/Save.
+ * `onSave` resolves to `false` when validation failed, keeping the card open so the errors
+ * stay visible. Omit `onSave` for a card whose controls save on their own — the photo card
+ * uploads the moment a file is picked — and the footer becomes a single Done button.
  */
 export default function EditableCard({
   title,

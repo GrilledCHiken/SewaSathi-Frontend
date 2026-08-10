@@ -13,12 +13,9 @@ import java.util.List;
 import java.util.Set;
 
 /**
- * Decides whether a customer and a worker are allowed to chat at all.
- *
- * <p>Hiring someone is not enough: the thread stays shut until the customer's advance has
- * settled on one of the tasks they share. Both the REST path ({@link MessageService}) and
- * the socket path ({@link com.sewasathi.websocket.StompAuthChannelInterceptor}) enforce
- * this separately, so the rule lives here rather than being written out twice.
+ * Decides whether a customer and a worker are allowed to chat. Hiring is not enough - the
+ * thread stays shut until an advance has settled on one of the tasks they share. The REST and
+ * socket paths both enforce this, so the rule lives here rather than being written out twice.
  */
 @Service
 @RequiredArgsConstructor
@@ -28,10 +25,9 @@ public class ChatAccessService {
     private final PaymentRepository paymentRepository;
 
     /**
-     * The tasks behind a conversation, oldest first. Empty when the pair share no task
-     * with the worker assigned, and empty just the same while the advance is unpaid -
-     * callers cannot tell the two apart, which is what keeps an unpaid thread invisible
-     * rather than merely read-only.
+     * The tasks behind a conversation, oldest first. Empty both when the pair share no
+     * assigned task and while the advance is unpaid, so callers cannot tell the two apart
+     * and an unpaid thread stays invisible rather than merely read-only.
      */
     @Transactional(readOnly = true)
     public List<Task> unlockedSharedTasks(ConversationKey key) {
@@ -44,8 +40,8 @@ public class ChatAccessService {
             return List.of();
         }
         boolean anyPaid = !paidTaskIds(sharedTasks.stream().map(Task::getId).toList()).isEmpty();
-        // One settled advance opens the whole thread: the chat belongs to the pair, not
-        // to a single job, and it stays open even if that job is later cancelled.
+        // One settled advance opens the whole thread: the chat belongs to the pair, not to a
+        // single job, and stays open even if that job is later cancelled.
         return anyPaid ? sharedTasks : List.of();
     }
 

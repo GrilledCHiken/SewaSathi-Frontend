@@ -2,10 +2,9 @@ import { useEffect, useState } from "react";
 import DocumentViewerModal from "./DocumentViewerModal";
 
 /**
- * Opens a worker's uploaded document in a viewer. Identity documents are no longer publicly
- * readable, so the bytes come back through the authenticated /api/files endpoint rather than
- * a plain link — but an admin checking a worker needs to read the document and decide, not
- * fish it out of their Downloads folder first.
+ * Opens a worker's uploaded document in a viewer. The bytes come through the authenticated
+ * /api/files endpoint rather than a plain link, and are shown in place so an admin can read
+ * and decide without fishing the file out of their Downloads folder.
  *
  * `onOpenChange` lets a surrounding dialog stand down while the viewer is up, so Escape
  * closes the document rather than collapsing both at once.

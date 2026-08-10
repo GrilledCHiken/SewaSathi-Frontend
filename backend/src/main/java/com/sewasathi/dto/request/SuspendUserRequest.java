@@ -6,9 +6,8 @@ import lombok.Getter;
 import lombok.Setter;
 
 /**
- * The reason an administrator is suspending an account. Mandatory: the text is emailed to
- * the account holder verbatim and repeated at their next sign-in attempt, so a suspension
- * without one would leave them locked out with nothing to act on.
+ * The reason an administrator is suspending an account. Mandatory, because it is shown to the
+ * account holder verbatim and is all they have to act on.
  */
 @Getter
 @Setter

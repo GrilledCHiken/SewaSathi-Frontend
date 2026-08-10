@@ -1,20 +1,16 @@
 package com.sewasathi.entity;
 
 /**
- * Where a worker's police clearance report stands against the six-month renewal rule.
- *
- * <p>Computed from the upload date rather than stored, so it cannot drift out of date with the
- * document it describes. See {@link WorkerProfile#getPoliceClearanceStatus()}.
- *
- * <p>Nothing in the platform is gated on this: an expired report warns the worker and shows up for
- * admins, but it does not stop them being hired or working.
+ * Where a worker's police clearance report stands against the six-month renewal rule. Computed
+ * from the upload date rather than stored, so it cannot drift out of date with the document.
+ * Nothing is gated on it: an expired report warns, but does not stop the worker being hired.
  */
 public enum PoliceClearanceStatus {
 
-    /** No report on file at all — the worker never completed verification. */
+    /** No report on file — the worker never completed verification. */
     MISSING,
 
-    /** On file and well inside its six months. */
+    /** On file and inside its six months. */
     VALID,
 
     /** On file, but inside the last {@link WorkerProfile#POLICE_CLEARANCE_WARNING_DAYS} days. */

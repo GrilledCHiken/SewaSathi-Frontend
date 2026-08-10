@@ -7,11 +7,8 @@ import lombok.Getter;
 import lombok.Setter;
 
 /**
- * The last step of a password reset. There is no current password to quote - that is the
- * whole reason this flow exists - so the already-verified challenge token is the credential.
- *
- * <p>The rules match {@link ChangePasswordRequest} exactly. A password chosen through a reset
- * is not a lesser password.
+ * The last step of a password reset. There is no current password to quote, so the
+ * already-verified challenge token is the credential. Rules match {@link ChangePasswordRequest}.
  */
 @Getter
 @Setter

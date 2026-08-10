@@ -84,8 +84,6 @@ class UserProfileServiceTest {
         return request;
     }
 
-    // --- Details ---
-
     @Test
     void updateProfile_savesTrimmedNameAndPhone() {
         UserResponse response = service.updateProfile(customer.getEmail(),
@@ -104,8 +102,6 @@ class UserProfileServiceTest {
         assertThat(customer.getEmail()).isEqualTo("customer@example.com");
         assertThat(customer.getRole()).isEqualTo(Role.CUSTOMER);
     }
-
-    // --- Avatar ---
 
     @Test
     void updateAvatar_storesTheFileAndDeletesTheOldOne() {
@@ -167,8 +163,6 @@ class UserProfileServiceTest {
 
         verify(fileStorageService, never()).delete(any());
     }
-
-    // --- Password ---
 
     @Test
     void changePassword_reencodesAndRevokesEverySession() {

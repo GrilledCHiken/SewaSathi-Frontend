@@ -49,12 +49,10 @@ public class AuthService {
     private final GoogleIdentityService googleIdentityService;
 
     /**
-     * Starts a customer signup. No account is created here: the submitted details are parked
-     * as a {@link PendingRegistration} and a six-digit code goes to the address given, which
-     * {@link #completeRegistration} then exchanges for the real {@code users} row.
-     *
-     * <p>Registering therefore now proves the address belongs to whoever typed it, and an
-     * address that was mistyped or does not exist never reaches the accounts table at all.
+     * Starts a customer signup. No account is created here: the details are parked as a
+     * {@link PendingRegistration} and a six-digit code goes to the address, which
+     * {@link #completeRegistration} exchanges for the real {@code users} row. A mistyped
+     * address therefore never reaches the accounts table.
      */
     @Transactional
     public PendingRegistrationResponse registerCustomer(RegisterCustomerRequest request) {
@@ -101,15 +99,10 @@ public class AuthService {
     }
 
     /**
-     * Finishes a signup: checks the emailed code and, only then, creates the account.
-     *
-     * <p>The availability check runs again here rather than being trusted from submit time -
-     * minutes may have passed, and someone else may have taken the address in between.
-     *
-     * <p>{@code noRollbackFor} has to be repeated from {@link RegistrationOtpService#verify}:
-     * that method joins this transaction rather than opening its own, so it is this rule that
-     * decides whether a rejected code keeps its attempt count. Without it every wrong guess
-     * would roll back its own increment and the cap would never be reached.
+     * Finishes a signup: checks the emailed code and only then creates the account. The
+     * availability check runs again rather than being trusted from submit time. {@code
+     * noRollbackFor} is repeated from {@link RegistrationOtpService#verify}, which joins this
+     * transaction - without it every wrong guess would roll back its own attempt increment.
      */
     @Transactional(noRollbackFor = OtpException.class)
     public AuthResponse completeRegistration(VerifyRegistrationRequest request) {
@@ -142,22 +135,15 @@ public class AuthService {
         registrationOtpService.consume(pending);
 
         // The account is usable straight away; the client sends the user to the sign-in page
-        // to enter the password once rather than being handed a token here.
+        // rather than being handed a token here.
         return AuthResponse.registered(UserResponse.from(user));
     }
 
     /**
-     * Signs in with a Google ID token, creating the account if this is the first time.
-     *
-     * <p>Matching is by verified email address, and an existing account is <em>linked</em>
-     * rather than refused. That is safe precisely because {@link GoogleIdentityService} insists
-     * on {@code email_verified}: both routes into an account then rest on control of the same
-     * mailbox, which is what the signup OTP proves for a password account. A user who forgot
-     * which way they signed up gets in either way instead of hitting a dead end.
-     *
-     * <p>A brand-new account is always a CUSTOMER. Google supplies neither a role nor a phone
-     * number, and becoming a worker means document upload and admin approval - a flow that
-     * belongs on the worker signup form, not behind a one-click button.
+     * Signs in with a Google ID token, creating the account if this is the first time. Matching
+     * is by verified email and an existing account is linked rather than refused, which is safe
+     * because {@link GoogleIdentityService} insists on {@code email_verified}. A brand-new
+     * account is always a CUSTOMER - becoming a worker needs documents and admin approval.
      */
     @Transactional
     public GoogleSignInOutcome loginWithGoogle(GoogleSignInRequest request, DeviceContext device) {
@@ -178,8 +164,8 @@ public class AuthService {
             return new GoogleSignInOutcome.NeedsProfile(GoogleSignupResponse.from(identity));
         }
 
-        // A half-finished OTP signup for this address can never be completed now. Left alone it
-        // would keep a live code pointing at an account that exists by another route.
+        // A half-finished OTP signup for this address can never be completed now, and would
+        // otherwise leave a live code pointing at an account created another way.
         registrationOtpService.discard(identity.email());
 
         User user = User.builder()
@@ -211,8 +197,7 @@ public class AuthService {
             changed = true;
         }
 
-        // Only fills a gap. Overwriting would silently replace a picture the user deliberately
-        // uploaded with whatever their Google profile happens to show.
+        // Only fills a gap - overwriting would replace a picture the user chose themselves.
         if (user.getAvatarUrl() == null && identity.avatarUrl() != null) {
             user.setAvatarUrl(identity.avatarUrl());
             changed = true;
@@ -224,9 +209,7 @@ public class AuthService {
     }
 
     /**
-     * Signs a user in.
-     *
-     * <p>The order of the checks matters: lockout and password come first, so an account's
+     * Signs a user in. Check order matters: lockout and password come first, so an account's
      * suspension state cannot be probed without the correct password.
      */
     @Transactional(noRollbackFor = InvalidCredentialsException.class)
@@ -242,11 +225,9 @@ public class AuthService {
             );
         }
 
-        // An account created through Google has no password to check. Saying so plainly does
-        // confirm the address is registered, but signing up already does that with its 409, so
-        // nothing new leaks - and leaving them to guess would be pointless when there is no
-        // password to guess. Forgot-password is the other way out: it will happily give such
-        // an account a password (PasswordResetService.reset).
+        // An account created through Google has no password to check. Saying so leaks nothing
+        // signup's 409 does not already leak, and forgot-password can give it one
+        // (PasswordResetService.reset).
         if (user.getPasswordHash() == null) {
             throw new InvalidCredentialsException(
                     "This account signs in with Google. Use the Google button, "
@@ -294,10 +275,9 @@ public class AuthService {
     }
 
     /**
-     * Issues the access/refresh pair that completes a sign-in.
-     *
-     * <p>The access token is deliberately short-lived; the refresh token beside it is what
-     * keeps the user signed in, and unlike the JWT it can be revoked (requirement #2).
+     * Issues the access/refresh pair that completes a sign-in. The access token is short-lived;
+     * the refresh token keeps the user signed in and, unlike the JWT, can be revoked
+     * (requirement #2).
      */
     private AuthResponse buildAuthResponse(User user, DeviceContext device) {
         String token = jwtService.generateToken(user.getEmail());
@@ -314,8 +294,8 @@ public class AuthService {
         RefreshTokenService.RotationResult rotated = refreshTokenService.rotate(refreshToken, device);
         User user = rotated.user();
 
-        // State can have changed since the chain started - a suspension in particular must
-        // end the session rather than be renewed straight past.
+        // State can have changed since the chain started; a suspension must end the session
+        // rather than be renewed straight past.
         if (user.isSuspended()) {
             refreshTokenService.revokeAllForUser(user.getId());
             throw new SuspendedAccountException(user.getSuspensionReason());

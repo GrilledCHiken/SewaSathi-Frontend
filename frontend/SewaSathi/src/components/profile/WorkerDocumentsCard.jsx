@@ -9,17 +9,13 @@ import { uploadPoliceClearance } from "../../api/workerProfileApi";
 import { daysUntil, formatDate } from "../../utils/dates";
 
 /**
- * A worker's verification documents, on their own profile.
+ * A worker's verification documents, on their own profile. Carries the one rule that needs the
+ * worker to act — **a police clearance report is only accepted for six months**.
  *
- * Until now these were write-once and admin-only: a worker uploaded a police clearance report and
- * a citizenship document during signup and could never see either again. This card gives them
- * back, and carries the one rule that needs the worker to act — **a police clearance report is
- * only accepted for six months** and has to be replaced.
- *
- * The replacement is reviewed before it counts. Uploading parks the new file in the profile's
- * pending columns and leaves the worker approved and working; only an admin approving it swaps
- * the document on record and restarts the clock. That is why the row can show a document and a
- * proposed document at the same time.
+ * A replacement is reviewed before it counts: uploading parks the new file in the profile's
+ * pending columns and leaves the worker approved and working, and only an admin approving it
+ * swaps the document on record. That is why a row can show a document and a proposed one at
+ * the same time.
  */
 
 /** The server's cap on any upload (spring.servlet.multipart.max-file-size). */

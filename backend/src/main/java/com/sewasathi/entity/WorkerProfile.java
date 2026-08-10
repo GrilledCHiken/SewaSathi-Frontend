@@ -77,21 +77,16 @@ public class WorkerProfile {
     private LocalDateTime verificationSubmittedAt;
 
     /**
-     * When the <em>active</em> police clearance report was uploaded. A report is only good for
-     * {@link #POLICE_CLEARANCE_VALIDITY_MONTHS} months, so this is the start of its window.
-     *
-     * <p>Null on rows written before this column existed; {@link #getEffectiveClearanceUploadedAt()}
-     * falls back to {@link #verificationSubmittedAt} for those rather than a data backfill.
+     * Start of the active police clearance report's {@link #POLICE_CLEARANCE_VALIDITY_MONTHS}
+     * month window. May be null; see {@link #getEffectiveClearanceUploadedAt()}.
      */
     @Column(name = "police_clearance_uploaded_at")
     private LocalDateTime policeClearanceUploadedAt;
 
     /**
-     * A renewal the worker has uploaded that an admin has not reviewed yet.
-     *
-     * <p>Held apart from {@link #policeClearanceUrl} on purpose: the worker stays APPROVED and keeps
-     * working while the new report is in the queue, and the document on file is only replaced — and
-     * the six-month clock only restarted — when an admin approves it.
+     * A renewal awaiting admin review. Held apart from {@link #policeClearanceUrl} so the worker
+     * stays APPROVED while it queues; the document on file is replaced, and the clock restarted,
+     * only on approval.
      */
     @Column(name = "pending_police_clearance_url", length = 500)
     private String pendingPoliceClearanceUrl;
@@ -106,8 +101,8 @@ public class WorkerProfile {
     public static final int POLICE_CLEARANCE_WARNING_DAYS = 30;
 
     /**
-     * The upload date the expiry is measured from, healing rows that predate
-     * {@link #policeClearanceUploadedAt} by falling back to when verification was filed.
+     * The upload date expiry is measured from, falling back to when verification was filed
+     * for rows with no explicit {@link #policeClearanceUploadedAt}.
      */
     public LocalDateTime getEffectiveClearanceUploadedAt() {
         if (policeClearanceUploadedAt != null) {
@@ -133,8 +128,8 @@ public class WorkerProfile {
 
         LocalDateTime expiresAt = getPoliceClearanceExpiresAt();
         if (expiresAt == null) {
-            // A report with no date behind it: treat as valid rather than accusing an
-            // approved worker of an expiry we cannot actually demonstrate.
+            // A report with no date behind it: treat as valid rather than assert an
+            // expiry we cannot demonstrate.
             return PoliceClearanceStatus.VALID;
         }
 

@@ -6,12 +6,9 @@ import lombok.Getter;
 import java.math.BigDecimal;
 
 /**
- * One row of the worker-performance report.
- *
- * <p>Jobs completed and the rating average are read from the denormalised counters on
- * {@code WorkerProfile} rather than recomputed here: they are already maintained as reviews
- * land, and recomputing them would mean joining tasks and reviews in one query, which
- * multiplies the rows and inflates both totals.
+ * One row of the worker-performance report. Jobs completed and the rating average come from the
+ * denormalised counters on {@code WorkerProfile}: recomputing them would join tasks and reviews
+ * in one query, which multiplies rows and inflates both totals.
  */
 @Getter
 @AllArgsConstructor

@@ -2,16 +2,14 @@ import { useId, useState } from "react";
 import { cn } from "../../utils/cn";
 
 /**
- * Disclosure list — the FAQ pattern hand-rolled three separate times in
- * Safety.jsx, HowItWorks.jsx and Contact.jsx, each with its own copy of the
- * `aria-expanded` / `aria-controls` wiring.
+ * Disclosure list — the FAQ pattern used by Safety.jsx, HowItWorks.jsx and Contact.jsx,
+ * with the `aria-expanded` / `aria-controls` wiring in one place.
  *
- * `single` (the default) collapses the previously open item, which is what all
- * three existing call sites did. Pass `single={false}` to let several stand
- * open at once.
+ * `single` (the default) collapses the previously open item; pass `single={false}` to let
+ * several stand open at once.
  *
- * The panel stays mounted and is hidden with `hidden`, so in-page search still
- * finds text inside a collapsed answer.
+ * The panel stays mounted and is hidden with `hidden`, so in-page search still finds text
+ * inside a collapsed answer.
  */
 export default function Accordion({
   items = [],

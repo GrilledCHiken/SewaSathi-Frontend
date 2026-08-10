@@ -24,10 +24,8 @@ const EMPTY_UNREAD = {};
  * Owns the one chat socket for the whole dashboard, plus the unread counts every badge in the
  * app reads from.
  *
- * <p>This used to be a `useChatSocket` hook called only by the messages page, which meant a
- * conversation you were not looking at went silent. The badge on the Messages nav item has to
- * move from anywhere, so the connection moved up here instead of a third one being opened
- * alongside this and `useNotifications`.
+ * <p>The connection lives here rather than in the messages page so the Messages nav badge
+ * moves from anywhere in the app.
  *
  * <p>Two streams arrive: `/topic/conversations/{key}` for the thread on screen, subscribed by
  * the page, and `/user/queue/chat` for everything addressed to this user, subscribed here.
@@ -89,9 +87,8 @@ export function ChatProvider({ children }) {
   }, [markConversationRead, refreshUnread]);
 
   useEffect(() => {
-    // Fetched inside the effect with a cancellation guard rather than by calling refreshUnread
-    // directly: the request can outlive the component, and writing state after unmount would
-    // warn (and, on a fast route change, clobber the next mount's data).
+    // Fetched inside the effect with a cancellation guard: the request can outlive the
+    // component, and a late write would clobber the next mount's data.
     let cancelled = false;
     (async () => {
       try {
@@ -114,8 +111,8 @@ export function ChatProvider({ children }) {
       }
       if (event.type !== "MESSAGE") return;
 
-      // A tombstone lowers the count, and the event alone does not say whether that message
-      // was one we had counted — cheaper to be correct than to track deltas for a rare case.
+      // A tombstone lowers the count, and the event does not say whether we had counted that
+      // message — refetching is cheaper than tracking deltas for a rare case.
       if (event.message?.deleted) {
         refreshRef.current?.();
         return;
@@ -189,8 +186,7 @@ export function ChatProvider({ children }) {
 
   /**
    * Everything addressed to this user, whichever thread it belongs to. The messages page uses
-   * it to keep previews and ordering current for the conversations it is not subscribed to —
-   * without it a row could show an unread badge beside the message that was already there.
+   * it to keep previews and ordering current for conversations it is not subscribed to.
    */
   const onChatEvent = useCallback((listener) => {
     const listeners = personalListenersRef.current;

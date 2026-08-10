@@ -18,15 +18,9 @@ import java.util.List;
 /**
  * Read-only figures for the marketing pages, reachable without signing in.
  *
- * <p>Everything the public pages need used to be either hardcoded in the React source or locked
- * behind a role - {@code GET /api/workers} needs CUSTOMER, the analytics dashboard needs ADMIN -
- * so a visitor could be shown numbers but never real ones. This controller is the narrow opening
- * that fixes that.
- *
- * <p>It is deliberately the only anonymous read surface in the API, and every method on it
- * returns aggregates or already-anonymised rows. Nothing here takes an id, and nothing here can
- * be made to return a particular person's record. {@code SecurityConfig} permits GET on this
- * path only.
+ * <p>The only anonymous read surface in the API. Every method returns aggregates or
+ * already-anonymised rows; nothing takes an id or can be made to return a particular person's
+ * record. {@code SecurityConfig} permits GET on this path only.
  */
 @RestController
 @RequestMapping("/api/public")

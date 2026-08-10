@@ -5,11 +5,8 @@ import Skeleton from "../../components/ui/Skeleton";
 import { usePublicStats } from "../../hooks/usePublicData";
 import { formatCount, formatPercent } from "../../utils/formatStats";
 
-// Icons and labels only. The figures come from GET /api/public/stats — these four
-// used to be hardcoded, and two of them disagreed with the same numbers on other
-// pages: "3,200+" appeared here as customer reviews and on Home as services
-// offered, and the satisfaction rate was 98% here against 90% on How It Works.
-// Each now has exactly one source, so they cannot drift apart again.
+// Icons and labels only — the figures come from GET /api/public/stats, so they
+// cannot drift apart from the same numbers on other pages.
 const STAT_CARDS = [
   {
     id: "workers",

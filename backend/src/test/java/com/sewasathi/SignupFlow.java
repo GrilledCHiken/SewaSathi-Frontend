@@ -19,11 +19,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * Drives a signup all the way to an account for tests that need one but are not themselves
  * about signing up.
  *
- * <p>Creating a {@code User} row directly would be shorter, but it would also mean nothing
- * outside the auth tests ever exercises the real path - and the path now has two halves, so a
- * break in the second one would go unnoticed. The verification code never leaves the server,
- * so it is read back off the {@link EmailService} the caller has spied on rather than out of a
- * mailbox.
+ * <p>Creating a {@code User} row directly would be shorter, but then nothing outside the auth
+ * tests would exercise the real two-step path. The verification code never leaves the server,
+ * so it is read back off the {@link EmailService} the caller has spied on.
  *
  * <p>Callers declare the spy themselves:
  * <pre>{@code @MockitoSpyBean private EmailService emailService;}</pre>

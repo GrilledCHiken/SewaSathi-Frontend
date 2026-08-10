@@ -16,13 +16,9 @@ import java.util.List;
 import java.util.Set;
 
 /**
- * The decoder that checks Google's signature on an ID token posted by the "Sign in with
- * Google" button.
- *
- * <p>Separate from {@code JwtService}, which signs and verifies <em>our own</em> access tokens
- * with a symmetric secret. This one verifies someone else's tokens against Google's rotating
- * public keys, which is a different job with a different failure mode - hence a different
- * library ({@link NimbusJwtDecoder}, for the JWKS fetch and cache) and a bean of its own.
+ * Verifies Google's signature on an ID token posted by the "Sign in with Google" button.
+ * Distinct from {@code JwtService}, which signs our own access tokens with a symmetric
+ * secret; this checks someone else's tokens against Google's rotating public keys.
  */
 @Configuration
 public class GoogleIdentityConfig {
@@ -42,11 +38,9 @@ public class GoogleIdentityConfig {
     }
 
     /**
-     * The claim checks, separate from the key source so tests can apply the real chain to a
-     * decoder pointed at a local key instead of Google's JWKS endpoint.
-     *
-     * <p>Note that replacing the decoder's default validator means the timestamp check has to
-     * be restated here - it is not additive.
+     * Claim checks, kept separate from the key source so tests can run the real chain against
+     * a local key. Replacing the decoder's default validator is not additive, so the timestamp
+     * check has to be restated here.
      */
     public static OAuth2TokenValidator<Jwt> tokenValidator(String clientId) {
         return new DelegatingOAuth2TokenValidator<>(List.of(
@@ -63,9 +57,8 @@ public class GoogleIdentityConfig {
     }
 
     /**
-     * The load-bearing check. A Google ID token is only a statement to a particular application;
-     * without pinning {@code aud} to our own client ID, a token minted for any other Google app
-     * whatsoever would be accepted here and would sign its holder in as whoever it names.
+     * Without pinning {@code aud} to our own client ID, a token minted for any other Google
+     * app would be accepted and would sign its holder in as whoever it names.
      */
     private static OAuth2TokenValidator<Jwt> audienceValidator(String clientId) {
         return jwt -> jwt.getAudience() != null && jwt.getAudience().contains(clientId)

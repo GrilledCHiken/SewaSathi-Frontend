@@ -48,14 +48,10 @@ const STEP_COPY = {
 };
 
 /**
- * Password reset: prove the mailbox, then choose a new password.
- *
- * One route rather than three, because the steps are not independently addressable — the
- * challenge token only exists in memory, so a bookmark or a refresh of step two or three
- * could never work. Reloading drops back to the email step, which at least does.
- *
- * The account is untouched until the very last call; up to then this page is only trading a
- * six-digit code back and forth.
+ * Password reset: prove the mailbox, then choose a new password. One route rather than three,
+ * because the challenge token only exists in memory — a bookmark or refresh of step two or
+ * three could never work, so reloading drops back to the email step. The account is untouched
+ * until the last call.
  */
 function ForgotPassword() {
   const location = useLocation();
@@ -134,8 +130,8 @@ function ForgotPassword() {
       setStep("code");
       toast.success(`We sent a ${OTP_LENGTH}-digit code to ${trimmed}.`);
     } catch (err) {
-      // A 404 is the "no account here" case and belongs under the email field, not only in
-      // a toast — it is the one error the user can fix by editing what they just typed.
+      // A 404 means "no account here", which the user fixes by editing the field, so it
+      // belongs under the input rather than only in a toast.
       const { message } = parseFieldError(err, ["email"]);
       const text = message ?? "Could not start a password reset. Please try again.";
       setErrors({ email: text });
@@ -175,8 +171,7 @@ function ForgotPassword() {
     [challenge, verifyPasswordResetOtp],
   );
 
-  // Six digits is the whole form, so asking for a button press as well is pure friction —
-  // not least because the digits usually arrive by autofill from the email.
+  // Six digits is the whole form, and they usually arrive by autofill, so no button press.
   useEffect(() => {
     if (
       step === "code" &&

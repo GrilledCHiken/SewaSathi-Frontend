@@ -1,14 +1,11 @@
 import { cn } from "../../utils/cn";
 
 /**
- * The surface primitive. The idiom this replaces —
- * `rounded-2xl border border-slate-200/80 bg-white shadow-sm` — appeared 32
- * times across 16 files, with the radius drifting between xl and 2xl and the
- * hover treatment present on some cards but not others.
+ * The surface primitive: `rounded-2xl border border-slate-200/80 bg-white shadow-sm`.
  *
- * `interactive` adds the lift-on-hover used by cards that are themselves links
- * or buttons. Do not set it on a static card: a surface that moves under the
- * cursor but does nothing when clicked is a false affordance.
+ * `interactive` adds the lift-on-hover used by cards that are themselves links or buttons.
+ * Do not set it on a static card — a surface that moves under the cursor but does nothing
+ * when clicked is a false affordance.
  */
 
 const PADDING = Object.freeze({
