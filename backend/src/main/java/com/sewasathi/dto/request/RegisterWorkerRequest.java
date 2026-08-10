@@ -33,8 +33,7 @@ public class RegisterWorkerRequest {
             message = "{validation.password.weak}")
     private String password;
 
-    // Optional worker-profile fields - the signup form doesn't collect these yet,
-    // they're backfilled later via a worker profile-edit page.
+    // Optional worker-profile fields, backfilled later via the profile-edit page.
     private String skills;
     private BigDecimal hourlyRate;
     private String location;

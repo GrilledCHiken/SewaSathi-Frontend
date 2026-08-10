@@ -8,16 +8,12 @@
 /* -------------------------------------------------------------------------- */
 
 /**
- * `badge` and `dot` are the original raw class pairs, kept so the existing
- * StatusBadge and the worker task surfaces render unchanged.
+ * `badge`/`dot` are raw class pairs; `tone`/`pulse` express the same thing against the
+ * vocabulary in ui/tones.js, for surfaces built on <Badge>; `stripe` is TaskCard's left-edge
+ * accent. All describe one status, so change them together.
  *
- * `tone` and `pulse` are the same information expressed against the semantic
- * tone vocabulary in ui/tones.js, for surfaces built on the <Badge> primitive.
- * `stripe` is the left-edge accent on TaskCard. All of these describe one
- * status; they must not be allowed to disagree, so change them together.
- *
- * Class strings are written out in full — Tailwind's JIT scans source text, so
- * anything assembled at runtime would compile to nothing.
+ * Class strings are written out in full — Tailwind's JIT scans source text, so anything
+ * assembled at runtime would compile to nothing.
  */
 export const STATUS_META = {
   open: {
@@ -26,9 +22,8 @@ export const STATUS_META = {
     tone: "neutral",
     stripe: "bg-slate-300",
   },
-  // The customer hired a named worker directly and is waiting on their answer.
-  // Amber rather than the violet `accepted` uses, because those two are the pair a
-  // customer has to tell apart at a glance: only one of them has a Pay button.
+  // The customer hired a named worker directly and is waiting on their answer. Amber, not
+  // the violet `accepted` uses: only one of the two has a Pay button.
   requested: {
     badge: "bg-amber-100 text-amber-700",
     dot: "bg-amber-500 animate-pulse",
@@ -57,9 +52,8 @@ export const STATUS_META = {
     pulse: true,
     stripe: "bg-info",
   },
-  // The work is finished but the closing payment is not. Orange rather than the amber
-  // `assigned` and `requested` share, because this is the one status that always has
-  // something for the customer to do.
+  // Work finished, closing payment not. Orange rather than the amber `assigned` and
+  // `requested` share, because this one always needs something from the customer.
   "awaiting payment": {
     badge: "bg-orange-100 text-orange-700",
     dot: "bg-orange-500 animate-pulse",
@@ -279,9 +273,8 @@ export function formatMoney(amount) {
 }
 
 /**
- * Share of the budget a customer pays up front to confirm a booking. Kept in step
- * with `app.esewa.advance-rate` on the backend, which is the authoritative figure —
- * this is only for what we show before checkout.
+ * Share of the budget paid up front to confirm a booking. Display only — keep in step with
+ * `app.esewa.advance-rate` on the backend, which is authoritative.
  */
 export const ADVANCE_RATE = 0.1;
 
@@ -299,12 +292,9 @@ export const ADVANCE_PERCENT_LABEL = `${Math.round(ADVANCE_RATE * 100)}%`;
 export const BALANCE_PERCENT_LABEL = `${Math.round((1 - ADVANCE_RATE) * 100)}%`;
 
 /**
- * Whether a finished job is still owed its closing payment.
- *
- * A task sits in `awaiting payment` from the moment the worker downs tools until the
- * balance settles, at which point the backend moves it to `completed`. So the status
- * alone answers this — but a customer who has already declared cash should not be shown
- * a Pay button again, which is what `cashDeclared` below is for.
+ * Whether a finished job is still owed its closing payment. The status alone answers this,
+ * but see `cashDeclared` below — a customer who already declared cash must not be shown a
+ * Pay button again.
  */
 export function balanceDue(task, payments = []) {
   if (formatStatus(task?.status) !== "awaiting payment") return false;
@@ -312,9 +302,8 @@ export function balanceDue(task, payments = []) {
 }
 
 /**
- * Whether the customer has said they paid this balance in cash and is waiting on the
- * worker to vouch for it. Cash cannot be verified by anyone but the two people involved,
- * so the payment row sits `PENDING` in between — that row is the only record of the claim.
+ * Whether the customer has declared a cash payment and is waiting on the worker to vouch for
+ * it. The payment row sits `PENDING` in between and is the only record of the claim.
  * `payments` is the list from `GET /payments/mine`.
  */
 export function cashDeclared(task, payments = []) {
@@ -328,11 +317,9 @@ export function cashDeclared(task, payments = []) {
 }
 
 /**
- * Chat is a paid feature: the backend only opens a thread once the advance has settled
- * on a task the two people share. Nothing in a task listing says whether a payment went
- * through, but only a settled advance moves a task past `accepted` — so these statuses
- * stand in for it when deciding whether to enable a Message control. The Messages page
- * itself is driven by the server, which remains the authority.
+ * The backend only opens a chat thread once the advance has settled. A task listing does not
+ * report payments, but only a settled advance moves a task past `accepted`, so these statuses
+ * stand in when deciding whether to enable a Message control. The server remains the authority.
  */
 const CHAT_OPEN_STATUSES = new Set([
   "assigned",

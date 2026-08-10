@@ -3,13 +3,7 @@ package com.sewasathi.dto.response;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 
-/**
- * Where to reach SewaSathi, as configured rather than as hardcoded in the Contact page.
- *
- * <p>The same address and number appeared in four places across the frontend - the contact
- * cards and three FAQ answers - and could drift apart. Serving them from one place is what
- * stops that.
- */
+/** Where to reach SewaSathi, served from configuration so the frontend has one source. */
 @Getter
 @AllArgsConstructor
 public class PublicContactInfoResponse {

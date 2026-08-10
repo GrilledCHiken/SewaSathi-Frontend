@@ -4,16 +4,6 @@ import lombok.Getter;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
-/**
- * The support contact details published on the Contact page.
- *
- * <p>Every value carries the address that was previously hardcoded in {@code Contact.jsx} as its
- * default, so the application still starts and answers correctly with no {@code app.contact.*}
- * configuration at all. Deployments that have a real support desk override them.
- *
- * <p>Follows the {@code @Value}-with-default style used by {@link AdminBootstrap} rather than
- * introducing {@code @ConfigurationProperties} for one small group of keys.
- */
 @Component
 @Getter
 public class ContactProperties {

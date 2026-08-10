@@ -49,9 +49,8 @@ public class AdminService {
     private final ContactProperties contactProperties;
     private final String frontendUrl;
 
-    // Written out rather than left to @RequiredArgsConstructor because the @Value parameter
-    // below needs the annotation on the constructor argument, and Lombok does not copy it
-    // there. PaymentService does the same for the same reason.
+    // Written out rather than left to @RequiredArgsConstructor: Lombok does not copy the
+    // @Value annotation onto the constructor argument it generates.
     @Autowired
     public AdminService(
             UserRepository userRepository,
@@ -116,8 +115,8 @@ public class AdminService {
     public AdminOverviewResponse getOverview() {
         long totalWorkers = userRepository.countByRole(Role.WORKER);
         long totalCustomers = userRepository.countByRole(Role.CUSTOMER);
-        // Bootstrap administrators are not platform users, so counting them here would leave
-        // the headline figure permanently ahead of the directory it summarises.
+        // Administrators are not platform users; counting them would leave the headline
+        // figure permanently ahead of the directory it summarises.
         long totalUsers = totalCustomers + totalWorkers;
         long pendingVerifications = listPendingWorkers().size();
         long pendingClearanceRenewals = listClearanceRenewals().size();
@@ -137,11 +136,9 @@ public class AdminService {
     }
 
     /**
-     * Workers who have handed in a replacement police clearance report, which the six-month
-     * renewal rule makes a recurring event rather than a one-off.
-     *
-     * <p>Unlike {@link #listPendingWorkers()} this is not a list of PENDING accounts: the people
-     * here are approved and working, and stay that way while their new report is looked at.
+     * Workers who have handed in a replacement police clearance report. Unlike
+     * {@link #listPendingWorkers()} these accounts are approved and stay working while the
+     * new report is reviewed.
      */
     public List<PendingWorkerResponse> listClearanceRenewals() {
         return workerProfileRepository
@@ -205,12 +202,8 @@ public class AdminService {
     }
 
     /**
-     * The account directory.
-     *
-     * <p>Administrators are kept out of the unfiltered listing: they are created by
-     * {@code AdminBootstrap} rather than by signing up, so mixing them in with the people who
-     * actually use the platform makes the directory read wrong. Asking for them by role still
-     * returns them, which is what the console's Admin filter does.
+     * The account directory. Administrators are kept out of the unfiltered listing since they
+     * are not platform users, but asking for them by role still returns them.
      */
     public List<AdminUserResponse> listUsers(Role roleFilter, ApprovalStatus statusFilter) {
         return userRepository.findAll().stream()
@@ -223,10 +216,8 @@ public class AdminService {
     }
 
     /**
-     * One account in full, including the worker profile when there is one.
-     *
-     * <p>Administrator accounts read as missing rather than forbidden: the directory hides them,
-     * and a distinct answer here would confirm that an id belongs to an administrator.
+     * One account in full, including the worker profile when there is one. Administrator
+     * accounts read as missing rather than forbidden, so an id cannot be probed for one.
      */
     public AdminUserDetailResponse getUserDetail(Long userId) {
         User user = userRepository.findById(userId)
@@ -249,9 +240,8 @@ public class AdminService {
     public UserResponse approveWorker(Long userId) {
         User user = getWorkerOrThrow(userId);
         user.setStatus(ApprovalStatus.APPROVED);
-        // An approved worker must not keep the reason from an earlier rejection: it would
-        // resurface in their banner and in any later rejection email, describing something
-        // that was already put right.
+        // An approved worker must not keep the reason from an earlier rejection, which would
+        // resurface in their banner.
         user.setRejectionReason(null);
         User saved = userRepository.save(user);
         notifyApproved(saved);
@@ -317,8 +307,8 @@ public class AdminService {
     public AdminUserResponse unsuspendUser(Long userId, String note) {
         User user = getSuspendableUserOrThrow(userId);
         user.setSuspended(false);
-        // A restored account must not keep the old reason: it would resurface in the 403 the
-        // next time anything suspends them, describing something that was already resolved.
+        // A restored account must not keep the old reason, which would resurface in the 403
+        // the next time anything suspends them.
         user.setSuspensionReason(null);
         User saved = userRepository.save(user);
         return AdminUserResponse.from(saved, notifyRestored(saved, note));
@@ -336,19 +326,16 @@ public class AdminService {
         return send(user, "Your Sewa Sathi account has been restored", "email/account-restored",
                 Map.of(
                         "name", firstName(user.getFullName()),
-                        // Normalised to "" rather than left null: Map.of rejects nulls, and the
-                        // template drops the paragraph on an empty string either way.
+                        // Normalised to "" because Map.of rejects nulls.
                         "note", note == null ? "" : note.trim(),
                         "loginUrl", frontendUrl + "/login"));
     }
 
     /**
-     * The one place this service swallows an exception, and deliberately so: an admin decision -
-     * a suspension, or approving or rejecting a worker - must not hinge on the mail server being
-     * reachable. Catching here - rather than letting
-     * {@link com.sewasathi.exception.EmailDeliveryException} escape the transactional proxy - is
-     * what keeps Spring from marking the transaction rollback-only, so the decision sticks and,
-     * where the caller passes the flag on, the admin is told the notice did not go out.
+     * Deliberately swallows the failure: an admin decision must not hinge on the mail server
+     * being reachable. Catching here rather than letting
+     * {@link com.sewasathi.exception.EmailDeliveryException} escape the transactional proxy is
+     * what stops Spring marking the transaction rollback-only, so the decision sticks.
      */
     private boolean send(User user, String subject, String template, Map<String, Object> model) {
         try {

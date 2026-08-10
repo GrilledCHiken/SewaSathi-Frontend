@@ -32,24 +32,13 @@ import { listMyPayments } from "../api/paymentApi";
 import { listMyTasks } from "../api/taskApi";
 
 /**
- * Payments.
+ * Two server reads back this page. `GET /payments/mine` is the transaction history, including
+ * abandoned attempts; `GET /tasks/mine` supplies what is actually owed. Everything labelled
+ * "awaiting" derives from the task, never from a payment being un-settled — a `PENDING` row is
+ * usually just a walked-away checkout.
  *
- * Two server reads back this page. `GET /payments/mine` is the transaction
- * history — one row per checkout attempt, so it also carries the abandoned
- * ones. `GET /tasks/mine` supplies the other half: the two states where money
- * is genuinely owed. A task sitting in `accepted` is one a worker has said yes
- * to but the advance has not settled on; one in `awaiting payment` is a finished
- * job still owing its closing payment.
- *
- * A `PENDING` payment row is usually neither of those — it is a checkout the
- * customer walked away from, which the backend cancels on the next attempt. So
- * it is history, never a debt. Everything labelled "awaiting" is derived from
- * the task, never from a payment being un-settled.
- *
- * The exception, and the reason the payment rows are read at all, is cash: a
- * `PENDING` CASH row is a real claim waiting on the worker's confirmation, not
- * an abandoned checkout, and the customer must not be asked to pay it twice.
- * That is what `balanceDue` checks for.
+ * The exception is cash: a `PENDING` CASH row is a real claim awaiting the worker's
+ * confirmation, and the customer must not be asked to pay it twice. See `balanceDue`.
  */
 
 /* -------------------------------------------------------------------------- */
@@ -110,10 +99,8 @@ const STATUS_META = {
 const TX_FILTERS = ["All", "Completed", "Pending", "Failed"];
 
 /**
- * A cancelled row is a superseded attempt rather than a separate idea a customer
- * needs a tab for, so it files under Failed alongside the real failures. One
- * predicate serves both the visible list and the pill counts, so the two cannot
- * disagree.
+ * A cancelled row is a superseded attempt, so it files under Failed. One predicate serves both
+ * the visible list and the pill counts, so the two cannot disagree.
  */
 function matchesFilter(payment, filter) {
   if (filter === "All") return true;

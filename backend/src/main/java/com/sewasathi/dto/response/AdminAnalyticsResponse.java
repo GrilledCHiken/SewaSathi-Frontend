@@ -8,11 +8,9 @@ import java.time.LocalDate;
 import java.util.List;
 
 /**
- * The live figures behind the admin analytics dashboard, all measured over the same window.
- *
- * <p>{@code from}/{@code to} echo the window the server actually applied, so the SPA can label
- * the numbers with the range they came from rather than with whatever the inputs happen to
- * hold at render time.
+ * The live figures behind the admin analytics dashboard, all over the same window.
+ * {@code from}/{@code to} echo the window the server actually applied, so the SPA labels the
+ * numbers with the range they came from rather than the current input values.
  */
 @Getter
 @AllArgsConstructor

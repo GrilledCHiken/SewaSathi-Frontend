@@ -3,11 +3,8 @@ package com.sewasathi.dto.response;
 import lombok.Getter;
 
 /**
- * The review score customers have given one service category.
- *
- * <p>{@code ratingAverage} stays boxed and nullable on purpose: a category nobody has reviewed
- * has no average, which is a different statement from an average of zero. The public pages
- * render the absent case as "no reviews yet" rather than as a zero-star score.
+ * The review score customers have given one service category. {@code ratingAverage} stays
+ * boxed: an unreviewed category has no average, which is not the same as an average of zero.
  */
 @Getter
 public class CategoryRatingRow {

@@ -14,11 +14,8 @@ export function getRefreshToken() {
 }
 
 /**
- * Stores the pair returned by a sign-in or a refresh.
- *
- * The access token is now minutes long, so the refresh token beside it is what actually
- * keeps the user signed in. They are written together because a session with only one half
- * is unusable, and clearing must likewise take both.
+ * Stores the pair returned by a sign-in or a refresh. Written together because a session with
+ * only one half is unusable; clearing likewise takes both.
  */
 export function setTokens({ token, refreshToken }) {
   if (token) {

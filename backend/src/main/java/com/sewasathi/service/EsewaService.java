@@ -21,13 +21,10 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 
 /**
- * Talks to eSewa's ePay v2 gateway: builds the signed checkout form, validates
- * the redirect payload and confirms transactions server-to-server.
- *
- * <p>Signing rule: HMAC-SHA256 over the fields named by {@code signed_field_names},
- * rendered as {@code name=value} and joined with commas, then Base64-encoded. For
- * the checkout form that is exactly
- * {@code total_amount=<t>,transaction_uuid=<u>,product_code=<p>}.
+ * Talks to eSewa's ePay v2 gateway: builds the signed checkout form, validates the redirect
+ * payload and confirms transactions server-to-server. Signing is HMAC-SHA256 over the fields
+ * named by {@code signed_field_names}, rendered {@code name=value}, comma-joined, Base64'd -
+ * for the checkout form, {@code total_amount=<t>,transaction_uuid=<u>,product_code=<p>}.
  */
 @Service
 public class EsewaService {
@@ -69,9 +66,8 @@ public class EsewaService {
     }
 
     /**
-     * Renders an amount the one way we will use it everywhere — form field, signature
-     * and status lookup. eSewa compares these as strings, so {@code 250} and
-     * {@code 250.00} are different transactions to it.
+     * Renders an amount one way for the form field, signature and status lookup alike. eSewa
+     * compares these as strings, so {@code 250} and {@code 250.00} are different to it.
      */
     public String formatAmount(BigDecimal amount) {
         return amount.setScale(2, RoundingMode.HALF_UP).stripTrailingZeros().toPlainString();

@@ -1,12 +1,10 @@
 import httpClient from "./httpClient";
 
 /**
- * Uploads are no longer public. They are served by GET /api/files/{name}, which requires a
- * bearer token — and a plain `<img src>` or `<a href>` cannot send one.
- *
- * So files are fetched through the same authenticated axios client as everything else and
- * handed to the browser as an object URL. Callers must revoke the URL when done, or the
- * blob stays in memory for the life of the page.
+ * Uploads are served by GET /api/files/{name}, which requires a bearer token that a plain
+ * `<img src>` or `<a href>` cannot send. Files are fetched through the authenticated axios
+ * client and handed to the browser as an object URL — callers must revoke it when done, or
+ * the blob stays in memory for the life of the page.
  */
 function toFilename(storedUrl) {
   if (!storedUrl) return null;

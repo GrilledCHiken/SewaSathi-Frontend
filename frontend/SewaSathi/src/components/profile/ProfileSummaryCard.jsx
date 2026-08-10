@@ -5,12 +5,8 @@ import { useAuth } from "../../context/AuthContext";
 
 /**
  * The identity header of "My Profile": who this account is, what it is allowed to do, and how
- * long it has existed.
- *
- * Everything below it on the page is a form. This is the only part that just *states* the
- * account, which is what was missing — the profile screens used to open straight into an edit
- * box, so a customer could not see their role, their standing, or their join date anywhere in
- * the app.
+ * long it has existed. Everything below it on the page is a form; this is the only part that
+ * just states the account.
  *
  * Shared by all three roles; `accent` matches the one passed to `AccountSettings` on the same
  * page so the two cards agree.

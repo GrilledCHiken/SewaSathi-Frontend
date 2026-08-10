@@ -22,12 +22,12 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 /**
  * Bean validation on POST /api/tasks.
  *
- * <p>{@code TaskServiceTest} calls the service directly, so {@code @Valid} never runs there and
- * none of these constraints were covered. Several of them used to be 500s rather than 400s: an
- * over-length title or an oversized budget passed validation and only failed at the column.
+ * <p>{@code TaskServiceTest} calls the service directly, so {@code @Valid} never runs there.
+ * Without these constraints an over-length title or oversized budget reaches the column and
+ * fails as a 500 rather than a 400.
  *
- * <p>All of these are rejected during argument resolution, before the controller body, so no
- * customer needs to exist - only a role that clears the security rule.
+ * <p>All are rejected during argument resolution, before the controller body, so no customer
+ * needs to exist - only a role that clears the security rule.
  */
 @SpringBootTest
 @AutoConfigureMockMvc

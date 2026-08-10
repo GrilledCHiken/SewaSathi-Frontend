@@ -9,15 +9,11 @@ import org.springframework.security.oauth2.jwt.JwtException;
 import org.springframework.stereotype.Service;
 
 /**
- * Turns the ID token the browser gets from Google into a {@link GoogleIdentity} we are prepared
- * to sign someone in as - or refuses it.
- *
- * <p>Signature, issuer, audience and expiry are checked by the decoder built in
- * {@link com.sewasathi.config.GoogleIdentityConfig}. What is left here is the claim this
- * application specifically depends on: {@code email_verified}. Sign-in matches an existing
- * account <em>by email address</em>, so an unverified one would let anybody who can put a string
- * in a Google profile field walk into someone else's account. It is the whole basis on which
- * linking is safe, and it is not optional.
+ * Turns the ID token the browser gets from Google into a {@link GoogleIdentity}, or refuses it.
+ * Signature, issuer, audience and expiry are checked by the decoder in
+ * {@link com.sewasathi.config.GoogleIdentityConfig}; what is left here is {@code email_verified}.
+ * Sign-in matches an existing account by email, so an unverified one would let anybody who can
+ * type a string into a Google profile field walk into someone else's account.
  */
 @Service
 public class GoogleIdentityService {
@@ -57,11 +53,11 @@ public class GoogleIdentityService {
         return new GoogleIdentity(
                 jwt.getSubject(),
                 normalisedEmail,
-                // Nothing bounds what a Google profile field can hold, and users.full_name is
-                // 150, so an over-long name is trimmed rather than allowed to fail the insert.
+                // users.full_name is 150 and nothing bounds a Google profile field, so an
+                // over-long name is trimmed rather than left to fail the insert.
                 clip(name == null || name.isBlank() ? normalisedEmail.split("@")[0] : name.trim(), 150),
-                // users.avatar_url is 500. A truncated URL would be worse than no picture at
-                // all - it would render as a broken image - so an over-long one is dropped.
+                // users.avatar_url is 500. A truncated URL renders as a broken image, so an
+                // over-long one is dropped instead.
                 fitOrNull(jwt.getClaimAsString("picture"), 500));
     }
 

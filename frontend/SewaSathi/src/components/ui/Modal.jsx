@@ -5,20 +5,14 @@ import { cn } from "../../utils/cn";
 import { XIcon } from "./icons";
 
 /**
- * Dialog shell, replacing three hand-rolled overlays (DocumentViewerModal,
- * AdminUserDetailModal, NewsletterPopup) that each re-implemented the same
- * contract slightly differently.
+ * Dialog shell shared by DocumentViewerModal, AdminUserDetailModal and NewsletterPopup.
+ * Escape closes, a backdrop click closes, focus moves in on open, and the surface is a
+ * labelled `role="dialog" aria-modal="true"`.
  *
- * Reproduces exactly what those three already did: Escape closes, a backdrop
- * click closes, focus moves in on open, and the surface is a labelled
- * `role="dialog" aria-modal="true"`.
+ * `trapFocus` and `lockScroll` default OFF and are turned on per call site.
  *
- * `trapFocus` and `lockScroll` are genuine additions, so they default OFF —
- * migrating a call site should be a pure restyle. Turn them on deliberately,
- * per call site, once the visual migration has been eyeballed.
- *
- * Portalled to <body> at z-60 so it clears the sticky marketing header and the
- * dashboard sidebar, both of which sit at z-50.
+ * Portalled to <body> at z-60 so it clears the sticky marketing header and the dashboard
+ * sidebar, both at z-50.
  */
 
 const SIZES = Object.freeze({

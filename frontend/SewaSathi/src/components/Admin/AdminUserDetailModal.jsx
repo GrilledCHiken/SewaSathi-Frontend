@@ -36,12 +36,9 @@ function splitSkills(skills) {
 }
 
 /**
- * The full record behind a row in User Management.
- *
- * The list endpoint deliberately returns only the columns the table shows, so the details —
- * and, for a worker, the profile and verification documents — are fetched per user when the
- * modal opens. Its overlay and keyboard behaviour follow DocumentViewerModal, which is the
- * established dialog shape in this codebase.
+ * The full record behind a row in User Management. The list endpoint returns only the columns
+ * the table shows, so the details — and, for a worker, the profile and verification documents
+ * — are fetched per user when the modal opens.
  */
 export default function AdminUserDetailModal({ userId, onClose }) {
   const [state, setState] = useState({ id: userId, user: null, failed: false });
@@ -50,8 +47,8 @@ export default function AdminUserDetailModal({ userId, onClose }) {
   // standing down, one keypress would close both and drop the admin back to the table.
   const [documentOpen, setDocumentOpen] = useState(false);
 
-  // Prop-derived state, reset during render — the same pattern Avatar and DocumentViewerModal
-  // use, so reopening on a different row never shows the previous person for a frame.
+  // Prop-derived state, reset during render, so reopening on a different row never shows
+  // the previous person for a frame.
   if (state.id !== userId) {
     setState({ id: userId, user: null, failed: false });
   }
@@ -84,7 +81,7 @@ export default function AdminUserDetailModal({ userId, onClose }) {
   }, [onClose, documentOpen]);
 
   // Focus moves to the dialog on open only; callers pass an inline onClose, so folding this
-  // into the effect above would pull focus back every render.
+  // into the effect above would re-focus every render.
   useEffect(() => {
     closeButtonRef.current?.focus();
   }, []);

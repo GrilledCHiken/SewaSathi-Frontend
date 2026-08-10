@@ -8,18 +8,16 @@ const MAX_LENGTH = 500;
  * Collects the reason an applicant will be given before an admin turns their worker
  * application down.
  *
- * The reason is required for the same purpose the suspension one is (see SuspendUserDialog):
- * it is emailed to them word for word and shown in the banner they get at their next sign-in,
- * so rejecting without one would leave them shut out with nothing to act on. Approving needs
- * no dialog — there is nothing to explain.
+ * The reason is required, as in SuspendUserDialog: it is shown to the applicant word for word
+ * and is all they have to act on. Approving needs no dialog.
  */
 export default function RejectWorkerDialog({ worker, submitting = false, onCancel, onConfirm }) {
   const [text, setText] = useState("");
   const [lastWorkerId, setLastWorkerId] = useState(null);
   const textareaRef = useRef(null);
 
-  // Prop-derived state reset during render, matching SuspendUserDialog, so reopening on a
-  // different applicant never shows what was typed for the previous one.
+  // Prop-derived state reset during render, so reopening on a different applicant never
+  // shows what was typed for the previous one.
   if (worker && worker.id !== lastWorkerId) {
     setLastWorkerId(worker.id);
     setText("");

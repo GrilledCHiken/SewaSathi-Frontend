@@ -6,15 +6,9 @@ import lombok.Getter;
 import java.util.List;
 
 /**
- * The live figures behind the public marketing pages.
- *
- * <p>Every number here is counted from the database and published as it stands, including zero.
- * The pages these feed used to carry invented totals ("50,000+ happy customers"), which is what
- * this type exists to replace - so nothing in it is rounded up, floored, or padded.
- *
- * <p>{@code ratingAverage} and {@code satisfactionRate} are boxed and may be null. An empty
- * review table has no average and no satisfaction rate; that is a different claim from zero, and
- * the client renders it as an absent value rather than as a bad score.
+ * The live figures behind the public marketing pages. Every number is counted from the database
+ * and published as it stands, including zero. {@code ratingAverage} and {@code satisfactionRate}
+ * are boxed: an empty review table has no average, which is a different claim from zero.
  */
 @Getter
 @AllArgsConstructor
@@ -47,7 +41,7 @@ public class PublicStatsResponse {
     /** How many distinct cities have had a task posted in them. */
     private long citiesCovered;
 
-    /** Those cities by name, so a page can list real ones instead of a stock sample. */
+    /** Those cities by name. */
     private List<String> cityNames;
 
     /** Size of the service catalogue in {@link com.sewasathi.service.ServiceCategories}. */

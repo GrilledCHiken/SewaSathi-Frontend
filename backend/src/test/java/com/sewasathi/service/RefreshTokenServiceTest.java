@@ -53,8 +53,6 @@ class RefreshTokenServiceTest {
                 .build());
     }
 
-    // ---------- issue ----------
-
     @Test
     void issuedTokenIsStoredOnlyAsAHash() {
         String raw = refreshTokenService.issue(user, DEVICE);
@@ -75,8 +73,6 @@ class RefreshTokenServiceTest {
         assertThat(stored.getDeviceLabel()).isEqualTo("Chrome on Windows");
         assertThat(stored.getUser().getId()).isEqualTo(user.getId());
     }
-
-    // ---------- rotation ----------
 
     @Test
     void rotatingSpendsTheOldTokenAndIssuesANewOne() {
@@ -109,8 +105,6 @@ class RefreshTokenServiceTest {
                 .isEqualTo(original.getExpiresAt());
     }
 
-    // ---------- reuse detection ----------
-
     /**
      * The important case. A token turning up twice means one of the two holders is not the
      * real client and there is no way to tell which, so both are cut off.
@@ -135,8 +129,6 @@ class RefreshTokenServiceTest {
         assertThatThrownBy(() -> refreshTokenService.rotate("not-a-real-token", DEVICE))
                 .isInstanceOf(InvalidTokenException.class);
     }
-
-    // ---------- expiry and idle timeout ----------
 
     @Test
     void anExpiredTokenIsRejected() {
@@ -168,8 +160,6 @@ class RefreshTokenServiceTest {
                 .hasMessageContaining("inactivity");
     }
 
-    // ---------- revocation ----------
-
     @Test
     void revokingOneTokenLeavesOtherSessionsSignedIn() {
         String phone = refreshTokenService.issue(user, DEVICE);
@@ -197,8 +187,6 @@ class RefreshTokenServiceTest {
         assertThatThrownBy(() -> refreshTokenService.rotate(laptop, DEVICE))
                 .isInstanceOf(InvalidTokenException.class);
     }
-
-    // ---------- housekeeping ----------
 
     @Test
     void purgeRemovesTokensThatArePastTheirAbsoluteExpiry() {

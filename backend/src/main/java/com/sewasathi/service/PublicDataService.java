@@ -30,16 +30,10 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 /**
- * Everything the logged-out marketing pages display, counted from the database.
- *
- * <p>These pages previously carried invented figures - 50,000 customers, 45 cities, a 98%
- * satisfaction rate that a second page contradicted with 90%. Each number now has exactly one
- * definition, stated here, and is published as counted. Nothing is floored or padded: a platform
- * with three workers says three.
- *
- * <p>Everything is read-only and anonymous, which sets the boundary on what these methods may
- * return. Aggregates are safe; identities are not. The one place personal data comes close to
- * the wire - a quoted review - is masked by {@link #maskName} before it leaves.
+ * Everything the logged-out marketing pages display, counted from the database and published as
+ * counted - nothing floored or padded. Read-only and anonymous, which bounds what these methods
+ * may return: aggregates are safe, identities are not. The one place personal data comes close
+ * to the wire - a quoted review - is masked by {@link #maskName} first.
  */
 @Service
 @RequiredArgsConstructor
@@ -84,9 +78,8 @@ public class PublicDataService {
 
     /**
      * The share of reviews scoring {@value #POSITIVE_RATING} or better, as a whole percent.
-     *
-     * <p>Null rather than zero when nothing has been reviewed - the difference between "no one
-     * has said" and "no one is satisfied" is the whole point of publishing the figure.
+     * Null rather than zero when nothing has been reviewed: "no one has said" is not "no one
+     * is satisfied".
      */
     private Integer satisfactionRate(long reviewCount) {
         if (reviewCount == 0) {
@@ -97,11 +90,9 @@ public class PublicDataService {
     }
 
     /**
-     * The service catalogue, one row per category, with live demand and pricing.
-     *
-     * <p>Driven by {@link ServiceCategories#ORDERED} rather than by what the tasks table happens
-     * to contain, so a category nobody has booked still appears - with zeroes. A catalogue that
-     * silently dropped its quiet categories would shrink as the demo database changed.
+     * The service catalogue, one row per category, with live demand and pricing. Driven by
+     * {@link ServiceCategories#ORDERED} rather than the tasks table, so a category nobody has
+     * booked still appears, carrying zeroes.
      */
     public List<PublicServiceResponse> listServices() {
         Map<String, CategoryStatsRow> stats = taskRepository.categoryStats().stream()
@@ -135,10 +126,9 @@ public class PublicDataService {
         CategoryStatsRow taskStats = stats.get(key);
         CategoryRatingRow rating = ratings.get(key);
 
-        // WorkerProfile.skills is free text, so the match happens here rather than in SQL -
-        // the same in-memory approach WorkerService.listAvailableWorkers already uses for its
-        // skill filter. A worker only counts towards a category they actually name, so someone
-        // who wrote "Moving" is not counted under "Moving Help".
+        // WorkerProfile.skills is free text, so the match happens here rather than in SQL, as
+        // in WorkerService.listAvailableWorkers. A worker counts only towards a category they
+        // name exactly: "Moving" does not count under "Moving Help".
         List<WorkerSkillRow> matching = workers.stream()
                 .filter(worker -> worker.getSkills() != null
                         && worker.getSkills().toLowerCase(Locale.ROOT).contains(key))
@@ -161,10 +151,8 @@ public class PublicDataService {
     }
 
     /**
-     * Recent reviews worth quoting, with the reviewer's name masked.
-     *
-     * <p>Returns an empty list when nothing qualifies. The page hides its testimonial section in
-     * that case, which is the honest alternative to the three invented reviews it used to show.
+     * Recent reviews worth quoting, with the reviewer's name masked. Empty when nothing
+     * qualifies, in which case the page hides its testimonial section.
      */
     public List<PublicTestimonialResponse> listTestimonials(Integer limit) {
         return reviewRepository.publishableTestimonials(POSITIVE_RATING, Limit.of(clamp(limit))).stream()
@@ -182,12 +170,9 @@ public class PublicDataService {
     }
 
     /**
-     * "Sita Sharma" becomes "Sita S.".
-     *
-     * <p>Leaving a review is not consent to have your full name published to anonymous
-     * visitors, so the surname is reduced to an initial before the quote goes out. A
-     * single-word name is left as it is - there is nothing to shorten - and a missing one
-     * falls back to a neutral label rather than rendering an empty byline.
+     * "Sita Sharma" becomes "Sita S." - leaving a review is not consent to publish a full name
+     * to anonymous visitors. A single-word name is left alone; a missing one gets a neutral
+     * label rather than an empty byline.
      */
     static String maskName(String fullName) {
         if (fullName == null || fullName.isBlank()) {

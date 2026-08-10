@@ -6,11 +6,9 @@ import lombok.Getter;
 import java.time.LocalDateTime;
 
 /**
- * A real customer review, quoted on the public pages.
- *
- * <p>{@code author} is already masked to a first name and a surname initial by the time it gets
- * here. Anonymous visitors are the audience for this endpoint, and a review is not consent to
- * publish a full name next to it.
+ * A customer review quoted on the public pages. {@code author} is already masked to a first
+ * name and surname initial - the audience is anonymous visitors, and leaving a review is not
+ * consent to publish a full name.
  */
 @Getter
 @AllArgsConstructor

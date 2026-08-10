@@ -30,19 +30,11 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Collects the two instalments a customer owes on a task.
- *
- * <p>A task a worker has accepted sits in {@link TaskStatus#ACCEPTED} until the
- * {@link PaymentType#ADVANCE} clears; only then does it become {@link TaskStatus#ASSIGNED}
- * and the worker gain the ability to start it. The {@link PaymentType#BALANCE} falls due
- * at the other end, once the worker has finished the work and left the task
- * {@link TaskStatus#AWAITING_PAYMENT}. Settling it is what moves the task to
- * {@link TaskStatus#COMPLETED}, so COMPLETED means "done and paid for".
- *
- * <p>The balance can be paid three ways. eSewa and Khalti verify themselves, so a confirmed
- * gateway payment closes the job on the spot. {@link PaymentProvider#CASH} cannot be verified
- * by anyone but the two people involved: the customer declares it, which writes a PENDING row
- * and tells the worker, and the job closes only when the worker confirms they received it.
+ * Collects the two instalments a customer owes on a task. The {@link PaymentType#ADVANCE}
+ * moves an {@link TaskStatus#ACCEPTED} task to {@link TaskStatus#ASSIGNED}; the
+ * {@link PaymentType#BALANCE} falls due at {@link TaskStatus#AWAITING_PAYMENT} and settling it
+ * moves the task to {@link TaskStatus#COMPLETED}. eSewa and Khalti verify themselves;
+ * {@link PaymentProvider#CASH} settles only when the worker confirms receipt.
  */
 @Service
 public class PaymentService {
@@ -95,9 +87,8 @@ public class PaymentService {
     }
 
     /**
-     * What is left once the advance has been taken. Subtracted from the budget rather than
-     * multiplied by {@code 1 - rate}, so the two legs always add back up to exactly the
-     * budget however the advance rounded.
+     * Subtracted from the budget rather than multiplied by {@code 1 - rate}, so the two legs
+     * always add back up to exactly the budget however the advance rounded.
      */
     public BigDecimal balanceFor(BigDecimal budget) {
         return budget.setScale(2, RoundingMode.HALF_UP).subtract(advanceFor(budget));
@@ -122,10 +113,8 @@ public class PaymentService {
     }
 
     /**
-     * Collects the rest of the price through a gateway, once the worker has finished the work.
-     *
-     * <p>Cash does not come through here - it has no gateway to open and settles on the
-     * worker's word rather than a callback, so it gets {@link #declareCashBalance} instead.
+     * Collects the rest of the price through a gateway, once the work is finished. Cash has no
+     * gateway to open and goes through {@link #declareCashBalance} instead.
      */
     @Transactional
     public PaymentInitiationResponse initiateBalance(String customerEmail, Long taskId, PaymentProvider provider) {
@@ -140,12 +129,9 @@ public class PaymentService {
     }
 
     /**
-     * Records that the customer says they handed the worker cash.
-     *
-     * <p>Nothing can verify this from the outside, so the row is written PENDING and it is the
-     * worker pressing confirm - see {@link #confirmCashReceipt} - that settles it and closes
-     * the job. Declaring cash is therefore a claim, not a payment, and the task stays
-     * {@link TaskStatus#AWAITING_PAYMENT} until the other side agrees.
+     * Records that the customer says they handed the worker cash. Nothing can verify this, so
+     * the row is written PENDING and the task stays {@link TaskStatus#AWAITING_PAYMENT} until
+     * {@link #confirmCashReceipt}. A claim, not a payment.
      */
     @Transactional
     public PaymentResponse declareCashBalance(String customerEmail, Long taskId) {
@@ -172,11 +158,8 @@ public class PaymentService {
     }
 
     /**
-     * The worker agreeing they were paid in cash. This is the moment the job closes.
-     *
-     * <p>Only the worker the task is assigned to can answer, and anybody else is told the task
-     * does not exist rather than that it is not theirs - the same shape
-     * {@link TaskService} uses.
+     * The worker agreeing they were paid in cash, which closes the job. Anyone other than the
+     * assigned worker is told the task does not exist, as in {@link TaskService}.
      */
     @Transactional
     public PaymentResponse confirmCashReceipt(String workerEmail, Long taskId) {
@@ -194,9 +177,8 @@ public class PaymentService {
     }
 
     /**
-     * The worker saying the cash never arrived. The claim is failed and the task is left
-     * {@link TaskStatus#AWAITING_PAYMENT}, so the customer can hand the money over again or
-     * switch to a gateway - a rejected claim must not strand the job.
+     * The worker saying the cash never arrived. The claim fails and the task is left
+     * {@link TaskStatus#AWAITING_PAYMENT} so the customer can pay again another way.
      */
     @Transactional
     public PaymentResponse rejectCashReceipt(String workerEmail, Long taskId) {
@@ -213,11 +195,8 @@ public class PaymentService {
 
     /**
      * What has to be true before the closing payment can be taken, whichever way it is paid.
-     *
-     * <p>The advance is required to have settled first. It always will have in practice -
-     * nothing reaches {@link TaskStatus#AWAITING_PAYMENT} without passing through ASSIGNED,
-     * which only a settled advance opens - but checking it here means the balance can never
-     * be the first money taken on a task, whatever else changes upstream.
+     * The advance is required to have settled, so the balance can never be the first money
+     * taken on a task whatever changes upstream.
      */
     private void validateBalanceDue(Task task) {
         if (task.getStatus() != TaskStatus.AWAITING_PAYMENT) {
@@ -233,9 +212,8 @@ public class PaymentService {
     }
 
     /**
-     * The cash claim awaiting this worker's answer. A PENDING row is the normal case; an
-     * already-COMPLETED one is returned too so a double click confirms idempotently rather
-     * than 404ing on the second press.
+     * The cash claim awaiting this worker's answer. An already-COMPLETED row is returned too,
+     * so a double click confirms idempotently rather than 404ing.
      */
     private Payment getDeclaredCashOrThrow(Long taskId, User worker) {
         return paymentRepository
@@ -252,8 +230,8 @@ public class PaymentService {
     }
 
     /**
-     * The half both legs share: abandon whatever the customer walked away from last time,
-     * write a fresh PENDING row, and hand the browser over to the gateway.
+     * The half both legs share: abandon the last abandoned attempt, write a fresh PENDING row,
+     * hand the browser to the gateway.
      */
     private PaymentInitiationResponse openCheckout(
             Task task, User customer, PaymentType type, BigDecimal amount, PaymentProvider provider) {
@@ -274,17 +252,15 @@ public class PaymentService {
         return switch (provider) {
             case ESEWA -> initiateEsewa(payment, taskId, amount, task.getBudget());
             case KHALTI -> initiateKhalti(payment, task, customer, amount);
-            // Unreachable - the callers reject CASH before they get here. Listed so the
-            // compiler keeps this switch honest if a provider is ever added.
+            // Unreachable - callers reject CASH first. Listed to keep the switch exhaustive.
             case CASH -> throw new InvalidOperationException(
                     "Cash payments are not made through a gateway");
         };
     }
 
     /**
-     * Abandons whatever attempt the customer walked away from last time. Scoped to one leg,
-     * so retrying a balance cannot cancel anything belonging to the advance - and switching
-     * between cash and a gateway on the same leg cleanly replaces the earlier claim.
+     * Abandons the customer's last unfinished attempt. Scoped to one leg, so retrying a balance
+     * cannot cancel anything belonging to the advance.
      */
     private void cancelPendingLeg(Long taskId, PaymentType type) {
         paymentRepository.findByTaskIdAndTypeAndStatus(taskId, type, PaymentStatus.PENDING)
@@ -320,12 +296,9 @@ public class PaymentService {
     }
 
     /**
-     * Khalti is opened server-to-server first: it mints a {@code pidx} and a link, and
-     * the browser is simply sent to that link. The {@code pidx} is stored now because it
-     * is the only thing tying the return trip back to this payment — and storing it here
-     * rather than trusting the redirect is what stops one customer confirming another's
-     * payment. If Khalti refuses, the exception rolls this whole transaction back and no
-     * unpayable payment row survives.
+     * Khalti is opened server-to-server first: it mints a {@code pidx} and a link. The
+     * {@code pidx} is stored now rather than trusted from the redirect, which is what stops one
+     * customer confirming another's payment. A refusal rolls the whole transaction back.
      */
     private PaymentInitiationResponse initiateKhalti(
             Payment payment, Task task, User customer, BigDecimal amount) {
@@ -352,9 +325,8 @@ public class PaymentService {
     }
 
     /**
-     * Settles the payment eSewa redirected the customer back from, and promotes the
-     * task to {@link TaskStatus#ASSIGNED}. Safe to call twice with the same payload —
-     * a refresh of the success page is a no-op.
+     * Settles the payment eSewa redirected back from and promotes the task to
+     * {@link TaskStatus#ASSIGNED}. Idempotent: refreshing the success page is a no-op.
      */
     @Transactional
     public PaymentResponse completeEsewa(String customerEmail, String encodedData) {
@@ -385,12 +357,9 @@ public class PaymentService {
 
     /**
      * Settles the payment Khalti redirected the customer back from, and promotes the
-     * task to {@link TaskStatus#ASSIGNED}. Safe to call twice with the same {@code pidx}.
-     *
-     * <p>Khalti does not sign its redirect, so the lookup API is the <em>only</em>
-     * authority here — there is no signed-callback fallback as there is for eSewa. An
-     * unreachable gateway therefore fails the payment rather than trusting query
-     * parameters the customer's own browser handed us.
+     * task to {@link TaskStatus#ASSIGNED}. Idempotent on {@code pidx}. Khalti does not sign its
+     * redirect, so the lookup API is the only authority - an unreachable gateway fails the
+     * payment rather than trusting query parameters the customer's browser handed us.
      */
     @Transactional
     public PaymentResponse completeKhalti(String customerEmail, String pidx) {
@@ -447,16 +416,10 @@ public class PaymentService {
     // --- helpers ---
 
     /**
-     * Decides whether a payment really settled, and records eSewa's reference id.
-     *
-     * <p>The status API is the authority: it is server-to-server, so a customer who
-     * controls their own browser cannot forge it, and it is where {@code ref_id} comes
-     * from. When it gives a definite answer that answer wins outright — a transaction
-     * eSewa reports as PENDING or CANCELED is not settled, whatever the redirect claims.
-     *
-     * <p>A validly signed COMPLETE callback is only honoured when the status endpoint is
-     * unreachable, which the sandbox occasionally is. That is safe because the HMAC is
-     * cut with a secret only eSewa and we hold.
+     * Decides whether a payment really settled, and records eSewa's reference id. The
+     * server-to-server status API is the authority and its definite answers win outright. A
+     * validly signed COMPLETE callback is honoured only when that endpoint is unreachable,
+     * which is safe because the HMAC uses a secret only eSewa and we hold.
      */
     private boolean confirmWithEsewa(Payment payment, EsewaCallbackPayload payload) {
         EsewaStatusResponse status = esewaService.checkStatus(
@@ -485,9 +448,8 @@ public class PaymentService {
     }
 
     /**
-     * What a freshly settled payment does to the world, which depends entirely on which leg
-     * it was. An advance confirms the booking and lets the worker start; a balance closes the
-     * job out and is the moment the worker is actually owed nothing.
+     * What a freshly settled payment does, which depends on the leg: an advance confirms the
+     * booking and lets the worker start, a balance closes the job out.
      */
     private void settle(Payment payment) {
         if (payment.getType() == PaymentType.BALANCE) {
@@ -500,12 +462,8 @@ public class PaymentService {
     }
 
     /**
-     * Confirms a settled payment to the customer.
-     *
-     * <p>This used to be an emailed receipt. With no mail channel the confirmation goes to
-     * the in-app notification feed instead - a payment that produced no acknowledgement at
-     * all would leave the customer unsure whether their money had landed. The payment page
-     * remains the authoritative record.
+     * Confirms a settled payment to the customer through the in-app notification feed. The
+     * payment page remains the authoritative record.
      */
     private void sendReceipt(Payment payment) {
         Task task = payment.getTask();
@@ -531,10 +489,8 @@ public class PaymentService {
     }
 
     /**
-     * Tells the worker the rest of their money has landed and the job is closed.
-     *
-     * <p>Skipped for cash, where the worker is the one who just confirmed it - telling them
-     * what they have this second told us would be noise.
+     * Tells the worker the rest of their money has landed. Skipped for cash, where the worker
+     * is the one who just confirmed it.
      */
     private void announceSettlement(Payment payment) {
         Task task = payment.getTask();
@@ -552,9 +508,8 @@ public class PaymentService {
     }
 
     /**
-     * Asks the worker to vouch for cash the customer says they handed over. This notification
-     * is the whole mechanism - without it a worker has no reason to look at a job they have
-     * already finished.
+     * Asks the worker to vouch for cash the customer says they handed over. This notification is
+     * the whole mechanism: nothing else would send them back to a job they have finished.
      */
     private void announceCashDeclaration(Payment payment) {
         Task task = payment.getTask();
@@ -594,8 +549,8 @@ public class PaymentService {
     }
 
     /**
-     * Tells both sides the booking is now confirmed. This is the moment that matters -
-     * acceptTask only marks a task ACCEPTED, which is still pending the advance payment.
+     * Tells both sides the booking is confirmed. acceptTask only marks a task ACCEPTED, which
+     * is still pending the advance.
      */
     private void announceAssignment(Task task) {
         User customer = task.getCustomer();

@@ -10,13 +10,10 @@ import lombok.Getter;
  *
  * <ul>
  *   <li><b>Authenticated</b> - {@code token}, {@code refreshToken} and {@code user} are set.</li>
- *   <li><b>Registered</b> - {@code user} only. The account is active and can sign in straight
- *       away; the client simply sends it to the sign-in page rather than being handed a token
- *       it never asked for.</li>
+ *   <li><b>Registered</b> - {@code user} only; the client sends it to the sign-in page.</li>
  * </ul>
  *
- * Absent fields are omitted from the JSON rather than sent as nulls, so the client can test
- * for their presence.
+ * Absent fields are omitted from the JSON rather than sent as nulls.
  */
 @Getter
 @Builder

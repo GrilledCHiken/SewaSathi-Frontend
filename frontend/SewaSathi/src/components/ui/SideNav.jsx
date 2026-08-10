@@ -3,21 +3,13 @@ import { cn } from "../../utils/cn";
 import Brandmark from "./Brandmark";
 
 /**
- * The dashboard side rail, shared by the customer, worker and admin panels.
+ * The dashboard side rail, shared by the customer, worker and admin panels — they differ only
+ * in the nav array, `aria-label`, subtitle and active-link accent.
  *
- * Those three sidebars were byte-identical apart from four things: the nav
- * array, the `aria-label`, the subtitle string and the active-link accent. They
- * were also three separate copies of the same mobile off-canvas mechanism and
- * the same inlined brand mark. Restyling one and not the others would have forked
- * the app's chrome, so they now share this.
+ * The rail is navy: dark *chrome* on a light app, not a dark theme.
  *
- * The rail is navy rather than white. This is dark *chrome* on a light app, not
- * a dark theme — it gives the product a spine and stops the dashboard reading
- * as an unstyled admin template.
- *
- * Nav items keep their exact previous shape — `{ label, to, end?, icon }` — so
- * each panel's array moves across unchanged. `badge` is optional and only drawn
- * when it is a positive number, so panels without counts stay untouched.
+ * Nav items are `{ label, to, end?, icon }`. `badge` is optional and only drawn when it is a
+ * positive number.
  */
 
 /* Full literal class strings — the marker classes are written out as
@@ -68,12 +60,10 @@ export default function SideNav({
         className={cn(
           "fixed inset-y-0 left-0 z-50 flex w-[var(--dash-sidebar-w)] flex-col",
           "bg-navy-light transition-transform duration-300 ease-out-soft",
-          // Desktop: the rail stays in flow (so the content column keeps doing
-          // the width math) but pins to the viewport, matching the already
-          // sticky dashboard headers. `self-start` is load-bearing — as a
-          // stretched flex child the aside is as tall as the whole scrolling
-          // page, and a sticky box that fills its container never sticks.
-          // `bottom-auto`/`left-auto` undo the mobile drawer's inset.
+          // Desktop: the rail stays in flow but pins to the viewport. `self-start` is
+          // load-bearing — a stretched flex child is as tall as the scrolling page, and a
+          // sticky box that fills its container never sticks. `bottom-auto`/`left-auto`
+          // undo the mobile drawer's inset.
           "lg:sticky lg:top-0 lg:bottom-auto lg:left-auto",
           "lg:h-svh lg:self-start lg:z-auto lg:translate-x-0",
           mobileOpen ? "translate-x-0" : "-translate-x-full",

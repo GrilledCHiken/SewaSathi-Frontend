@@ -7,17 +7,11 @@ import java.math.BigDecimal;
 import java.util.List;
 
 /**
- * What a worker has earned, for {@code GET /api/worker/earnings}.
- *
- * <p>{@code lifetimeEarned} is the full budget of every job whose work this worker has
- * finished - what the work was worth, which is the figure a worker means by "earnings".
- * {@code received} is the part that has actually been paid, and {@code outstanding} is the
- * difference. They are reported separately rather than folded together because a customer who
- * never pays the balance would otherwise be invisible.
- *
- * <p>{@code jobsCompleted} counts only jobs that are settled and closed, so it agrees with
- * the worker's public completed-jobs figure. A job whose work is done but whose balance is
- * outstanding is counted by {@code jobsAwaitingBalance} instead.
+ * What a worker has earned, for {@code GET /api/worker/earnings}. {@code lifetimeEarned} is the
+ * full budget of every job this worker finished; {@code received} is what has actually been
+ * paid and {@code outstanding} the difference, kept apart so an unpaid balance stays visible.
+ * {@code jobsCompleted} counts only settled jobs - the rest fall under
+ * {@code jobsAwaitingBalance}.
  */
 @Getter
 @AllArgsConstructor

@@ -8,20 +8,17 @@ const MAX_LENGTH = 500;
  * Collects the message the account holder will receive before an admin suspends or restores
  * an account.
  *
- * One dialog for both directions because the two differ only in copy and in whether the text
- * is required — suspending demands a reason, since it is emailed to the person and repeated
- * on the login screen the next time they try to sign in, and locking someone out with no
- * explanation is the thing this dialog exists to prevent. Restoring takes an optional note.
- *
- * Replaces a bare `window.confirm`, which could not carry a message at all.
+ * One dialog for both directions: they differ only in copy and in whether the text is
+ * required. Suspending demands a reason, since it is shown to the person on the login screen
+ * and is all they have to act on. Restoring takes an optional note.
  */
 export default function SuspendUserDialog({ user, submitting = false, onCancel, onConfirm }) {
   const [text, setText] = useState("");
   const [lastUserId, setLastUserId] = useState(null);
   const textareaRef = useRef(null);
 
-  // Prop-derived state reset during render, the same pattern AdminUserDetailModal uses, so
-  // reopening on a different row never shows what was typed for the previous person.
+  // Prop-derived state reset during render, so reopening on a different row never shows
+  // what was typed for the previous person.
   if (user && user.id !== lastUserId) {
     setLastUserId(user.id);
     setText("");

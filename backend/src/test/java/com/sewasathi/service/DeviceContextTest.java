@@ -22,9 +22,8 @@ class DeviceContextTest {
         DeviceContext before = new DeviceContext(CHROME_WIN, "203.0.113.7");
         DeviceContext after = new DeviceContext(CHROME_WIN, "203.0.113.204");
 
-        // A customer on mobile data gets a new address constantly. Challenging on every
-        // rotation would train them to approve codes reflexively, which is worse than not
-        // challenging at all.
+        // A customer on mobile data gets a new address constantly; challenging on every
+        // rotation would train them to approve codes reflexively.
         assertThat(before.fingerprint()).isEqualTo(after.fingerprint());
     }
 

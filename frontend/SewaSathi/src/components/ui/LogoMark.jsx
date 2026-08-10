@@ -7,9 +7,8 @@
  * favicon and app icon. Change the artwork, re-run that script — never hand-edit
  * the generated files, and never re-draw the mark in code.
  *
- * Deliberately not in `icons.jsx`. That file's whole contract is the `stroke()` /
- * `filled()` factories, which bake in a 24x24 box and `currentColor` — a raster
- * brand asset cannot go through either. This is a brand asset, not a UI icon.
+ * Deliberately not in `icons.jsx`, whose `stroke()` / `filled()` factories bake in a 24x24
+ * box and `currentColor` — a raster brand asset cannot go through either.
  *
  * `on-dark` is a genuinely different file rather than a CSS filter: the artwork's
  * blue bottoms out around L=0.30, which disappears against the navy shells, and

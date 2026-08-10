@@ -30,12 +30,9 @@ import java.time.LocalDate;
 /**
  * Server-rendered admin console (requirement #4): Thymeleaf views over Spring MVC.
  *
- * <p>Deliberately holds no business logic of its own - every view is assembled from the same
- * {@link AdminService} the REST API uses, so the two surfaces can never drift into disagreeing
- * about what "pending" or "suspended" means.
- *
- * <p>State-changing operations live in {@link AdminWebApiController} and are called over AJAX,
- * which keeps these handlers to plain GETs and puts every mutation behind a CSRF token.
+ * <p>Holds no business logic: every view is assembled from the same {@link AdminService} the
+ * REST API uses, so the two surfaces cannot drift. State-changing operations live in
+ * {@link AdminWebApiController} and are called over AJAX, keeping these handlers to plain GETs.
  */
 @Controller
 @RequestMapping("/admin")
@@ -124,11 +121,9 @@ public class AdminWebController {
     }
 
     /**
-     * Streams a generated report back as a download (requirement #14).
-     *
-     * <p>{@code slug} is resolved through {@link ReportType#fromSlug}, so it can only ever
-     * name one of the three known templates - it reaches a classpath lookup, and an
-     * unchecked string there would be a path-traversal hole.
+     * Streams a generated report back as a download (requirement #14). {@code slug} is resolved
+     * through {@link ReportType#fromSlug} so it can only name a known template - it reaches a
+     * classpath lookup, where an unchecked string would be a path-traversal hole.
      */
     @GetMapping("/reports/{slug}")
     public ResponseEntity<byte[]> downloadReport(

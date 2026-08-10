@@ -7,11 +7,9 @@ import lombok.Getter;
 import lombok.Setter;
 
 /**
- * A password change from inside the account.
- *
- * <p>The current password is required even though the caller already holds a valid access
- * token: a token left behind on a shared machine would otherwise be enough to lock the real
- * owner out of their own account.
+ * A password change from inside the account. The current password is required even though the
+ * caller holds a valid access token: a token left on a shared machine would otherwise be
+ * enough to lock the real owner out.
  */
 @Getter
 @Setter

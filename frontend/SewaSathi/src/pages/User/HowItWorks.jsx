@@ -172,11 +172,8 @@ const WORKER_STEPS = [
   },
 ];
 
-// This row used to read "< 2 min to post a task", "24 hrs average response time",
-// "90% customer satisfaction" and "100% secure payments". Nothing in the system
-// measures how long posting takes or how fast workers respond, and the 90% both
-// contradicted the 98% on Home and Safety and came from nowhere. The four tiles
-// below are the ones the database can actually answer.
+// Restricted to figures the database can actually answer — nothing here measures
+// posting time or worker response time, so no tile claims to.
 const STAT_CARDS = [
   {
     id: "tasksPosted",

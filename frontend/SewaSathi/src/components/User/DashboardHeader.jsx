@@ -6,26 +6,12 @@ import BackLink from "../ui/BackLink";
 import { MenuIcon } from "../ui/icons";
 
 /**
- * Sticky header for the customer dashboard.
+ * Sticky header for the customer dashboard, structurally the same as the worker and admin
+ * headers.
  *
- * Three things changed here beyond the skin:
- *
- * 1. `title` is a prop. It used to be hardcoded to "Customer Dashboard", so
- *    every one of the ten routes under /dashboard claimed the same page name.
- *    The admin header already did this properly; this now matches it. The
- *    default keeps any not-yet-migrated caller rendering exactly as before.
- *
- * 2. The header takes its own height from `--dash-header-h` at sm and up,
- *    rather than the token being a hand-computed guess at what the header
- *    happens to measure. TaskFilterBar offsets its sticky position by that same
- *    token, so the old arrangement broke silently whenever this file's padding
- *    changed. Now the token is the single source of truth.
- *
- * 3. The worker search box is gone. It submitted to Browse Workers, which has
- *    its own search that is the one that actually filters the list — so the
- *    header box was a second, weaker entry point to the same place. Without it
- *    this header is a single row at every breakpoint, and structurally the same
- *    as the worker and admin headers.
+ * The header takes its own height from `--dash-header-h` at sm and up. TaskFilterBar offsets
+ * its sticky position by that same token, so the token — not this file's padding — is the
+ * single source of truth.
  */
 function DashboardHeader({
   title = "Customer Dashboard",

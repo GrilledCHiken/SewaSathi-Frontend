@@ -62,8 +62,6 @@ class AdminConsoleIntegrationTest {
         customerId = customer.getId();
     }
 
-    // ---------- rendering ----------
-
     @Test
     void loginPage_rendersForAnonymousVisitors() throws Exception {
         mockMvc.perform(get("/admin/login"))
@@ -108,8 +106,6 @@ class AdminConsoleIntegrationTest {
                         org.hamcrest.Matchers.containsString("default-src 'none'")));
     }
 
-    // ---------- authentication and authorization ----------
-
     @Test
     void dashboard_anonymously_redirectsToTheLoginPage() throws Exception {
         mockMvc.perform(get("/admin/dashboard"))
@@ -131,7 +127,7 @@ class AdminConsoleIntegrationTest {
                 .andExpect(content().contentTypeCompatibleWith("text/html"));
     }
 
-    // ---------- CSRF (requirement #7) ----------
+    // CSRF (requirement #7)
 
     /**
      * Models what a forged request actually looks like: the admin has a live session (they
@@ -210,7 +206,7 @@ class AdminConsoleIntegrationTest {
                 .andExpect(status().isUnauthorized());
     }
 
-    // ---------- reports (requirement #14) ----------
+    // reports (requirement #14)
 
     @Test
     void reportsPage_listsEveryReport() throws Exception {
@@ -252,7 +248,7 @@ class AdminConsoleIntegrationTest {
                 .andExpect(status().isUnauthorized());
     }
 
-    // ---------- error pages (requirement #8) ----------
+    // error pages (requirement #8)
 
     @Test
     void unknownAdminPath_rendersTheStyledNotFoundPage() throws Exception {

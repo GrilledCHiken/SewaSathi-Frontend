@@ -96,8 +96,6 @@ class AdminUserDirectoryTest {
                 .role(Role.ADMIN).status(ApprovalStatus.APPROVED).build());
     }
 
-    // ---------- the directory ----------
-
     @Test
     void listUsers_leavesAdministratorsOut() {
         List<AdminUserResponse> users = adminService.listUsers(null, null);
@@ -121,8 +119,6 @@ class AdminUserDirectoryTest {
         assertThat(workers).extracting(AdminUserResponse::getId).contains(worker.getId());
         assertThat(workers).extracting(AdminUserResponse::getRole).containsOnly(Role.WORKER);
     }
-
-    // ---------- one account in full ----------
 
     @Test
     void getUserDetail_forAWorker_carriesTheProfileAndDocuments() {
@@ -167,8 +163,6 @@ class AdminUserDirectoryTest {
         assertThatThrownBy(() -> adminService.getUserDetail(-1L))
                 .isInstanceOf(ResourceNotFoundException.class);
     }
-
-    // ---------- suspension ----------
 
     @Test
     @SuppressWarnings("unchecked")
@@ -233,8 +227,6 @@ class AdminUserDirectoryTest {
 
         verifyNoInteractions(emailService);
     }
-
-    // ---------- worker application decisions ----------
 
     @Test
     @SuppressWarnings("unchecked")

@@ -14,10 +14,8 @@ import java.util.Map;
  *       test suite need no mail credentials (the default)</li>
  * </ul>
  *
- * <p>Sending is synchronous and a failure is reported, not swallowed. Signup depends on the
- * message arriving: the account is not created until the code inside it comes back, so a
- * user left waiting on a mail that will never appear is worse off than one told the mail
- * could not be sent. Callers that genuinely do not care about delivery should catch
+ * <p>Sending is synchronous and failures are reported, not swallowed - signup depends on the
+ * message arriving. Callers that do not care about delivery catch
  * {@link EmailDeliveryException} themselves.
  */
 public interface EmailService {

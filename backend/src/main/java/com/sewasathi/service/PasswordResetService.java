@@ -22,18 +22,11 @@ import java.util.Map;
 import java.util.UUID;
 
 /**
- * The way back in for someone who has forgotten their password.
- *
- * <p>Three steps, each guarded by the same challenge row: ask for a reset and a six-digit code
- * goes to the address on the account; send the code back and the row is marked verified; then
- * post a new password against it. Nothing about the account changes until that last call.
- *
- * <p>Deliberately close to {@link RegistrationOtpService} - same code length, same
- * {@code app.otp.*} limits, same BCrypt-the-code rule, same refusal to say whether an unknown
- * challenge token or a wrong digit was the problem. Two differences are worth calling out:
- * the challenge survives verification (the caller still has a password to choose), and there
- * is no delete-then-reissue on a repeat request, because that would hand back an unlimited
- * supply of emails to anyone who knows an address.
+ * The way back in for someone who has forgotten their password. Three steps guarded by one
+ * challenge row: request a reset, send the emailed code back, then post a new password.
+ * Nothing about the account changes until that last call. Mirrors
+ * {@link RegistrationOtpService}, except the challenge survives verification and a repeat
+ * request does not delete and reissue, which would be an unlimited supply of emails.
  */
 @Service
 @RequiredArgsConstructor
@@ -67,18 +60,10 @@ public class PasswordResetService {
     }
 
     /**
-     * Starts a reset and emails the code.
-     *
-     * <p>An address with no account is told so plainly. That does confirm whether someone is
-     * registered, but signing up already gives the same answer with its 409, so nothing new
-     * leaks - and the alternative is a user who mistyped their own email staring at a code
-     * screen that could never accept anything.
-     *
-     * <p>The cooldown is checked <em>before</em> the old row is cleared. Nothing else in the
-     * application rate-limits anything, so without this an endpoint that takes an email
-     * address and sends mail to it is a free amplifier. Note that
-     * {@link RegistrationOtpService#issue} deletes first and so resets its own cooldown; that
-     * is safe there only because the caller has to re-submit a whole signup each time.
+     * Starts a reset and emails the code. An address with no account is told so plainly - the
+     * 409 on signup already leaks that, and the alternative strands a user who mistyped their
+     * own address on a code screen. The cooldown is checked <em>before</em> the old row is
+     * cleared, otherwise this endpoint is a free mail amplifier.
      */
     @Transactional
     public Challenge request(String rawEmail) {
@@ -106,9 +91,8 @@ public class PasswordResetService {
     }
 
     /**
-     * Re-sends a fresh code for a reset already in flight. The previous code stops working,
-     * the attempt counter resets with it, and a challenge that had already been verified drops
-     * back to unverified - a new code means the proof has to be given again.
+     * Re-sends a fresh code for a reset already in flight. The previous code stops working, the
+     * attempt counter resets, and an already-verified challenge drops back to unverified.
      */
     @Transactional(noRollbackFor = OtpException.class)
     public Challenge resend(String challengeToken) {
@@ -131,16 +115,10 @@ public class PasswordResetService {
     }
 
     /**
-     * Checks a submitted code and opens the password step.
-     *
-     * <p>The expiry is pushed back to a full window from now. Without that, verifying at
-     * minute nine of a ten-minute code would leave sixty seconds to choose and confirm a
-     * password - the code's lifetime is a limit on guessing it, not on typing afterwards.
-     *
-     * <p>{@code noRollbackFor} is load-bearing, not tidiness: every rejection here throws, and
-     * a plain rollback would undo the very bookkeeping the rejection exists to record - the
-     * attempt counter would reset on each wrong guess, and a burnt challenge would come back
-     * to life. Same reason {@code AuthService.login} carries it for failed sign-ins.
+     * Checks a submitted code and opens the password step. The expiry is pushed back to a full
+     * window from now: the code's lifetime limits guessing it, not typing a password afterwards.
+     * {@code noRollbackFor} is load-bearing - every rejection throws, and a plain rollback would
+     * undo the attempt increment and revive a burnt challenge.
      */
     @Transactional(noRollbackFor = OtpException.class)
     public Challenge verify(String challengeToken, String code) {
@@ -181,20 +159,13 @@ public class PasswordResetService {
     }
 
     /**
-     * Sets the new password and spends the challenge.
-     *
-     * <p>Three things happen alongside the password itself, and each of them is the point of
-     * the exercise rather than a nicety:
+     * Sets the new password and spends the challenge. Three things happen alongside it:
      *
      * <ul>
-     *   <li>the lockout is cleared, because being locked out is the most likely reason someone
-     *       is here at all, and leaving it would mean the new password does not work either;
-     *   <li>every refresh token is revoked, on the same reasoning as
-     *       {@link UserProfileService#changePassword} - a reset is how someone reacts to
-     *       thinking their account is compromised;
-     *   <li>an account that had no password until now (signed up through Google) simply gains
-     *       one. {@code authProvider} is left alone: Google sign-in keeps working, and
-     *       {@code AuthService.login} only diverts accounts whose hash is null.
+     *   <li>the lockout is cleared, or the new password would not work either;
+     *   <li>every refresh token is revoked, as in {@link UserProfileService#changePassword};
+     *   <li>a Google-only account simply gains a password. {@code authProvider} is left alone,
+     *       so Google sign-in keeps working.
      * </ul>
      */
     @Transactional
@@ -206,8 +177,7 @@ public class PasswordResetService {
             throw OtpException.expired();
         }
 
-        // Same message as a wrong code: skipping the verify step is not a different kind of
-        // failure to anyone entitled to be here.
+        // Same message as a wrong code - skipping the verify step must not be distinguishable.
         if (!challenge.isVerified()) {
             throw OtpException.invalid(0);
         }
@@ -222,10 +192,7 @@ public class PasswordResetService {
         challengeRepository.delete(challenge);
     }
 
-    /**
-     * Abandoned resets are worth nothing to anyone once expired, and nothing else ever deletes
-     * them - a user who walks away never comes back to spend the row.
-     */
+    /** Nothing else deletes abandoned resets - a user who walks away never spends the row. */
     @Scheduled(cron = "0 25 3 * * *")
     @Transactional
     public void purgeExpired() {
@@ -237,14 +204,14 @@ public class PasswordResetService {
 
     private PasswordResetChallenge require(String challengeToken) {
         return challengeRepository.findByChallengeToken(challengeToken)
-                // An unknown token reads exactly like a wrong code, so this endpoint cannot be
-                // used to find out whether a reset is in flight for someone.
+                // An unknown token reads exactly like a wrong code, so this endpoint cannot
+                // reveal whether a reset is in flight.
                 .orElseThrow(() -> OtpException.invalid(0));
     }
 
     /**
-     * The account behind a challenge. The miss is only reachable if the account was deleted
-     * mid-reset, in which case the challenge is worthless and reads as an unknown token.
+     * The account behind a challenge. Only missing if it was deleted mid-reset, in which case
+     * the challenge reads as an unknown token.
      */
     private User requireUser(PasswordResetChallenge challenge) {
         return userRepository.findById(challenge.getUserId())
@@ -261,8 +228,8 @@ public class PasswordResetService {
         challenge.setExpiresAt(now.plusMinutes(expiryMinutes));
         challengeRepository.save(challenge);
 
-        // Inside the transaction on purpose: if the mail server refuses the message the row
-        // rolls back with it, so no address is held hostage by a code that never arrived.
+        // Inside the transaction on purpose: if the mail server refuses, the row rolls back
+        // with it rather than stranding the address behind a code that never arrived.
         emailService.sendTemplate(
                 challenge.getEmail(),
                 "Your Sewa Sathi password reset code",

@@ -15,14 +15,8 @@ import java.util.UUID;
 
 /**
  * Tags every request with a correlation id, exposed to logback as {@code %X{correlationId}}
- * and returned to the caller as the {@code X-Correlation-Id} header.
- *
- * <p>A user reporting "it failed" can quote that single id and it pins down every log line
- * the request produced. {@link com.sewasathi.exception.GlobalExceptionHandler} also copies it
- * into the error response body, so the id in a failed API call matches the id in the log file.
- *
- * <p>Runs at the highest precedence so it wraps the Spring Security filter chain too -
- * authentication failures are exactly the ones worth correlating.
+ * and returned as the {@code X-Correlation-Id} header. Highest precedence so it wraps the
+ * Spring Security chain too, making authentication failures correlatable.
  */
 @Component
 @Order(Ordered.HIGHEST_PRECEDENCE)
@@ -42,8 +36,8 @@ public class CorrelationIdFilter extends OncePerRequestFilter {
 
         MDC.put(MDC_KEY, correlationId);
         response.setHeader(HEADER, correlationId);
-        // Also a request attribute, because the MDC is cleared below before the container
-        // dispatches to /error - and the error page is where the id is most worth showing.
+        // Also a request attribute: the MDC is cleared below, before the container
+        // dispatches to /error.
         request.setAttribute(MDC_KEY, correlationId);
         try {
             filterChain.doFilter(request, response);

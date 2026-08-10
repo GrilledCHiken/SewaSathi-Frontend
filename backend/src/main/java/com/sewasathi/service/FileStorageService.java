@@ -52,9 +52,8 @@ public class FileStorageService {
         if (contentType == null || !ALLOWED_CONTENT_TYPES.contains(contentType)) {
             throw new InvalidOperationException("Unsupported file type: " + contentType);
         }
-        // The declared content type comes from the client and is trivially forged, so the
-        // file's own leading bytes have to agree with it. Without this, anything at all
-        // could be stored simply by labelling it "image/png".
+        // The declared content type is client-supplied and trivially forged, so the file's own
+        // leading bytes have to agree with it.
         assertContentMatchesDeclaredType(file, contentType);
 
         String originalName = StringUtils.cleanPath(
@@ -134,12 +133,9 @@ public class FileStorageService {
     }
 
     /**
-     * Resolves a stored filename to a readable file on disk, refusing anything that escapes
-     * the upload directory.
-     *
-     * <p>The traversal guard is the important part: the filename arrives from a URL path,
-     * so without normalising and re-checking the prefix, a request for {@code ../../} could
-     * read arbitrary files off the server.
+     * Resolves a stored filename to a readable file on disk. The filename arrives from a URL
+     * path, so it is normalised and prefix-checked - otherwise {@code ../../} would read
+     * arbitrary files off the server.
      */
     public Path resolveForRead(String filename) {
         if (filename == null || filename.isBlank()) {

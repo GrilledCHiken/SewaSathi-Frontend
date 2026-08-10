@@ -8,21 +8,14 @@
  */
 
 /**
- * Every shared icon in the app.
+ * Every shared icon in the app, hand-inlined rather than pulled from a package — the same
+ * choice `ServiceIcon.jsx` and `tasks/taskUi.jsx` make.
  *
- * Icons are hand-inlined rather than pulled from a package — the same
- * deliberate choice `ServiceIcon.jsx` and `tasks/taskUi.jsx` already make.
- * What was missing was a single home for them: `MailIcon`/`LockIcon`/`EyeIcon`
- * and friends were redeclared in every page that used them.
+ * The `stroke()` factory bakes in viewBox, stroke width, caps, joins and `aria-hidden`, so
+ * those cannot drift between call sites.
  *
- * The `stroke()` factory bakes in viewBox, stroke width, caps, joins and
- * `aria-hidden`, so those can never drift between call sites. Glyph paths are
- * carried over unchanged from the previous local definitions, so nothing moves
- * visually.
- *
- * This file exports components only — variant maps and other non-component
- * values live in `.js` siblings so react-refresh/only-export-components stays
- * happy.
+ * Components only — variant maps and other non-component values live in `.js` siblings so
+ * react-refresh/only-export-components stays happy.
  */
 
 /* -------------------------------------------------------------------------- */

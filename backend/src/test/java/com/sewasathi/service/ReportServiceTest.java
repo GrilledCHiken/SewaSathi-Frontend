@@ -90,8 +90,6 @@ class ReportServiceTest {
                 .build());
     }
 
-    // ---------- PDF ----------
-
     @Test
     void everyReportRendersAsAPdf() {
         for (ReportType type : ReportType.values()) {
@@ -103,8 +101,6 @@ class ReportServiceTest {
                     .isEqualTo("%PDF".getBytes());
         }
     }
-
-    // ---------- Excel ----------
 
     @Test
     void everyReportRendersAsAnXlsxWorkbook() {
@@ -118,8 +114,6 @@ class ReportServiceTest {
                     .isEqualTo(new byte[] { 0x50, 0x4b });
         }
     }
-
-    // ---------- data ----------
 
     @Test
     void revenueReportPicksUpCompletedPayments() {
@@ -157,8 +151,6 @@ class ReportServiceTest {
                     assertThat(row.getTotalEarnedOrZero()).isEqualByComparingTo("2500.00");
                 });
     }
-
-    // ---------- input handling ----------
 
     @Test
     void anUnknownReportOrFormatIsRejected() {

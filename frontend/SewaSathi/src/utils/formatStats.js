@@ -1,13 +1,9 @@
 /**
  * Formatters for the live platform figures on the public pages.
  *
- * These pages used to carry invented totals — "50,000+ happy customers" on a
- * platform that had none. The numbers are real now, which means they are also
- * sometimes zero, and sometimes genuinely absent: an unreviewed platform has no
- * average rating, and that is not the same claim as a rating of zero.
- *
- * So every formatter here distinguishes the two. A real zero prints as "0"; a
- * missing value prints as an em dash. Neither is ever padded up to look busier.
+ * A figure can be genuinely zero or genuinely absent — an unreviewed platform has no average
+ * rating, which is not a rating of zero. Every formatter distinguishes the two: a real zero
+ * prints as "0", a missing value as an em dash.
  */
 
 /** Shown in place of a figure that does not exist yet. */

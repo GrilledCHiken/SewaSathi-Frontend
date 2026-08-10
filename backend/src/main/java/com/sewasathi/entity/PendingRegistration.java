@@ -20,19 +20,10 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 /**
- * A signup that has been submitted but not yet proved. Registration emails a six-digit code
- * to the address the user typed and parks everything they entered here; the {@code users}
- * row is written only when that code comes back (see
- * {@link com.sewasathi.service.RegistrationOtpService}).
- *
- * <p>Holding the draft here rather than creating a disabled {@code User} keeps unverified
- * addresses out of the accounts table entirely: nothing can sign in as one, admin listings
- * and counts are unaffected, and a mistyped address frees itself up again when the row
- * expires instead of permanently squatting on the unique index.
- *
- * <p>The password is already BCrypt-hashed on the way in - a table of pending signups is no
- * more entitled to plaintext than the accounts table is - and only the hash of the code is
- * kept, for the same reason.
+ * A signup submitted but not yet proved. Everything the user entered is parked here and the
+ * {@code users} row is written only once the emailed code comes back, so unverified addresses
+ * never reach the accounts table and a mistyped one frees itself when the row expires. The
+ * password arrives already BCrypt-hashed, and only the hash of the code is kept.
  */
 @Entity
 @Table(name = "pending_registrations", indexes = {
@@ -68,8 +59,8 @@ public class PendingRegistration {
     @Column(nullable = false, length = 20)
     private Role role;
 
-    // Worker-only fields, carried through so the WorkerProfile can be built at the far end
-    // of the challenge exactly as it would have been at submit time.
+    // Worker-only fields, carried through so the WorkerProfile can be built once the
+    // challenge is passed.
 
     @Column(length = 500)
     private String skills;
@@ -88,9 +79,8 @@ public class PendingRegistration {
     private String otpHash;
 
     /**
-     * Opaque handle the client quotes when submitting the code. The email address would
-     * have worked as a key, but then anyone could aim guesses at an address they do not
-     * control; a random token means only whoever started the signup can spend the attempts.
+     * Opaque handle the client quotes when submitting the code. Keyed on a random token
+     * rather than the email so nobody can spend the attempts on an address they don't own.
      */
     @Column(name = "challenge_token", nullable = false, unique = true, length = 36)
     private String challengeToken;

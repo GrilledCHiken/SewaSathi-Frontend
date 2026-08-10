@@ -33,21 +33,13 @@ import {
 } from "../../api/workerPaymentApi";
 
 /**
- * Earnings.
+ * One server read, `GET /worker/earnings`. A job counts for its whole budget the moment the
+ * work is marked done. Whether the money landed is separate: `received` is what has been paid
+ * and `outstanding` the invoiced remainder, kept apart so a customer who never settles stays
+ * visible.
  *
- * One server read, `GET /worker/earnings`. A job counts towards earnings the moment the
- * worker marks the work done, and it counts for its whole budget — that is what the work was
- * worth, and it is the number a worker means by "what I earned".
- *
- * Whether the money has actually landed is a separate question, because a task is paid in
- * two instalments and only the first is required before the work starts. So the headline
- * total is split: `received` is what has actually been paid, `outstanding` is the balance a
- * customer has been invoiced for but not paid. Folding those together would hide a customer
- * who never settles up, which is precisely the case a worker needs to see.
- *
- * This page is also where the worker answers a cash claim. That is not a display concern:
- * confirming it is what settles the payment and closes the job, so it moves money between
- * `outstanding` and `received` — which is why answering refetches rather than patching state.
+ * This is also where the worker answers a cash claim. Confirming settles the payment and
+ * closes the job, moving money between the two figures, so answering refetches.
  */
 
 const FILTERS = ["All", "Paid in full", "Awaiting balance"];
@@ -137,9 +129,8 @@ function OutstandingRow({ job }) {
 }
 
 /**
- * A cash claim waiting on this worker's word. Nothing outside this room can verify it, so
- * the two buttons here are the only thing that can settle the payment — confirming closes
- * the job, rejecting hands it back to the customer to pay again.
+ * A cash claim waiting on this worker's word — the only thing that can settle the payment.
+ * Confirming closes the job; rejecting hands it back to the customer to pay again.
  */
 function CashClaimRow({ job, onConfirm, onReject, working }) {
   return (

@@ -7,11 +7,7 @@ public enum TaskStatus {
     ACCEPTED,
     ASSIGNED,
     IN_PROGRESS,
-    /**
-     * The worker has finished the work but the closing {@link PaymentType#BALANCE} is still
-     * outstanding. A task sits here until the balance settles - by gateway, which verifies
-     * itself, or in cash, which the worker has to confirm they received.
-     */
+    /** Work finished, closing {@link PaymentType#BALANCE} still outstanding. */
     AWAITING_PAYMENT,
     COMPLETED,
     CANCELLED

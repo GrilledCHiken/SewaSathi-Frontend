@@ -23,9 +23,8 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 /**
- * One leg of what a customer owes on a task - see {@link PaymentType} for the two of them.
- * One row per attempt: a fresh {@code transactionUuid} is minted every time the
- * customer starts a checkout, because the gateway keys everything off it.
+ * One leg of what a customer owes on a task - see {@link PaymentType}. One row per attempt:
+ * a fresh {@code transactionUuid} is minted per checkout, because the gateway keys off it.
  */
 @Entity
 @Table(name = "payments")
@@ -59,10 +58,7 @@ public class Payment {
     @Column(name = "task_total", nullable = false, precision = 10, scale = 2)
     private BigDecimal taskTotal;
 
-    /**
-     * Which instalment this is. Defaults to {@code ADVANCE} so the rows written before the
-     * balance leg existed - and the column's SQL default - agree with the entity.
-     */
+    /** Which instalment this is. Defaults to {@code ADVANCE}, matching the column's SQL default. */
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     @Builder.Default

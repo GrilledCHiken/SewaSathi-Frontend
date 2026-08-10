@@ -23,11 +23,10 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * The signup challenge against the real transaction manager, which the Mockito-based
  * {@link com.sewasathi.service.RegistrationOtpServiceTest} cannot reach.
  *
- * <p>It exists for one reason above all: every rejection in the OTP path throws, and rejecting
- * a code is also when the attempt counter is written. With default rollback rules the two
- * cancel out - the counter resets on every wrong guess and the cap is never reached, leaving
- * the code open to unlimited guessing. Mocked repositories report the increment happily
- * either way, so only a test like this one can tell the difference.
+ * <p>Every rejection in the OTP path throws, and rejecting a code is also when the attempt
+ * counter is written. Under default rollback rules the two cancel out, leaving the code open
+ * to unlimited guessing. Mocked repositories report the increment either way, so only a test
+ * against the real transaction manager can tell the difference.
  */
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -74,9 +73,8 @@ class SignupOtpIntegrationTest {
     @Test
     void wrongCodes_actuallyAccumulate() throws Exception {
         submitWrongCode("000000");
-        // The second rejection must know about the first. If the counter rolled back with
-        // the exception that carried it, this would report four again and go on doing so
-        // for as many guesses as anyone cared to make.
+        // The second rejection must know about the first. If the counter rolled back with the
+        // exception that carried it, this would report four again indefinitely.
         mockMvc.perform(post("/api/auth/register/verify")
                         .contentType("application/json")
                         .content("""

@@ -5,9 +5,8 @@ import lombok.Getter;
 import lombok.Setter;
 
 /**
- * Asks for a new verification code on an in-flight signup. The challenge token is the only
- * thing needed - the email address it belongs to is already on the pending row, so a caller
- * cannot redirect someone else's code to an address of their choosing.
+ * Asks for a new verification code on an in-flight signup. The challenge token is all that is
+ * needed - the address is on the pending row, so a caller cannot redirect someone else's code.
  */
 @Getter
 @Setter

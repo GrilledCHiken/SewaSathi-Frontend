@@ -6,12 +6,9 @@ import lombok.Builder;
 import lombok.Getter;
 
 /**
- * The answer when a verified Google identity has no account here yet: not a session, but a
- * request for the one thing Google cannot supply.
- *
- * <p>The name and picture are echoed back so the confirmation screen can show whose account is
- * about to be created - a real risk when the browser holds several Google logins and picked one
- * the user did not expect.
+ * The answer when a verified Google identity has no account here yet. The name and picture are
+ * echoed back so the confirmation screen can show whose account is about to be created, which
+ * matters when the browser holds several Google logins.
  */
 @Getter
 @Builder

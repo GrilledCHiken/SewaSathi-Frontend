@@ -3,17 +3,13 @@ import { toast } from "react-toastify";
 import { downloadFile, fetchFileForViewing } from "../api/fileApi";
 
 /**
- * Shows an uploaded file in place instead of saving it to disk.
- *
- * Uploads sit behind the authenticated /api/files endpoint, so an <iframe src> or <a href>
- * pointed at the API arrives without a bearer token and comes back 401. The bytes are fetched
- * through the axios client and handed to the browser as an object URL, which the built-in PDF
- * viewer and <img> both accept. A new tab would have been simpler, but window.open after an
- * await is treated as an unrequested popup and is usually blocked.
+ * Shows an uploaded file in place instead of saving it to disk. An <iframe src> or <a href>
+ * pointed at /api/files arrives without a bearer token and comes back 401, so the bytes are
+ * fetched through the axios client and handed over as an object URL. A new tab would be
+ * simpler, but window.open after an await is treated as an unrequested popup and blocked.
  */
 export default function DocumentViewerModal({ storedUrl, title, onClose }) {
-  // Keyed by the source it belongs to, and reset during render when that changes — React's
-  // documented pattern for prop-derived state, and the same one AuthedImage uses.
+  // Keyed by its source and reset during render when that changes, as in AuthedImage.
   const [state, setState] = useState({ src: storedUrl, file: null, failed: false });
   const closeButtonRef = useRef(null);
 
@@ -55,7 +51,7 @@ export default function DocumentViewerModal({ storedUrl, title, onClose }) {
   }, [onClose]);
 
   // Focus moves to the dialog on open only. Callers pass an inline onClose, so folding this
-  // into the effect above would re-focus on every render and pull focus back off the document.
+  // into the effect above would re-focus on every render.
   useEffect(() => {
     closeButtonRef.current?.focus();
   }, []);

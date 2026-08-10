@@ -6,15 +6,9 @@ import lombok.Getter;
 import java.math.BigDecimal;
 
 /**
- * One service category as the public catalogue presents it.
- *
- * <p>Every category in {@link com.sewasathi.service.ServiceCategories} gets a row, even one
- * nobody has booked yet - the catalogue describes what can be requested, not only what has
- * been. Such a row carries zero counts and a null rating.
- *
- * <p>{@code startingRate} is the lowest hourly rate among workers advertising the skill, so the
- * "starting from" line on the card is a price someone is actually charging. It is null when no
- * worker lists the skill or none has set a rate.
+ * One service category as the public catalogue presents it. Every category in
+ * {@link com.sewasathi.service.ServiceCategories} gets a row even if nobody has booked it,
+ * carrying zero counts and a null rating.
  */
 @Getter
 @AllArgsConstructor

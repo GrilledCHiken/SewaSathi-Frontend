@@ -72,13 +72,10 @@ public class WorkerService {
     }
 
     /**
-     * Files a replacement police clearance report for review.
-     *
-     * <p>A report is only good for six months, so a working worker has to hand in a fresh one
-     * periodically. The new file is parked in the profile's pending columns rather than replacing
-     * what is on record: the worker keeps their approval and keeps taking jobs while an admin looks
-     * at it, and {@code AdminService.approveClearanceRenewal} is the only thing that promotes it and
-     * restarts the clock.
+     * Files a replacement police clearance report for review. The new file is parked in the
+     * profile's pending columns rather than replacing what is on record, so the worker keeps
+     * their approval while an admin looks at it. Only
+     * {@code AdminService.approveClearanceRenewal} promotes it and restarts the clock.
      */
     @Transactional
     public WorkerSummaryResponse submitPoliceClearanceRenewal(String email, String storedUrl) {
@@ -86,8 +83,7 @@ public class WorkerService {
         WorkerProfile profile = getProfileOrThrow(user.getId());
 
         if (!StringUtils.hasText(profile.getPoliceClearanceUrl())) {
-            // Nothing to renew. This worker never finished verification, and that form - which
-            // collects the citizenship document too - is where they belong.
+            // Nothing to renew: this worker never finished verification.
             throw new InvalidOperationException(
                     "Submit your verification documents before renewing your police clearance report");
         }

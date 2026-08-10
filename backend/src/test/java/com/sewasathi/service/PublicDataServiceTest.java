@@ -26,16 +26,12 @@ import java.util.List;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * Covers the figures the logged-out marketing pages publish.
+ * Covers the figures the logged-out marketing pages publish. The Spring context is shared
+ * across the suite, so absolute totals are unavailable and every assertion is on the delta
+ * this seed adds, as in {@code AdminAnalyticsTest}.
  *
- * <p>The point of this endpoint is that the numbers are real, so the tests seed activity and
- * assert the counters move by exactly that much. Absolute totals are not available: the Spring
- * context is shared across the suite, so every assertion is on the delta this seed adds - the
- * same approach {@code AdminAnalyticsTest} takes.
- *
- * <p>Two behaviours matter more than the arithmetic and are covered on their own: a reviewer's
- * surname must never leave the service intact, and a catalogue entry nobody has booked must
- * still be listed rather than quietly disappearing.
+ * <p>Two behaviours are covered on their own: a reviewer's surname must never leave the
+ * service intact, and a catalogue entry nobody has booked must still be listed.
  */
 @SpringBootTest
 @ActiveProfiles("test")
@@ -110,8 +106,6 @@ class PublicDataServiceTest {
                 .orElseThrow(() -> new AssertionError("The catalogue is missing " + name));
     }
 
-    // ---------- headline figures ----------
-
     @Test
     void countersMoveWithTheDataBehindThem() {
         PublicStatsResponse stats = publicDataService.getStats();
@@ -171,8 +165,6 @@ class PublicDataServiceTest {
         assertThat(stats.getSatisfactionRate()).isNotNull().isBetween(0, 100);
     }
 
-    // ---------- catalogue ----------
-
     @Test
     void aCategoryCarriesItsOwnTasksWorkersAndRating() {
         PublicServiceResponse painting = serviceNamed(publicDataService.listServices(), "Painting");
@@ -217,8 +209,6 @@ class PublicDataServiceTest {
                 .containsExactlyElementsOf(ServiceCategories.ORDERED);
     }
 
-    // ---------- testimonials ----------
-
     @Test
     void testimonialsQuoteRealReviewsWithTheSurnameMasked() {
         List<PublicTestimonialResponse> testimonials = publicDataService.listTestimonials(5);
@@ -257,16 +247,12 @@ class PublicDataServiceTest {
         assertThat(PublicDataService.maskName(null)).isEqualTo("SewaSathi customer");
     }
 
-    // ---------- open tasks ----------
-
     @Test
     void openTasksAreTheUnclaimedOnesAndCarryNoCustomer() {
         assertThat(publicDataService.listOpenTasks(5))
                 .isNotEmpty()
                 .allSatisfy(task -> assertThat(task.getTitle()).isNotBlank());
     }
-
-    // ---------- contact details ----------
 
     @Test
     void contactDetailsComeFromConfiguration() {

@@ -19,22 +19,16 @@ import java.util.List;
 
 /**
  * Everything a signed-in user can change about their own account: display details, profile
- * photo, and password.
- *
- * <p>Separate from {@link AuthService}, which is about establishing a session rather than
- * maintaining the account behind it. Every method here resolves the account from the
- * authenticated principal's email and never from a client-supplied id, so one user cannot
- * reach another's profile whatever they put in the request body.
+ * photo, and password. Every method resolves the account from the authenticated principal's
+ * email and never from a client-supplied id, so one user cannot reach another's profile.
  */
 @Service
 @RequiredArgsConstructor
 public class UserProfileService {
 
     /**
-     * Profile pictures are images only. {@link FileStorageService} also accepts PDFs and
-     * office documents because it backs identity-document uploads and chat attachments; an
-     * avatar has no reason to be either, and the browser is going to render whatever is
-     * stored here as an image.
+     * Profile pictures are images only. {@link FileStorageService} also accepts PDFs and office
+     * documents for identity uploads and chat attachments; an avatar is rendered as an image.
      */
     private static final List<String> ALLOWED_AVATAR_TYPES =
             List.of("image/jpeg", "image/png", "image/gif", "image/webp");
@@ -59,11 +53,9 @@ public class UserProfileService {
     }
 
     /**
-     * Replaces the profile picture, discarding whatever was there before.
-     *
-     * <p>The previous file is deleted only after the new one is stored and the row is saved:
-     * a failure part-way through leaves an orphaned upload on disk, which is harmless, rather
-     * than a row pointing at a file that no longer exists.
+     * Replaces the profile picture. The previous file is deleted only after the new one is
+     * stored and the row saved, so a part-way failure orphans an upload rather than leaving
+     * a row pointing at a missing file.
      */
     @Transactional
     public UserResponse updateAvatar(String email, MultipartFile photo) {
@@ -105,27 +97,22 @@ public class UserProfileService {
     }
 
     /**
-     * Changes the password and ends every session for the account, including this one.
-     *
-     * <p>A password change is how someone reacts to thinking their account is compromised,
-     * so it would be self-defeating to leave the intruder's existing tokens working. The
-     * client signs the user back in afterwards.
+     * Changes the password and ends every session for the account, including this one - a
+     * password change is how someone reacts to a suspected compromise, so leaving existing
+     * tokens working would defeat it. The client signs the user back in afterwards.
      */
     @Transactional
     public void changePassword(String email, ChangePasswordRequest request) {
         User user = requireUser(email);
 
-        // An account created through Google has no current password to check. Without this the
-        // encoder would simply not match and the user would be told their password is wrong,
-        // which is both untrue and unactionable.
+        // A Google account has no current password to check. Without this the encoder would
+        // not match and the user would be told their password is wrong, which is untrue.
         if (user.getPasswordHash() == null) {
             throw new InvalidOperationException(
                     "This account signs in with Google, so it has no password to change");
         }
 
-        // Reported as a 400, not a 401: the caller's session is perfectly valid, and the
-        // client treats a 401 as an expired token and signs the user out - which is not what
-        // a mistyped password should do.
+        // A 400, not a 401: the session is valid, and the client signs the user out on a 401.
         if (!passwordEncoder.matches(request.getCurrentPassword(), user.getPasswordHash())) {
             throw new InvalidOperationException("Your current password is not correct");
         }
@@ -140,11 +127,9 @@ public class UserProfileService {
     }
 
     /**
-     * Keeps {@code worker_profiles.profile_photo_url} in step with the account's avatar.
-     *
-     * <p>The worker listing and the verification queue read the photo off the profile row,
-     * and the verification upload still writes it there. Mirroring on save means both places
-     * show the same picture without either having to know about the other.
+     * Keeps {@code worker_profiles.profile_photo_url} in step with the account's avatar. The
+     * worker listing and verification queue read the photo off the profile row, so mirroring
+     * on save keeps both showing the same picture.
      */
     private void mirrorOntoWorkerProfile(User user) {
         if (user.getRole() != Role.WORKER) {

@@ -1,18 +1,11 @@
 import { cn } from "../../utils/cn";
 
 /**
- * The dashboard page skeleton, which ten customer pages and every admin and
- * worker page repeated verbatim:
+ * The dashboard page skeleton, shared by every customer, worker and admin page.
  *
- *   <div className="flex min-h-svh flex-1 flex-col">
- *     <SomeHeader />
- *     <main className="flex-1 px-4 py-6 sm:px-6 lg:px-8"> … </main>
- *   </div>
- *
- * `header` is a slot rather than a hardcoded <DashboardHeader/>. That matters:
- * MyProfile switches between the admin and customer headers based on role, and
- * ChatPage takes its header as a `renderHeader` prop — baking one in would
- * break both.
+ * `header` is a slot rather than a hardcoded <DashboardHeader/>: MyProfile switches between
+ * the admin and customer headers by role, and ChatPage takes its header as a `renderHeader`
+ * prop — baking one in would break both.
  */
 
 const WIDTHS = Object.freeze({
@@ -43,12 +36,9 @@ export default function PageShell({
 }
 
 /**
- * Page title block: optional eyebrow and back link, the heading, a lede, and a
- * right-aligned action cluster.
- *
- * This is the dashboard sibling of `User/SectionHeading.jsx` — kept separate
- * rather than merged because SectionHeading wraps itself in `Reveal`, and a
- * dashboard heading that faded in on scroll would feel broken.
+ * Page title block: optional eyebrow and back link, the heading, a lede, and a right-aligned
+ * action cluster. Separate from `User/SectionHeading.jsx`, which wraps itself in `Reveal` —
+ * a dashboard heading that faded in on scroll would feel broken.
  */
 export function PageHeader({
   eyebrow,

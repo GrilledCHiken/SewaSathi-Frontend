@@ -7,9 +7,8 @@ import lombok.Getter;
 import lombok.Setter;
 
 /**
- * Starts a password reset. The address is the whole request: whoever is asking has, by
- * definition, lost the credential that would otherwise identify them, so the only thing that
- * can be proved is control of the mailbox.
+ * Starts a password reset. The address is the whole request - the caller has lost the
+ * credential, so control of the mailbox is the only thing they can prove.
  */
 @Getter
 @Setter

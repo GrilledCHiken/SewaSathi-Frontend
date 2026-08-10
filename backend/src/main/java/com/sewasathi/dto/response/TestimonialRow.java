@@ -5,11 +5,9 @@ import lombok.Getter;
 import java.time.LocalDateTime;
 
 /**
- * A review as it leaves the database, still carrying the reviewer's full name.
- *
- * <p>This type is internal to {@link com.sewasathi.service.PublicDataService}, which masks the
- * name before building the {@link PublicTestimonialResponse} that anonymous callers receive.
- * Keeping the two apart is what stops the unmasked name from reaching the wire by accident.
+ * A review as it leaves the database, still carrying the reviewer's full name. Internal to
+ * {@link com.sewasathi.service.PublicDataService}, which masks the name before building the
+ * {@link PublicTestimonialResponse} anonymous callers receive.
  */
 @Getter
 public class TestimonialRow {

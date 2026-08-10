@@ -14,27 +14,20 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * Decides who may read an uploaded file.
+ * Decides who may read an uploaded file. Every read resolves the file back to the record that
+ * references it and checks the caller against that, because identity documents live in the
+ * same directory as everything else.
  *
- * <p>Uploads used to be served straight off disk by a static resource handler mapped to
- * {@code /uploads/**}, which Spring Security permitted anonymously. Because a worker's
- * police clearance certificate and citizenship document are stored there, anyone holding
- * (or guessing) a URL could read another person's identity papers. This class is the
- * replacement: every read now resolves the file back to the record that references it and
- * checks the caller against it.
- *
- * <p>Access rules, which differ by what the file actually is:
+ * <p>Access rules differ by what the file is:
  * <ul>
  *   <li><b>Chat attachments</b> - the two participants of the conversation, and admins.</li>
  *   <li><b>Identity documents</b> - the owning worker and admins only.</li>
- *   <li><b>Profile photos and account avatars</b> - any signed-in user, because they are
- *       shown on the worker browse cards and next to their author in chat. Locking these
- *       down would break those views, and a profile picture is not sensitive in the way an
- *       ID document is.</li>
+ *   <li><b>Profile photos and account avatars</b> - any signed-in user, since they appear on
+ *       the worker browse cards and next to their author in chat.</li>
  * </ul>
  *
- * <p>Denials are reported as "not found" rather than "forbidden": confirming that a given
- * filename exists would leak information to someone probing for other people's uploads.
+ * <p>Denials are reported as "not found": confirming a filename exists would help someone
+ * probing for other people's uploads.
  */
 @Service
 @RequiredArgsConstructor
@@ -86,8 +79,7 @@ public class FileAccessService {
             return;
         }
 
-        // Nothing in the database references this file. It is either deleted or was never
-        // ours; either way there is no owner to authorise the read against.
+        // Nothing in the database references this file, so there is no owner to check against.
         throw notFound(filename);
     }
 

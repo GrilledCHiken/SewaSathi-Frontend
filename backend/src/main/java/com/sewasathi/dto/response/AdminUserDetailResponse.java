@@ -12,13 +12,9 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 /**
- * The full account record behind the admin console's user detail modal.
- *
- * <p>This is the union of {@link PendingWorkerResponse} (verification documents) and
- * {@link WorkerSummaryResponse} (ratings and completed tasks) - an admin reviewing an
- * account wants both, and neither existing DTO carries the two sets together. The list
- * endpoint keeps returning the slimmer {@link AdminUserResponse}, so the extra join is
- * only paid for when a row is actually opened.
+ * The full account record behind the admin console's user detail modal: the union of
+ * {@link PendingWorkerResponse} and {@link WorkerSummaryResponse}. The list endpoint returns
+ * the slimmer {@link AdminUserResponse}, so the extra join is paid only when a row is opened.
  */
 @Getter
 @AllArgsConstructor

@@ -14,14 +14,6 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
-/**
- * Creates the first administrator so a fresh clone can sign in to {@code /admin}.
- *
- * <p>Runs only when {@code app.admin.bootstrap.enabled} is true - the production profile
- * sets it to false, because a well-known default administrator is exactly the account an
- * attacker tries first. It is also a no-op whenever any ADMIN already exists, so it never
- * resurrects an account that was deliberately removed or overwrites a changed password.
- */
 @Configuration
 @ConditionalOnProperty(name = "app.admin.bootstrap.enabled", havingValue = "true")
 @RequiredArgsConstructor

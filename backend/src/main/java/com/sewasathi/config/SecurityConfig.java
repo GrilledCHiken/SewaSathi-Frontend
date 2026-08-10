@@ -30,8 +30,6 @@ import java.util.List;
 
 @Configuration
 @EnableWebSecurity
-// Enables @PreAuthorize/@PostAuthorize on service methods. The URL rules below stay as the
-// coarse first line; method annotations add a second, closer to the data they protect.
 @EnableMethodSecurity
 @RequiredArgsConstructor
 public class SecurityConfig {
@@ -39,10 +37,7 @@ public class SecurityConfig {
     private final JwtAuthFilter jwtAuthFilter;
     private final UserDetailsService userDetailsService;
 
-    /**
-     * Comma-separated origins allowed to call the API. Externalised so production does
-     * not inherit the localhost dev origins.
-     */
+    /** Comma-separated origins allowed to call the API. Override in production. */
     @Value("${app.cors.allowed-origins:http://localhost:5173,http://localhost:5174}")
     private String[] allowedOrigins;
 
@@ -78,16 +73,9 @@ public class SecurityConfig {
     }
 
     /**
-     * Session-backed chain for the server-rendered admin console.
-     *
-     * <p>Ordered first so it claims {@code /admin/**} before the stateless API chain below
-     * sees it. The two surfaces authenticate completely differently - a session cookie here,
-     * a bearer token there - and the settings that make one safe make the other unusable,
-     * which is precisely why they are separate chains rather than one chain with exceptions.
-     *
-     * <p>CSRF is <em>on</em> here. Unlike the API chain, this one authenticates from an
-     * ambient cookie the browser attaches to any cross-site form post, so a forged request
-     * would otherwise carry the admin's credentials.
+     * Session-backed chain for the server-rendered admin console. Ordered first so it claims
+     * {@code /admin/**} before the stateless API chain. CSRF is on here because this chain
+     * authenticates from an ambient cookie the browser attaches to any cross-site form post.
      */
     @Bean
     @Order(1)
@@ -100,10 +88,8 @@ public class SecurityConfig {
                         .frameOptions(frame -> frame.deny())
                         .referrerPolicy(referrer -> referrer.policy(
                                 ReferrerPolicyHeaderWriter.ReferrerPolicy.STRICT_ORIGIN_WHEN_CROSS_ORIGIN))
-                        // Deliberately looser than the API chain's "default-src 'none'; sandbox",
-                        // which would blank these pages: they legitimately load their own
-                        // stylesheet and script. Still no third-party origins, and no inline
-                        // script - app.js is a separate file so this can stay 'self'.
+                        // Looser than the API chain's "default-src 'none'; sandbox", which would
+                        // blank these pages: they load their own stylesheet and script.
                         .contentSecurityPolicy(csp -> csp.policyDirectives(
                                 "default-src 'self'; img-src 'self' data:; frame-ancestors 'none'; "
                                         + "base-uri 'self'; form-action 'self'"))
@@ -113,11 +99,9 @@ public class SecurityConfig {
                 )
                 .sessionManagement(session -> session
                         .sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED)
-                        // Issue a fresh session id on login so a session fixed by an attacker
-                        // before sign-in cannot be reused after it.
+                        // Fresh session id on login, so a session fixed before sign-in
+                        // cannot be reused after it.
                         .sessionFixation(fixation -> fixation.migrateSession())
-                        // Where the browser lands when it presents a session the server has
-                        // already timed out - see server.servlet.session.timeout.
                         .invalidSessionUrl("/admin/login?expired")
                         .sessionConcurrency(concurrency -> concurrency
                                 .maximumSessions(1)
@@ -125,8 +109,8 @@ public class SecurityConfig {
                                 .expiredUrl("/admin/login?expired"))
                 )
                 .authorizeHttpRequests(auth -> auth
-                        // /admin/denied must be reachable by the very users it exists to turn
-                        // away - a signed-in CUSTOMER - so it cannot sit behind hasRole("ADMIN").
+                        // /admin/denied must stay reachable by the signed-in non-admins it
+                        // exists to turn away, so it cannot sit behind hasRole("ADMIN").
                         .requestMatchers("/admin/login", "/admin/assets/**", "/admin/denied").permitAll()
                         .anyRequest().hasRole("ADMIN")
                 )
@@ -144,7 +128,6 @@ public class SecurityConfig {
                         .clearAuthentication(true)
                         .deleteCookies("JSESSIONID")
                 )
-                // A signed-in non-admin gets the styled 403 page rather than a raw status.
                 .exceptionHandling(ex -> ex.accessDeniedPage("/admin/denied"))
                 .authenticationProvider(authenticationProvider());
 
@@ -152,9 +135,9 @@ public class SecurityConfig {
     }
 
     /**
-     * Concurrency control ({@code maximumSessions} above) only notices a session ending if
-     * the container publishes session lifecycle events. Without this, expired and logged-out
-     * sessions linger in the registry and an admin eventually locks themselves out.
+     * Concurrency control ({@code maximumSessions} above) only notices a session ending if the
+     * container publishes lifecycle events. Without this, dead sessions linger in the registry
+     * and an admin eventually locks themselves out.
      */
     @Bean
     public HttpSessionEventPublisher httpSessionEventPublisher() {
@@ -165,11 +148,8 @@ public class SecurityConfig {
     @Order(2)
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
-                // CSRF is disabled because this filter chain is stateless and authenticates
-                // from an Authorization header, never an ambient cookie - so a cross-site
-                // form post carries no credentials and has nothing to forge. The
-                // session-backed admin chain above, which does authenticate from a cookie,
-                // keeps CSRF switched on.
+                // Safe to disable: this chain is stateless and authenticates from an
+                // Authorization header, so a cross-site form post carries no credentials.
                 .csrf(csrf -> csrf.disable())
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .headers(headers -> headers
@@ -177,9 +157,8 @@ public class SecurityConfig {
                         .frameOptions(frame -> frame.deny())
                         .referrerPolicy(referrer -> referrer.policy(
                                 ReferrerPolicyHeaderWriter.ReferrerPolicy.STRICT_ORIGIN_WHEN_CROSS_ORIGIN))
-                        // The API returns JSON, never HTML that loads sub-resources, so the
-                        // policy can be maximally restrictive. It matters because an uploaded
-                        // file served from this origin would otherwise be a script vector.
+                        // The API returns only JSON, so the policy can be maximally restrictive:
+                        // an uploaded file served from this origin would be a script vector.
                         .contentSecurityPolicy(csp -> csp.policyDirectives(
                                 "default-src 'none'; frame-ancestors 'none'; sandbox"))
                         .httpStrictTransportSecurity(hsts -> hsts
@@ -196,28 +175,25 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/error").permitAll()
                         .requestMatchers("/ws/**").permitAll()
-                        // /uploads/** is deliberately absent. It used to be permitAll, which
-                        // served workers' citizenship and police-clearance documents to
-                        // anyone with the URL. Uploads now go through /api/files/**, which
-                        // checks ownership per file.
+                        // /uploads/** is deliberately absent: serving it directly would expose
+                        // citizenship and police-clearance documents to anyone with the URL.
+                        // /api/files/** checks ownership per file instead.
                         .requestMatchers("/api/files/**").authenticated()
-                        // Liveness probes must work without credentials; everything that
-                        // could leak configuration or metrics is admin-only.
+                        // Liveness probes must work without credentials; anything that could
+                        // leak configuration or metrics is admin-only.
                         .requestMatchers("/actuator/health", "/actuator/health/**", "/actuator/info").permitAll()
                         .requestMatchers("/actuator/**").hasRole("ADMIN")
-                        // "Sign out everywhere" acts on the caller's own account, so it needs
-                        // a token. Everything else under /api/auth is reachable
-                        // pre-authentication by definition - including /refresh, whose whole
-                        // purpose is to run once the access token has already expired.
+                        // "Sign out everywhere" acts on the caller's own account, so it needs a
+                        // token. The rest of /api/auth is pre-authentication by definition,
+                        // including /refresh, which runs once the access token has expired.
                         .requestMatchers(HttpMethod.POST, "/api/auth/logout-all").authenticated()
                         .requestMatchers("/api/auth/**").permitAll()
                         .requestMatchers("/api/notifications/**").authenticated()
                         .requestMatchers(HttpMethod.POST, "/api/contact").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/newsletter/subscribe").permitAll()
-                        // The marketing pages are served to visitors who have no account, so the
-                        // figures on them have to be readable without one. GET only, and
-                        // PublicController returns nothing but aggregates and anonymised rows -
-                        // it takes no id and cannot be pointed at an individual's record.
+                        // Marketing pages are read by visitors with no account. GET only, and
+                        // PublicController returns aggregates and anonymised rows - it takes
+                        // no id and cannot be pointed at an individual's record.
                         .requestMatchers(HttpMethod.GET, "/api/public/**").permitAll()
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.POST, "/api/tasks").hasRole("CUSTOMER")

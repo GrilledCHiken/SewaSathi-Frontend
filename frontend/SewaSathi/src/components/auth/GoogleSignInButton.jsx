@@ -6,14 +6,12 @@ import Spinner from "../ui/Spinner";
  * The "Sign in with Google" button, under an "or" divider, for the login and customer signup
  * screens.
  *
- * Google renders the button itself rather than us styling one to match the design system. That
- * is deliberate: it is what Google's branding terms ask for, and `renderButton` is the
- * supported path — it carries the FedCM plumbing that a hand-rolled button would have to
- * reimplement. The trade is that it will never look quite like the Sign In button above it;
- * `width` is matched to the container so the two at least line up.
+ * Google renders the button itself: `renderButton` is the supported path and carries the FedCM
+ * plumbing a hand-rolled button would have to reimplement. `width` is matched to the container
+ * so it lines up with the Sign In button above.
  *
- * With no `VITE_GOOGLE_CLIENT_ID` configured this renders nothing at all, so a clone without
- * Google credentials degrades to password-only instead of showing a button that cannot work.
+ * With no `VITE_GOOGLE_CLIENT_ID` configured this renders nothing, so a clone without Google
+ * credentials degrades to password-only rather than showing a button that cannot work.
  */
 
 /** GSI refuses widths above 400px. The signup card is wider than that. */
@@ -24,9 +22,8 @@ export default function GoogleSignInButton({ onCredential, text = "signin_with",
   const { status, api } = useGoogleIdentity();
   const containerRef = useRef(null);
 
-  // The callback is handed to Google once, at initialize time, but the handler it should call
-  // changes with every render. Reading it through a ref keeps the two independent — otherwise
-  // re-initializing on each render would tear the rendered button down mid-click.
+  // The callback is handed to Google once at initialize time but the handler changes every
+  // render, so it is read through a ref — re-initializing would tear the button down mid-click.
   const handlerRef = useRef(onCredential);
   useEffect(() => {
     handlerRef.current = onCredential;

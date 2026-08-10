@@ -7,14 +7,8 @@ import { CheckIcon } from "../ui/icons";
  * The split auth shell: a navy marketing panel at lg and up, the form on the
  * right, and a mobile logo row when the panel is hidden.
  *
- * Login, SignupOption, UserSignup and WorkerSignup each carried their own copy
- * of this markup along with their own inlined brand mark, which is how the four
- * screens drifted apart — different card widths, different aside content, and
- * in one case no aside at all.
- *
- * The aside is overridable because the worker signup wants a different pitch
- * from the customer one, but it defaults to the customer-facing panel that
- * Login already used.
+ * Shared by Login, SignupOption, UserSignup and WorkerSignup. The aside is overridable —
+ * worker signup wants a different pitch — but defaults to the customer-facing panel.
  */
 
 const TRUST_POINTS = [

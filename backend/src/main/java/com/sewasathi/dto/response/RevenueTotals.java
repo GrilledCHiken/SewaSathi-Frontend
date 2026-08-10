@@ -15,10 +15,7 @@ public class RevenueTotals {
     private final BigDecimal platformFees;
     private final long paymentCount;
 
-    /**
-     * An aggregate-only query still returns a row when nothing matched, with null sums -
-     * hence the normalising, so an empty window reads as zero rather than as missing data.
-     */
+    /** An aggregate-only query returns a row with null sums when nothing matched. */
     public RevenueTotals(BigDecimal grossValue, BigDecimal platformFees, Long paymentCount) {
         this.grossValue = grossValue != null ? grossValue : BigDecimal.ZERO;
         this.platformFees = platformFees != null ? platformFees : BigDecimal.ZERO;

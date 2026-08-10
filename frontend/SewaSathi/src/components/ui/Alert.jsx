@@ -10,15 +10,11 @@ import {
  * Inline message block — advance-payment notices, "account created", sandbox
  * warnings, load failures with a retry.
  *
- * Consolidates four different error treatments that coexisted: a toast, an
- * inline red panel with a retry button, plain muted text, and the global
- * ErrorBoundary. Toasts stay for transient mutation feedback; this is for
- * state that belongs on the page.
+ * Toasts stay for transient mutation feedback; this is for state that belongs on the page.
  *
- * `role` is a pass-through and deliberately not defaulted. An alert rendered on
- * mount is just content and needs nothing; one that appears in response to a
- * user action wants `role="status"`. Defaulting it to `alert` would make every
- * static notice shout on page load.
+ * `role` is a pass-through and deliberately not defaulted. An alert rendered on mount is
+ * just content; one that appears in response to a user action wants `role="status"`.
+ * Defaulting to `alert` would make every static notice shout on page load.
  */
 
 const DEFAULT_ICONS = Object.freeze({

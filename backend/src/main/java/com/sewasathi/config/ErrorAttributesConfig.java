@@ -10,13 +10,9 @@ import org.springframework.web.context.request.WebRequest;
 import java.util.Map;
 
 /**
- * Adds the request's correlation id to the model behind the error pages (requirement #8),
- * so the reference a user reads off the screen is the same string that tags every log line
- * the failed request produced.
- *
- * <p>Read from a request attribute rather than the MDC: {@link CorrelationIdFilter} clears
- * the MDC when the original dispatch unwinds, which is before the container dispatches to
- * {@code /error}. Request attributes survive that hop.
+ * Adds the correlation id to the error-page model (requirement #8). Read from a request
+ * attribute rather than the MDC, which {@link CorrelationIdFilter} clears before the
+ * container dispatches to {@code /error}.
  */
 @Configuration
 public class ErrorAttributesConfig {

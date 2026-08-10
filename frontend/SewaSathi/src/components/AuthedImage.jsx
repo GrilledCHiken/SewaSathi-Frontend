@@ -9,9 +9,8 @@ import { fetchFileObjectUrl } from "../api/fileApi";
  * the source changes, otherwise every image the user scrolls past leaks a blob.
  */
 export default function AuthedImage({ storedUrl, alt, className, onClick }) {
-  // Keyed by the source it belongs to. When the prop changes we reset during render —
-  // React's documented pattern for prop-derived state — rather than clearing it inside the
-  // effect, which would queue an extra render pass on every image.
+  // Keyed by its source and reset during render rather than in the effect, which would
+  // queue an extra render pass on every image.
   const [state, setState] = useState({ src: storedUrl, objectUrl: null, failed: false });
 
   if (state.src !== storedUrl) {

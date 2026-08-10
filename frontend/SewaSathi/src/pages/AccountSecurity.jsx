@@ -10,25 +10,12 @@ import Button from "../components/ui/Button";
 import ToggleSwitch from "../components/ui/ToggleSwitch";
 import { BellIcon, ShieldIcon } from "../components/ui/icons";
 
-/**
- * Account security.
- *
- * This page previously rendered no header at all — it started straight at a
- * centred column. Since DashboardLayout is only a sidebar plus a bare Outlet,
- * that left /dashboard/security with no page title and, more seriously, no
- * hamburger button: on a phone the sidebar was unreachable from this route.
- * Adding the shared header fixes both.
- */
 export default function AccountSecurity() {
   const [signingOutEverywhere, setSigningOutEverywhere] = useState(false);
   const desktopAlerts = useDesktopNotifications();
   const { logoutEverywhere } = useAuth();
   const navigate = useNavigate();
 
-  /**
-   * Permission is requested from this click and nowhere else. Browsers reject a prompt that
-   * is not tied to a user gesture, and Chrome permanently blocks sites that ask on load.
-   */
   const toggleDesktopAlerts = async () => {
     if (desktopAlerts.enabled) {
       desktopAlerts.disable();

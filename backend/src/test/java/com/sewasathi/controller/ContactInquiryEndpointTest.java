@@ -89,8 +89,6 @@ class ContactInquiryEndpointTest {
                 .orElseThrow(() -> new AssertionError("The inquiry was not persisted"));
     }
 
-    // ---------- submission and delivery ----------
-
     @Test
     void anAnonymousInquiry_isStoredUnhandled() throws Exception {
         submitInquiry();
@@ -120,8 +118,6 @@ class ContactInquiryEndpointTest {
             assertThat(notification.isRead()).isFalse();
         });
     }
-
-    // ---------- the admin inbox ----------
 
     @Test
     void anAdmin_readsTheInquiryInFull() throws Exception {
@@ -172,9 +168,8 @@ class ContactInquiryEndpointTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.handled").value(false));
 
-        // Asserted against the row rather than the JSON: a null field and an absent one are
-        // indistinguishable to jsonPath, so only this proves the timestamp was actually
-        // cleared instead of left describing a state the row is no longer in.
+        // Asserted against the row, not the JSON: a null field and an absent one are
+        // indistinguishable to jsonPath.
         ContactMessage reopened = contactMessageRepository.findById(id).orElseThrow();
         assertThat(reopened.isHandled()).isFalse();
         assertThat(reopened.getHandledAt()).isNull();
@@ -197,8 +192,6 @@ class ContactInquiryEndpointTest {
                         .with(user("admin").roles("ADMIN")))
                 .andExpect(status().isNotFound());
     }
-
-    // ---------- authorization ----------
 
     @Test
     void aNonAdmin_cannotReadTheInbox() throws Exception {

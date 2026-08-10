@@ -85,7 +85,6 @@ export default function NewsletterPopup() {
   useEffect(() => {
     if (!open) return undefined;
 
-    // Escape closes it, like any other dialog.
     const onKeyDown = (event) => {
       if (event.key === "Escape") dismiss();
     };

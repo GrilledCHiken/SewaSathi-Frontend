@@ -1,11 +1,8 @@
 /**
  * Barrel for the shared UI layer.
  *
- * Note on bundling: this file is reachable from the eagerly-loaded Home page as
- * well as from every lazy route, so anything re-exported here lands in the main
- * chunk. Keep that in mind for heavier primitives — `Modal` pulls in
- * react-dom/createPortal, so a page that only needs a dialog is better off
- * importing it directly from "./ui/Modal" than through the barrel.
+ * Reachable from the eagerly-loaded Home page, so anything re-exported here lands in the main
+ * chunk. Import heavier primitives directly — `Modal` pulls in react-dom/createPortal.
  */
 
 export { default as Button } from "./Button";

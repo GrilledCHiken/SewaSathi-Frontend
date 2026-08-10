@@ -49,12 +49,9 @@ public interface PaymentRepository extends JpaRepository<Payment, Long> {
     List<Payment> findByTaskIdInAndStatus(Collection<Long> taskIds, PaymentStatus status);
 
     /**
-     * Which of these tasks have a payment in the given state. Answers "has the advance
-     * settled?" for a whole conversation in one round-trip, where
-     * {@link #existsByTaskIdAndTypeAndStatus} would cost a query per task.
-     *
-     * <p>Deliberately blind to {@link PaymentType}: a settled balance implies a settled
-     * advance, so "any payment cleared" is the same question for the caller that unlocks chat.
+     * Which of these tasks have a payment in the given state - one round-trip where
+     * {@link #existsByTaskIdAndTypeAndStatus} would cost a query per task. Blind to
+     * {@link PaymentType}, since a settled balance implies a settled advance.
      */
     @Query("select p.task.id from Payment p where p.task.id in :taskIds and p.status = :status")
     List<Long> findTaskIdsByTaskIdInAndStatus(
@@ -63,14 +60,10 @@ public interface PaymentRepository extends JpaRepository<Payment, Long> {
 
     /**
      * Revenue by month and gateway, for the report in
-     * {@link com.sewasathi.service.ReportService} (requirement #14).
-     *
-     * <p>Grouped with JPQL's {@code year()}/{@code month()} rather than a native
-     * {@code date_format}, so the same query runs on MySQL in production and on H2 in tests.
-     *
-     * <p>Restricted to {@link PaymentType#ADVANCE}. {@code sum(p.taskTotal)} is the value of
-     * the work booked, and each leg of a task carries the same budget snapshot - counting
-     * both would report every fully-paid task's value twice.
+     * {@link com.sewasathi.service.ReportService} (requirement #14). Grouped with JPQL's
+     * {@code year()}/{@code month()} rather than a native {@code date_format}, so it runs on
+     * both MySQL and H2. Restricted to {@link PaymentType#ADVANCE} because both legs carry the
+     * same budget snapshot, and counting both would double every fully-paid task.
      */
     @Query("""
             select new com.sewasathi.dto.report.RevenueReportRow(
@@ -90,12 +83,9 @@ public interface PaymentRepository extends JpaRepository<Payment, Long> {
 
     /**
      * Money settled in a window, for the admin analytics dashboard. Ungrouped, so it always
-     * returns exactly one row - with null sums when nothing matched, which
-     * {@link RevenueTotals} folds to zero.
-     *
-     * <p>Advances only, for the same reason as {@link #revenueByMonthAndProvider}: gross
-     * value is the budget of each booking, and the platform's cut is the advance. A balance
-     * leg passes through to the worker, so counting it would inflate both.
+     * returns one row - with null sums when nothing matched, which {@link RevenueTotals} folds
+     * to zero. Advances only, as in {@link #revenueByMonthAndProvider}: a balance leg passes
+     * through to the worker, so counting it would inflate both figures.
      */
     @Query("""
             select new com.sewasathi.dto.response.RevenueTotals(

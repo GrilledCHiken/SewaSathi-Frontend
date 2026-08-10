@@ -2,14 +2,11 @@ import { cn } from "../../utils/cn";
 import { toneOf } from "./tones";
 
 /**
- * A labelled proportion bar — CSS only, no chart library.
+ * A labelled proportion bar — CSS only, no chart library. Used by the breakdown bars in
+ * `Admin/AnalyticsWidget.jsx`.
  *
- * Generalised from the breakdown bars in `Admin/AnalyticsWidget.jsx`, which
- * were the app's existing answer to "show a distribution without adding a
- * charting dependency". That answer was the right one; it just wasn't reusable.
- *
- * Exposed as a real `progressbar` with min/max/now so the value is available to
- * assistive tech rather than being conveyed by bar width alone.
+ * Exposed as a real `progressbar` with min/max/now, so the value reaches assistive tech
+ * rather than being conveyed by bar width alone.
  */
 export default function Meter({
   label,

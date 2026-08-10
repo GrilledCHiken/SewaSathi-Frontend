@@ -6,11 +6,9 @@ import lombok.Builder;
 import lombok.Getter;
 
 /**
- * What registration answers with now: not an account, but a challenge. The account is only
- * created once the code emailed to {@link #email} is posted back with {@link #challengeToken}.
- *
- * <p>The two countdowns are sent as durations rather than timestamps so the client does not
- * have to trust its own clock against the server's to render them.
+ * A challenge rather than an account: the account is created only once the code emailed to
+ * {@link #email} is posted back with {@link #challengeToken}. The countdowns are durations
+ * rather than timestamps, so the client need not trust its own clock against the server's.
  */
 @Getter
 @Builder

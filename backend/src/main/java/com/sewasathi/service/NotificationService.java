@@ -21,9 +21,9 @@ import java.util.List;
  * In-app notifications: persisted so they survive a reload or an offline period, and pushed
  * live over the STOMP broker the chat feature already uses.
  *
- * <p>Delivery is to a per-user destination ({@code /user/queue/notifications}) rather than a
- * shared topic, so Spring's user-destination routing does the access control and one account
- * cannot subscribe to another's stream.
+ * <p>Delivery is to a per-user destination ({@code /user/queue/notifications}), so Spring's
+ * user-destination routing does the access control and one account cannot subscribe to
+ * another's stream.
  */
 @Service
 @RequiredArgsConstructor

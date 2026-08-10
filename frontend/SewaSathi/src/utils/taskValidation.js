@@ -1,6 +1,6 @@
-// Post-a-task validation. Kept separate from utils/validation.js, which is deliberately
-// scoped to signup/auth. The rules here mirror what CreateTaskRequest + TaskService enforce
-// on the server, so a form that passes should never come back with a 400.
+// Post-a-task validation, separate from utils/validation.js, which is scoped to signup/auth.
+// Mirrors what CreateTaskRequest and TaskService enforce, so a form that passes here should
+// never come back with a 400.
 
 export const SERVICE_CATEGORIES = [
   'Furniture Assembly',
@@ -30,9 +30,7 @@ export const MAX_DESCRIPTION = 2000
 export const MAX_CITY = 60
 export const MAX_LOCATION = 100
 
-// The budget column is precision 10 / scale 2, so anything at or above 100,000,000 - or with
-// a third decimal - is a database error rather than a validation one. These ceilings keep the
-// value well inside that, and the floors stop NPR 1 tasks.
+// Kept inside the budget column's precision 10 / scale 2; the floors stop NPR 1 tasks.
 export const MIN_BUDGET = 100
 export const MAX_BUDGET = 1_000_000
 export const MIN_HOURLY_RATE = 50
@@ -41,8 +39,8 @@ export const MAX_HOURLY_RATE = 100_000
 // How far ahead a due date may be set.
 export const MAX_DUE_DATE_YEARS = 1
 
-// Fields the form renders an inline error slot for - passed to parseFieldError so a server
-// message can only ever be pinned under an input the user can actually act on.
+// Fields with an inline error slot. Passed to parseFieldError so a server message can only
+// be pinned under an input the user can act on.
 export const TASK_ERROR_FIELDS = [
   'title',
   'category',
@@ -55,9 +53,8 @@ export const TASK_ERROR_FIELDS = [
   'timePreference',
 ]
 
-// Built from local date parts rather than toISOString(), which converts to UTC first: in Nepal
-// (UTC+05:45) that returns yesterday's date at any local time before 05:45, which would let the
-// picker offer - and validate() accept - a date that is already in the past.
+// Built from local date parts; toISOString() converts to UTC first, which in Nepal
+// (UTC+05:45) returns yesterday before 05:45 and would let a past date through.
 const toISODate = (date) => {
   const month = String(date.getMonth() + 1).padStart(2, '0')
   const day = String(date.getDate()).padStart(2, '0')
@@ -75,9 +72,8 @@ export const maxDueDateISO = () => {
 const formatAmount = (value) => value.toLocaleString('en-US')
 
 /**
- * Parses a money field. Deliberately stricter than Number(): the pattern rejects "-500",
- * "1e5" (which Number happily turns into 100000), "1.999" (the column only keeps two
- * decimals) and "abc" through the same path, so every bad input gets the same message.
+ * Parses a money field. Stricter than Number(): rejects "-500", "1e5" (which Number turns
+ * into 100000), "1.999" and "abc" through the same path, so every bad input reads alike.
  */
 export const parseAmount = (raw = '') => {
   const trimmed = String(raw).trim()
@@ -101,10 +97,7 @@ const validateAmount = (raw, { min, max, label }) => {
   return null
 }
 
-/**
- * Returns an errors object keyed by field name - same shape validateSignupForm returns, so the
- * page keeps its existing `errors` state contract. Empty object means the form is valid.
- */
+/** Errors keyed by field name, same shape as validateSignupForm. Empty means valid. */
 export const validateTaskForm = (form) => {
   const errors = {}
 
@@ -157,8 +150,8 @@ export const validateTaskForm = (form) => {
     if (message) errors.budget = message
   }
 
-  // Optional, but once something is typed it has to be usable - Number("abc") is NaN, which
-  // used to serialise to null and drop the value without telling anyone.
+  // Optional, but once typed it has to be usable: Number("abc") is NaN, which serialises to
+  // null and would drop the value silently.
   if (form.hourlyRate.trim()) {
     const message = validateAmount(form.hourlyRate, {
       min: MIN_HOURLY_RATE,

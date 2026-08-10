@@ -20,12 +20,9 @@ export function onUnauthorized(handler) {
 }
 
 /**
- * In-flight refresh, shared by every request that hits a 401 at the same time.
- *
- * Without this, a page that fires several requests on mount would start several refreshes
- * at once. The server rotates on every exchange and treats a replayed token as theft, so
- * the second refresh would present an already-spent token and revoke the whole session —
- * turning an expired access token into a forced sign-out.
+ * In-flight refresh, shared by every request that hits a 401 at the same time. The server
+ * rotates on every exchange and treats a replayed token as theft, so concurrent refreshes
+ * would revoke the whole session — turning an expired access token into a forced sign-out.
  */
 let refreshPromise = null;
 

@@ -17,17 +17,8 @@ import org.hibernate.annotations.CreationTimestamp;
 import java.time.LocalDateTime;
 
 /**
- * A password reset in flight. Someone has asked to reset the password on an account and a
- * six-digit code has gone out to its address; this row is what the code is checked against
- * and what authorises the new password at the far end (see
- * {@link com.sewasathi.service.PasswordResetService}).
- *
- * <p>Kept in its own table rather than as columns on {@code users}, for the same reason
- * {@link PendingRegistration} is: a reset is a short-lived side quest, and hanging its
- * bookkeeping off the accounts table would mean every account carries five columns that are
- * null almost all of the time.
- *
- * <p>Only the hash of the code is stored, never the code itself.
+ * A password reset in flight: the row a six-digit code is checked against, and what
+ * authorises the new password at the far end. Only the hash of the code is stored.
  */
 @Entity
 @Table(name = "password_reset_challenges", indexes = {
@@ -47,9 +38,8 @@ public class PasswordResetChallenge {
     private Long id;
 
     /**
-     * The account being reset. A plain id rather than a {@code @ManyToOne}: this row never
-     * reads anything off the user until the very last step, and a relation would drag the
-     * account into every expiry sweep for no benefit.
+     * A plain id rather than {@code @ManyToOne}: nothing is read off the user until the last
+     * step, and a relation would drag the account into every expiry sweep.
      */
     @Column(name = "user_id", nullable = false)
     private Long userId;
@@ -63,9 +53,8 @@ public class PasswordResetChallenge {
     private String otpHash;
 
     /**
-     * Opaque handle the client quotes when submitting the code. The email address would have
-     * worked as a key, but then anyone could aim guesses at an address they do not control;
-     * a random token means only whoever asked for the reset can spend the attempts.
+     * Opaque handle the client quotes when submitting the code. Keyed on a random token
+     * rather than the email so nobody can spend the attempts on an address they don't own.
      */
     @Column(name = "challenge_token", nullable = false, unique = true, length = 36)
     private String challengeToken;
@@ -83,10 +72,8 @@ public class PasswordResetChallenge {
     private LocalDateTime lastSentAt;
 
     /**
-     * Stamped when the code is accepted, and the only thing that separates this from
-     * {@link PendingRegistration}: the row outlives its code so the caller can come back with
-     * a new password. Null here means the code step has not been passed and the password
-     * step must refuse.
+     * Stamped when the code is accepted. Null means the code step has not been passed and the
+     * password step must refuse.
      */
     @Column(name = "verified_at")
     private LocalDateTime verifiedAt;

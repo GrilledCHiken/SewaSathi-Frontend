@@ -32,12 +32,9 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * Generates the admin reports (requirement #14) with JasperReports.
- *
- * <p>Compiling a {@code .jrxml} is expensive - it generates and compiles Java for every
- * expression in the template - so each design is compiled once on first use and cached.
- * The cache is keyed by {@link ReportType}, which is a closed set, so it cannot grow without
- * bound.
+ * Generates the admin reports (requirement #14) with JasperReports. Compiling a {@code .jrxml}
+ * generates and compiles Java for every expression in it, so each design is compiled once and
+ * cached under {@link ReportType} - a closed set, so the cache cannot grow without bound.
  */
 @Service
 @RequiredArgsConstructor

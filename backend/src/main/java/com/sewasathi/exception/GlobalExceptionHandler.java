@@ -16,9 +16,8 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 /**
  * Turns exceptions into JSON error bodies for the REST API.
  *
- * <p>Scoped to {@code @RestController} beans only. Left unrestricted it would also intercept
- * the server-rendered admin console, and a browser asking for an HTML page would be answered
- * with a JSON object instead of the styled error page under {@code templates/error/}.
+ * <p>Scoped to {@code @RestController} beans only; unrestricted it would also intercept the
+ * server-rendered console and answer HTML page requests with JSON.
  */
 @RestControllerAdvice(annotations = RestController.class)
 @RequiredArgsConstructor

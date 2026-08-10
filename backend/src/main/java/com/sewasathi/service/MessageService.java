@@ -29,16 +29,10 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- * Chat is one-to-one between a customer and a worker. A conversation covers every
- * task the two share, so hiring the same worker again continues the same thread
- * instead of starting a new one.
- *
- * <p>Threads only exist once the customer's advance has settled - see
- * {@link ChatAccessService}.
- *
- * <p>Live updates go out on two streams. The conversation topic reaches whoever has that
- * thread open; the recipient's personal queue reaches them wherever they are in the app, which
- * is what keeps the unread badges moving while the thread is closed.
+ * Chat is one-to-one between a customer and a worker, and a conversation covers every task the
+ * two share. Threads exist only once the advance has settled - see {@link ChatAccessService}.
+ * Live updates go out on two streams: the conversation topic for whoever has the thread open,
+ * and the recipient's personal queue, which keeps unread badges moving while it is closed.
  */
 @Service
 @RequiredArgsConstructor
@@ -95,8 +89,7 @@ public class MessageService {
             return new UnreadSummaryResponse(0, Map.of());
         }
 
-        // One count for every task on screen, then folded up per conversation - a conversation
-        // spans several tasks, and only this class knows which ones belong together.
+        // One count per task, then folded up per conversation, which spans several tasks.
         List<Long> allTaskIds = threads.values().stream().flatMap(List::stream).map(Task::getId).toList();
         Map<Long, Long> unreadByTask = new HashMap<>();
         for (MessageRepository.TaskUnreadCount row : messageRepository.countUnreadByTask(allTaskIds, user.getId())) {
@@ -119,9 +112,8 @@ public class MessageService {
     }
 
     /**
-     * Marks everything the reader did not send as read, and tells both sides: the topic so the
-     * sender's ticks flip while they are looking at the thread, the reader's own queue so the
-     * badge clears in any other tab they have open.
+     * Marks everything the reader did not send as read and tells both sides: the topic flips
+     * the sender's ticks, the reader's own queue clears the badge in their other tabs.
      *
      * @return how many messages were actually unread, so a no-op stays silent
      */
@@ -192,8 +184,8 @@ public class MessageService {
         ConversationKey key = ConversationKey.of(task);
         ChatEvent event = ChatEvent.message(key.toString(), response);
         broadcast(key, event);
-        // Deleting a message the other side never read drops their unread count, so they need
-        // the tombstone even with the thread closed.
+        // Deleting an unread message drops the other side's count, so they need the
+        // tombstone even with the thread closed.
         pushToUser(peerOf(task, user), event);
         return response;
     }
@@ -247,11 +239,8 @@ public class MessageService {
 
     /**
      * The user's open threads, keyed by the person on the other side and holding every task
-     * they share, oldest first within each thread.
-     *
-     * <p>One paid-task lookup covers every task on screen, then the people this user has hired
-     * but not yet paid are dropped: their thread is not open, so it should not be listed or
-     * counted either.
+     * they share, oldest first. One paid-task lookup covers the lot; people hired but not yet
+     * paid are dropped, since their thread is not open.
      */
     private Map<Long, List<Task>> unlockedThreadsByPeer(User user) {
         List<Task> tasks = user.getRole() == Role.WORKER
