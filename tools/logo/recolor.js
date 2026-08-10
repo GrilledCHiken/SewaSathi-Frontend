@@ -5,11 +5,20 @@
  * the only thing in the repo that should ever be hand-edited. Everything else
  * this toolchain writes is derived from it.
  *
+ * A variant may recolour, relight, both, or neither — see VARIANTS. The site
+ * currently ships the artwork in its own colours (`original` / `original-on-dark`);
+ * the palette-rotating `color` / `on-dark` variants are kept because the recolour
+ * is the non-obvious part and re-deriving it later would be wasteful.
+ *
  * The art has exactly two hue families — green 80-119deg and blue 200-229deg —
- * so each is rotated onto a site-palette hue while its own lightness is left
- * alone. That preserves every gradient, highlight and shadow in the original;
- * only the hue moves. Repainting with flat fills would flatten the shading that
- * makes the mark look dimensional.
+ * so a recolouring variant rotates each onto a site-palette hue while its own
+ * lightness is left alone. That preserves every gradient, highlight and shadow in
+ * the original; only the hue moves. Repainting with flat fills would flatten the
+ * shading that makes the mark look dimensional.
+ *
+ * Every variant, including the identity one, still gets trimmed to its ink and
+ * padded back to a square. The source artwork is 432x327, and LogoMark renders
+ * into a square box — feeding it the raw file stretches the mark.
  *
  * Alpha is never touched. The source is already cut out, and its anti-aliased
  * edge pixels carry partial alpha — quantising those is exactly what produces a
@@ -24,14 +33,24 @@ const SRC = path.join(ROOT, "frontend/SewaSathi/src/assets/images/SewaSathi-logo
 const TEAL_HUE = 190; // #0891b2 family — replaces the original green
 const BLUE_HUE = 213; // #2b8cff family
 
+// The artwork bottoms out near L=0.13 and medians at L=0.36, which is barely
+// separable from #0f172a, so the on-dark lift compresses the whole range into
+// the upper half rather than simply brightening — a flat lift would blow out
+// the highlights.
+const ON_DARK_LIFT = (l) => Math.min(0.95, 0.3 + l * 0.65);
+
+// `hue: false` skips the rotation and keeps the designer's own colours; a null
+// `lift` leaves lightness alone. A variant with neither skips the pixel pass
+// entirely and is trimmed and squared as-is.
 const VARIANTS = {
-  // Light surfaces. Blue gets a small lift because the artwork's navy is darker
-  // than brand blue; the teal already lands in range.
-  color: (l, isBlue) => (isBlue ? Math.min(0.92, l * 1.14) : l),
-  // Navy surfaces. The artwork bottoms out near L=0.30, which is invisible
-  // against #0f172a, so this compresses the whole range into the upper half
-  // rather than simply brightening — a flat lift would blow out the highlights.
-  "on-dark": (l) => Math.min(0.95, 0.3 + l * 0.65),
+  // What the site ships: the artwork's own colours, on light and navy surfaces.
+  original: { hue: false, lift: null },
+  "original-on-dark": { hue: false, lift: ON_DARK_LIFT },
+
+  // Site-palette rotations. Blue gets a small lift because the artwork's navy is
+  // darker than brand blue; the teal already lands in range.
+  color: { hue: true, lift: (l, isBlue) => (isBlue ? Math.min(0.92, l * 1.14) : l) },
+  "on-dark": { hue: true, lift: ON_DARK_LIFT },
 };
 
 const rgb2hsl = (r, g, b) => {
@@ -66,24 +85,30 @@ const hsl2rgb = (h, s, l) => {
 
 /** Square, transparent, centred PNG buffer for one variant. */
 async function master(variant) {
-  const lift = VARIANTS[variant];
-  if (!lift) throw new Error(`unknown variant: ${variant}`);
+  if (!(variant in VARIANTS)) throw new Error(`unknown variant: ${variant}`);
+  const { hue, lift } = VARIANTS[variant];
 
   const { data, info } = await sharp(SRC).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
   const { width: W, height: H, channels: C } = info;
 
-  for (let i = 0; i < data.length; i += C) {
-    if (data[i + 3] === 0) continue;
-    const [h, s, l] = rgb2hsl(data[i], data[i + 1], data[i + 2]);
-    if (s < 0.12) continue; // near-greys: the white seams between the fingers
+  // `original` changes no pixel, so it drops straight through to the squaring.
+  if (hue || lift) {
+    for (let i = 0; i < data.length; i += C) {
+      if (data[i + 3] === 0) continue;
+      const [h, s, l] = rgb2hsl(data[i], data[i + 1], data[i + 2]);
+      if (s < 0.12) continue; // near-greys: the white seams between the fingers
 
-    let nh = null, isBlue = false;
-    if (h >= 60 && h < 160) nh = TEAL_HUE;
-    else if (h >= 180 && h < 260) { nh = BLUE_HUE; isBlue = true; }
-    if (nh === null) continue;
+      // Both hue families are classified either way: a lift-only variant still
+      // has to leave the unrecognised pixels — stray hues, the greys above —
+      // alone, and it needs `isBlue` for the lifts that discriminate on it.
+      let nh = null, isBlue = false;
+      if (h >= 60 && h < 160) nh = TEAL_HUE;
+      else if (h >= 180 && h < 260) { nh = BLUE_HUE; isBlue = true; }
+      if (nh === null) continue;
 
-    const [r, g, b] = hsl2rgb(nh, s, lift(l, isBlue));
-    data[i] = r; data[i + 1] = g; data[i + 2] = b;
+      const [r, g, b] = hsl2rgb(hue ? nh : h, s, lift ? lift(l, isBlue) : l);
+      data[i] = r; data[i + 1] = g; data[i + 2] = b;
+    }
   }
 
   // Trim to the ink, then pad back to a square so every downstream icon is
