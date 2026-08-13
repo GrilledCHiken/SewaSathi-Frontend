@@ -88,8 +88,8 @@ function WorkerSignup() {
 
     setLoading(true);
     try {
-      // No account yet: this only emails a code. /signup/verify is where the account is
-      // actually created, once that code comes back.
+      
+      
       const challenge = await registerWorker({
         fullName: form.fullName.trim(),
         email,

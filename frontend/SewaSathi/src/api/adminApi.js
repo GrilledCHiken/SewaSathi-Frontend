@@ -54,22 +54,18 @@ export async function getUser(id) {
   return data;
 }
 
-/**
- * `reason` is mandatory server-side: it is emailed to the account holder verbatim and
- * repeated on the login screen when they next try to sign in.
- */
+
 export async function suspendUser(id, reason) {
   const { data } = await httpClient.patch(`/admin/users/${id}/suspend`, { reason });
   return data;
 }
 
-/** `note` is optional and only enriches the reinstatement email. */
+
 export async function unsuspendUser(id, note) {
   const { data } = await httpClient.patch(`/admin/users/${id}/unsuspend`, { note });
   return data;
 }
 
-/** The Contact Us inbox. Omit `handled` for everything, or pass true/false to narrow. */
 export async function listInquiries(filters = {}) {
   const { data } = await httpClient.get("/admin/inquiries", { params: filters });
   return data;
@@ -90,13 +86,7 @@ export async function listReports() {
   return data;
 }
 
-/**
- * Downloads a generated report (requirement #14).
- *
- * The endpoint needs a bearer token, which a plain `<a href>` cannot send, so the file comes
- * back over the authenticated client as a blob and is handed to the browser as an object
- * URL — the same approach fileApi.js uses for authenticated uploads.
- */
+
 export async function downloadReport(slug, format, { from, to } = {}) {
   const response = await httpClient.get(`/admin/reports/${slug}`, {
     responseType: "blob",

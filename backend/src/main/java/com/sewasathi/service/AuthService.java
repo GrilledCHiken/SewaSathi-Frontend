@@ -48,12 +48,7 @@ public class AuthService {
     private final RegistrationOtpService registrationOtpService;
     private final GoogleIdentityService googleIdentityService;
 
-    /**
-     * Starts a customer signup. No account is created here: the details are parked as a
-     * {@link PendingRegistration} and a six-digit code goes to the address, which
-     * {@link #completeRegistration} exchanges for the real {@code users} row. A mistyped
-     * address therefore never reaches the accounts table.
-     */
+   
     @Transactional
     public PendingRegistrationResponse registerCustomer(RegisterCustomerRequest request) {
         String email = request.getEmail().trim().toLowerCase();
@@ -91,19 +86,13 @@ public class AuthService {
         return PendingRegistrationResponse.from(registrationOtpService.issue(draft));
     }
 
-    /** Sends another code for a signup already in flight. */
     @Transactional(noRollbackFor = OtpException.class)
     public PendingRegistrationResponse resendRegistrationOtp(ResendOtpRequest request) {
         return PendingRegistrationResponse.from(
                 registrationOtpService.resend(request.getChallengeToken()));
     }
 
-    /**
-     * Finishes a signup: checks the emailed code and only then creates the account. The
-     * availability check runs again rather than being trusted from submit time. {@code
-     * noRollbackFor} is repeated from {@link RegistrationOtpService#verify}, which joins this
-     * transaction - without it every wrong guess would roll back its own attempt increment.
-     */
+   
     @Transactional(noRollbackFor = OtpException.class)
     public AuthResponse completeRegistration(VerifyRegistrationRequest request) {
         PendingRegistration pending =
@@ -134,17 +123,11 @@ public class AuthService {
 
         registrationOtpService.consume(pending);
 
-        // The account is usable straight away; the client sends the user to the sign-in page
-        // rather than being handed a token here.
+    
         return AuthResponse.registered(UserResponse.from(user));
     }
 
-    /**
-     * Signs in with a Google ID token, creating the account if this is the first time. Matching
-     * is by verified email and an existing account is linked rather than refused, which is safe
-     * because {@link GoogleIdentityService} insists on {@code email_verified}. A brand-new
-     * account is always a CUSTOMER - becoming a worker needs documents and admin approval.
-     */
+    
     @Transactional
     public GoogleSignInOutcome loginWithGoogle(GoogleSignInRequest request, DeviceContext device) {
         GoogleIdentity identity = googleIdentityService.verify(request.getCredential());
@@ -164,8 +147,7 @@ public class AuthService {
             return new GoogleSignInOutcome.NeedsProfile(GoogleSignupResponse.from(identity));
         }
 
-        // A half-finished OTP signup for this address can never be completed now, and would
-        // otherwise leave a live code pointing at an account created another way.
+    
         registrationOtpService.discard(identity.email());
 
         User user = User.builder()
@@ -185,10 +167,6 @@ public class AuthService {
         return new GoogleSignInOutcome.Created(buildAuthResponse(user, device));
     }
 
-    /**
-     * Records the Google account against an existing user so later sign-ins can be pinned to
-     * the subject rather than the address alone.
-     */
     private void link(User user, GoogleIdentity identity) {
         boolean changed = false;
 
@@ -208,10 +186,7 @@ public class AuthService {
         }
     }
 
-    /**
-     * Signs a user in. Check order matters: lockout and password come first, so an account's
-     * suspension state cannot be probed without the correct password.
-     */
+   
     @Transactional(noRollbackFor = InvalidCredentialsException.class)
     public AuthResponse login(LoginRequest request, DeviceContext device) {
         String email = request.getEmail().trim().toLowerCase();
@@ -225,9 +200,7 @@ public class AuthService {
             );
         }
 
-        // An account created through Google has no password to check. Saying so leaks nothing
-        // signup's 409 does not already leak, and forgot-password can give it one
-        // (PasswordResetService.reset).
+        
         if (user.getPasswordHash() == null) {
             throw new InvalidCredentialsException(
                     "This account signs in with Google. Use the Google button, "
@@ -274,21 +247,14 @@ public class AuthService {
         }
     }
 
-    /**
-     * Issues the access/refresh pair that completes a sign-in. The access token is short-lived;
-     * the refresh token keeps the user signed in and, unlike the JWT, can be revoked
-     * (requirement #2).
-     */
+    
     private AuthResponse buildAuthResponse(User user, DeviceContext device) {
         String token = jwtService.generateToken(user.getEmail());
         String refreshToken = refreshTokenService.issue(user, device);
         return AuthResponse.authenticated(token, refreshToken, UserResponse.from(user));
     }
 
-    /**
-     * Exchanges a refresh token for a fresh pair. The old token is spent in the process, so
-     * a captured one stops working as soon as the real client refreshes again.
-     */
+    
     @Transactional
     public AuthResponse refresh(String refreshToken, DeviceContext device) {
         RefreshTokenService.RotationResult rotated = refreshTokenService.rotate(refreshToken, device);

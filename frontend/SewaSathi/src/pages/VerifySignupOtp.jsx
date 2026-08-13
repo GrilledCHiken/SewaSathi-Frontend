@@ -20,14 +20,7 @@ function formatCountdown(totalSeconds) {
   return `${minutes}:${String(seconds).padStart(2, "0")}`;
 }
 
-/**
- * Step between filling in the signup form and having an account.
- *
- * The account does not exist yet: the server is holding what was submitted and waiting for
- * the code it emailed. Everything this screen needs arrives in router state from the signup
- * page, so landing here directly (a bookmark, a refresh) has nothing to work with and bounces
- * back to /signup rather than showing an input that could never succeed.
- */
+
 function VerifySignupOtp() {
   const location = useLocation();
   const navigate = useNavigate();

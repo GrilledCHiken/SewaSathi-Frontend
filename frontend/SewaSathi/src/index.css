@@ -45,12 +45,7 @@
   --color-ink-faint: #94a3b8; /* placeholders, disabled */
   --color-ink-invert: #ffffff;
 
-  /* ------------------------------------------------------------------ */
-  /* Status                                                              */
-  /* ------------------------------------------------------------------ */
-  /* Promoted out of the ad-hoc stock-Tailwind usage. Each tone has a solid
-     (dots, bars, fills), a -soft (badge/alert background) and an -ink
-     (text that sits on -soft at an accessible contrast). */
+ 
   --color-success: #059669;
   --color-success-soft: #ecfdf5;
   --color-success-ink: #047857;
