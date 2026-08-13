@@ -1,7 +1,6 @@
 package com.sewasathi;
 
 import com.jayway.jsonpath.JsonPath;
-import com.sewasathi.repository.UserRepository;
 import com.sewasathi.service.EmailService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -30,9 +29,6 @@ class RefreshFlowIntegrationTest {
 
     @Autowired
     private MockMvc mockMvc;
-
-    @Autowired
-    private UserRepository userRepository;
 
     /** Signing up now needs the emailed code, which SignupFlow reads back off this spy. */
     @MockitoSpyBean

@@ -10,6 +10,13 @@ import java.util.List;
 
 public class UserPrincipal implements UserDetails {
 
+    /**
+     * Pinned rather than left to the compiler: Spring Security writes the principal into the
+     * HTTP session, so a generated id would change whenever this class does and every session
+     * live at deploy time would fail to deserialise.
+     */
+    private static final long serialVersionUID = 1L;
+
     private final User user;
 
     public UserPrincipal(User user) {

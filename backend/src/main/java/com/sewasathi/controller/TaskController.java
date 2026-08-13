@@ -2,7 +2,6 @@ package com.sewasathi.controller;
 
 import com.sewasathi.dto.request.AssignWorkerRequest;
 import com.sewasathi.dto.request.CreateTaskRequest;
-import com.sewasathi.dto.response.DashboardSummaryResponse;
 import com.sewasathi.dto.response.TaskResponse;
 import com.sewasathi.entity.TaskStatus;
 import com.sewasathi.security.UserPrincipal;
