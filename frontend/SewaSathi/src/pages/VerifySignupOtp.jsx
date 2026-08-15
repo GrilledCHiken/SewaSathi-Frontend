@@ -61,8 +61,8 @@ function VerifySignupOtp() {
           code: value,
         });
 
-        // A worker still has documents to upload, and that endpoint needs a session. The
-        // password was stashed in memory by the signup form for exactly this moment.
+
+
         const password = isWorker ? takeSignupPassword() : null;
         if (password) {
           try {
@@ -71,9 +71,10 @@ function VerifySignupOtp() {
             navigate("/signup/worker/verify", { replace: true });
             return;
           } catch {
-            // The account exists either way; falling back beats stranding them.
-            // WorkerLayout still puts the verification form in front of them once
-            // they sign in.
+
+
+
+
           }
         }
 

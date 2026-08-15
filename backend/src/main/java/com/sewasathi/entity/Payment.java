@@ -54,7 +54,7 @@ public class Payment {
     @Column(nullable = false, precision = 10, scale = 2)
     private BigDecimal amount;
 
-    /** Snapshot of the task budget when checkout started, so the split stays auditable. */
+    /** Snapshot of \the task budget when checkout started, so the split stays auditable. */
     @Column(name = "task_total", nullable = false, precision = 10, scale = 2)
     private BigDecimal taskTotal;
 
