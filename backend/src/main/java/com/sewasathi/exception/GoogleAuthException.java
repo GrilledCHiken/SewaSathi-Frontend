@@ -11,6 +11,8 @@ package com.sewasathi.exception;
  */
 public class GoogleAuthException extends RuntimeException {
 
+    private static final long serialVersionUID = 1L;
+
     public GoogleAuthException(String message) {
         super(message);
     }

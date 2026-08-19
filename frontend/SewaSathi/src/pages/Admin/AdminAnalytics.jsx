@@ -195,7 +195,7 @@ export default function AdminAnalytics() {
         },
         {
           label: "Total Revenue",
-          value: formatMoney(analytics.totalRevenue),
+          value: formatMoney(analytics.mytotalRevenue),
           hint: `Across ${formatCount(analytics.paidBookings)} paid ${
             analytics.paidBookings === 1 ? "booking" : "bookings"
           }`,

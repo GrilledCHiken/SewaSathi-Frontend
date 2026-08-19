@@ -2,6 +2,8 @@ package com.sewasathi.exception;
 
 public class SuspendedAccountException extends RuntimeException {
 
+    private static final long serialVersionUID = 1L;
+
     private static final String GENERIC = "This account has been suspended. Contact support for details.";
 
     public SuspendedAccountException() {

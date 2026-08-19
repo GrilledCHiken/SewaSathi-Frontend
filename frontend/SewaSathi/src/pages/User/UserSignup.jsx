@@ -100,8 +100,7 @@ function UserSignup() {
 
     setLoading(true)
     try {
-      // No account yet: this only emails a code. /signup/verify is where the account is
-      // actually created, once that code comes back.
+      
       const challenge = await registerCustomer({
         fullName: form.fullName.trim(),
         email,
@@ -114,8 +113,7 @@ function UserSignup() {
         state: { ...challenge, email, role: 'CUSTOMER' },
       })
     } catch (err) {
-      // An address already registered is something only the server can detect, so that
-      // message has to reach the email field the same way a local failure would.
+      
       const { field, message } = parseSignupError(err)
       if (field) {
         setErrors((prev) => ({ ...prev, [field]: message }))
@@ -256,8 +254,9 @@ function UserSignup() {
                     </span>
                   ) : null
                 }
-              />
-              {/* Softer than an error: the field is simply not finished yet. */}
+            />
+            
+
               {!errors.confirmPassword && passwordsMismatch && (
                 <p className="mt-1.5 text-xs font-medium text-warning-ink">
                   Passwords don&apos;t match yet.
@@ -308,8 +307,7 @@ function UserSignup() {
         </Button>
       </form>
 
-      {/* Signing up this way skips the emailed code — Google has already established that the
-          address belongs to them, which is the only thing the code is there to prove. */}
+      
       <GoogleSignInButton onCredential={handleGoogleCredential} text="signup_with" />
     </AuthLayout>
   )

@@ -1,7 +1,6 @@
 package com.sewasathi;
 
 import com.jayway.jsonpath.JsonPath;
-import com.sewasathi.entity.User;
 import com.sewasathi.repository.UserRepository;
 import com.sewasathi.service.EmailService;
 import org.junit.jupiter.api.Test;

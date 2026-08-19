@@ -23,9 +23,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -45,8 +42,6 @@ public class PaymentService {
     private static final String KHALTI_RETURN_PATH = "/dashboard/payments/khalti/callback";
 
     private static final Logger log = LoggerFactory.getLogger(PaymentService.class);
-
-    private static final DateTimeFormatter RECEIPT_DATE = DateTimeFormatter.ofPattern("MMM d, yyyy HH:mm");
 
     private final PaymentRepository paymentRepository;
     private final TaskRepository taskRepository;

@@ -67,7 +67,6 @@ class RegistrationOtpServiceTest {
                 .build();
     }
 
-    /** Issues a challenge and returns the code that went out with it. */
     @SuppressWarnings("unchecked")
     private String issueAndReadCode(PendingRegistration draft) {
         service.issue(draft);
@@ -96,8 +95,6 @@ class RegistrationOtpServiceTest {
 
         service.issue(draft);
 
-        // Otherwise someone who mistyped their address, gave up, and came back would be
-        // turned away by the unique index on a row they can no longer complete.
         verify(pendingRegistrationRepository).deleteByEmail("signup@example.com");
     }
 
@@ -108,8 +105,6 @@ class RegistrationOtpServiceTest {
         org.mockito.Mockito.doThrow(undeliverable)
                 .when(emailService).sendTemplate(anyString(), anyString(), anyString(), any());
 
-        // The failure has to reach the caller: registration cannot go on to tell the user to
-        // check an inbox that will never receive anything.
         assertThatThrownBy(() -> service.issue(draft)).isSameAs(undeliverable);
     }
 
@@ -123,8 +118,6 @@ class RegistrationOtpServiceTest {
         PendingRegistration verified = service.verify(draft.getChallengeToken(), code);
 
         assertThat(verified).isSameAs(draft);
-        // The account still has to be created; deleting the row before that succeeds would
-        // strand the user with nothing to retry.
         verify(pendingRegistrationRepository, never()).delete(draft);
     }
 
@@ -153,7 +146,6 @@ class RegistrationOtpServiceTest {
                     .isInstanceOf(OtpException.class);
         }
 
-        // Destroyed rather than left to be ground down at leisure.
         verify(pendingRegistrationRepository).delete(draft);
     }
 
@@ -176,8 +168,6 @@ class RegistrationOtpServiceTest {
         when(pendingRegistrationRepository.findByChallengeToken("no-such-token"))
                 .thenReturn(Optional.empty());
 
-        // Not "no such signup": that would turn the endpoint into a way of finding out
-        // whether a given address has one in flight.
         assertThatThrownBy(() -> service.verify("no-such-token", "123456"))
                 .isInstanceOf(OtpException.class)
                 .hasMessageContaining("not correct");
@@ -206,7 +196,6 @@ class RegistrationOtpServiceTest {
 
         service.resend(draft.getChallengeToken());
 
-        // The user is being given a new puzzle, not another go at the old one.
         assertThat(passwordEncoder.matches(firstCode, draft.getOtpHash())).isFalse();
         assertThat(draft.getAttempts()).isZero();
         assertThatThrownBy(() -> service.verify(draft.getChallengeToken(), firstCode))

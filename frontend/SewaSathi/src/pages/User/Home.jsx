@@ -225,7 +225,7 @@ function Home() {
                   : "Verified local professionals across Nepal"}
               </span>
 
-              <h1 className="mt-6 text-[2.75rem] font-extrabold leading-[1.05] tracking-tight text-ink sm:text-6xl lg:text-[4rem]">
+              <h1 className="mt-6 text-[1.75rem] font-extrabold leading-[1.05] tracking-tight text-ink sm:text-6xl lg:text-[4rem]">
                 Trusted help{" "}
                 <span className="text-brand">is always nearby</span>
               </h1>

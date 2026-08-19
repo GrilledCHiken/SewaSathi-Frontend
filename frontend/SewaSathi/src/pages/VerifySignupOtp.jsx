@@ -20,14 +20,7 @@ function formatCountdown(totalSeconds) {
   return `${minutes}:${String(seconds).padStart(2, "0")}`;
 }
 
-/**
- * Step between filling in the signup form and having an account.
- *
- * The account does not exist yet: the server is holding what was submitted and waiting for
- * the code it emailed. Everything this screen needs arrives in router state from the signup
- * page, so landing here directly (a bookmark, a refresh) has nothing to work with and bounces
- * back to /signup rather than showing an input that could never succeed.
- */
+
 function VerifySignupOtp() {
   const location = useLocation();
   const navigate = useNavigate();
@@ -68,8 +61,8 @@ function VerifySignupOtp() {
           code: value,
         });
 
-        // A worker still has documents to upload, and that endpoint needs a session. The
-        // password was stashed in memory by the signup form for exactly this moment.
+
+
         const password = isWorker ? takeSignupPassword() : null;
         if (password) {
           try {
@@ -78,9 +71,10 @@ function VerifySignupOtp() {
             navigate("/signup/worker/verify", { replace: true });
             return;
           } catch {
-            // The account exists either way; falling back beats stranding them.
-            // WorkerLayout still puts the verification form in front of them once
-            // they sign in.
+
+
+
+
           }
         }
 

@@ -53,22 +53,14 @@ export function AuthProvider({ children }) {
   const login = useCallback(async ({ email, password }) => {
     const data = await authApi.login({ email, password });
 
-    // Both halves: the access token expires in minutes, and the refresh token beside it
-    // is what keeps the session alive.
+  
     setTokens(data);
     const sessionUser = toSessionUser(data.user);
     setSession(sessionUser);
     return { status: "authenticated", user: sessionUser };
   }, []);
 
-  /**
-   * Signs in with a Google ID token.
-   *
-   * Returns `{ status: "authenticated", user }` when a session came back — the same shape
-   * `login` returns, so callers can route on it identically — or
-   * `{ status: "profileCompletionRequired", ...details }` when Google checked out but the
-   * account still needs the phone number Google does not supply.
-   */
+  
   const loginWithGoogle = useCallback(async ({ credential, phone } = {}) => {
     const { data, status } = await authApi.signInWithGoogle({ credential, phone });
 
@@ -82,8 +74,7 @@ export function AuthProvider({ children }) {
     return { status: "authenticated", user: sessionUser, created: status === 201 };
   }, []);
 
-  // Registering creates nothing: it emails a six-digit code and returns the challenge that
-  // identifies it. The account exists only after verifyRegistration.
+ 
   const registerCustomer = useCallback(
     (payload) => authApi.registerCustomer(payload),
     [],
@@ -94,11 +85,7 @@ export function AuthProvider({ children }) {
     [],
   );
 
-  /**
-   * Spends the emailed code and creates the account. Still returns no token — the account
-   * is usable right away, and the signup pages send the user to /login to enter their
-   * password once (the worker flow signs in itself, because step two needs a session).
-   */
+  
   const verifyRegistration = useCallback(async (payload) => {
     const { user } = await authApi.verifyRegistration(payload);
     return toSessionUser(user);
@@ -130,8 +117,7 @@ export function AuthProvider({ children }) {
 
   const logout = useCallback(async () => {
     const refreshToken = getRefreshToken();
-    // Clear locally first, and unconditionally: if the network call fails the user must
-    // still end up signed out on this device rather than stuck in a half-session.
+    
     clearToken();
     setSession(null);
 
@@ -144,10 +130,7 @@ export function AuthProvider({ children }) {
     }
   }, []);
 
-  /**
-   * Folds a fresh /users/me-shaped payload into the session, so the header avatar and name
-   * update from the response a profile edit already returned rather than by refetching.
-   */
+  
   const applyUserUpdate = useCallback((user) => {
     setSession(toSessionUser(user));
   }, []);

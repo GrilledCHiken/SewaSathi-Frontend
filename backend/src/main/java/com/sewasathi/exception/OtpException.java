@@ -10,6 +10,8 @@ package com.sewasathi.exception;
  */
 public class OtpException extends RuntimeException {
 
+    private static final long serialVersionUID = 1L;
+
     private OtpException(String message) {
         super(message);
     }
